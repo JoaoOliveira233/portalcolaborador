@@ -686,7 +686,7 @@ async function loadProfile() {
     const isAdmin = role === 'admin';
 
     // SEM PERMISSÃO: Mecânico, Gestor Oficina e Apontador
-    if (role === 'mecanico' || role === 'gestor_oficina' || role === 'apontador') {
+    if (role === 'mecanico' || role === 'gestor_oficina') {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = 'flex';
       document.getElementById('topbar-user-name').textContent = data.nome || data.email;
@@ -700,8 +700,8 @@ async function loadProfile() {
       document.querySelectorAll('.btn-danger').forEach(el => el.style.display = 'none');
     }
 
-    // TQS: tudo menos acrescentar novo stock (sem btn-novo-epc)
-    if (role === 'tqs') {
+    // TQS e APONTADOR: tudo menos acrescentar novo stock
+    if (role === 'tqs' || role === 'apontador') {
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-flex');
       if (document.getElementById('btn-novo-epc')) document.getElementById('btn-novo-epc').style.display = 'none';
     }
