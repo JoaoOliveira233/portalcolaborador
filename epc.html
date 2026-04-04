@@ -687,15 +687,15 @@ async function loadProfile() {
     document.getElementById('topbar-user-name').textContent = window.innerWidth < 768 ? nomeCompleto.split(' ')[0] : nomeCompleto;
     const role = data.role;
     const isAdmin = role === 'admin';
+    const roleLabels = {"admin": "Administrador", "tqs": "Técnico QSA", "apontador": "Apontador", "mecanico": "Mecânico", "gestor_oficina": "Gestor de Oficina", "viewer": "Visualizador"};
+    const roleEl = document.getElementById('topbar-user-role');
+    if (roleEl) roleEl.textContent = roleLabels[role] || role;
 
     // SEM PERMISSÃO: Mecânico, Gestor Oficina e Apontador
     if (role === 'mecanico' || role === 'gestor_oficina') {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app-screen').style.display = 'flex';
       document.getElementById('topbar-user-name').textContent = data.nome || data.email;
-    const roleLabels = {"admin": "Administrador", "tqs": "Técnico QSA", "apontador": "Apontador", "mecanico": "Mecânico", "gestor_oficina": "Gestor de Oficina", "viewer": "Visualizador"};
-    const roleEl = document.getElementById('topbar-user-role');
-    if (roleEl) roleEl.textContent = roleLabels[data.role] || data.role;
       document.querySelector('.main').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;gap:16px;"><div style="font-size:64px;">🚫</div><div style="font-family:Barlow Condensed,sans-serif;font-size:28px;font-weight:700;color:#1b2a4a;">Sem Permissão</div><div style="font-size:15px;color:#9099ab;max-width:400px;">Não tem permissão para aceder ao Portal de Gestão de EPCs.<br>Contacte o administrador do sistema.</div><a href="index.html" style="margin-top:8px;background:#1b2a4a;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">← Voltar ao Portal</a></div>';
       return;
     }
