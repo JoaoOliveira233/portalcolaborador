@@ -1084,6 +1084,7 @@ function renderInspecoes() {
   if (!dados.length) { body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">🔍</div>Sem registos</td></tr>'; return; }
   const tipoLabel = { inspecao: '🔍 Inspecção', manutencao: '🔧 Manutenção', regresso: '✅ Regresso' };
   const resLabel = { ok: '<span class="badge badge-green">OK</span>', danificado: '<span class="badge badge-yellow">Danificado</span>', desaparecido: '<span class="badge badge-red">Desaparecido</span>', enviado: '<span class="badge badge-orange">Enviado</span>', aprovado: '<span class="badge badge-green">Aprovado</span>', reprovado: '<span class="badge badge-red">Reprovado</span>' };
+  const podeApagarInsp = currentProfile?.role === 'admin';
   body.innerHTML = dados.map(i => `
     <tr>
       <td>${i.data}</td>
@@ -1093,7 +1094,7 @@ function renderInspecoes() {
       <td>${resLabel[i.resultado] || i.resultado}</td>
       <td>${i.proxima_data || '—'}</td>
       <td style="font-size:12px;color:var(--gray-400);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${i.observacoes||''}">${i.observacoes || '—'}</td>
-      <td><button class="btn btn-danger btn-sm btn-delete-insp" onclick="deleteInspecao('${i.id}')">🗑️</button></td>
+      <td>${podeApagarInsp ? `<button class="btn btn-danger btn-sm" onclick="deleteInspecao('${i.id}')">🗑️</button>` : ''}</td>
     </tr>
   `).join('');
 }
