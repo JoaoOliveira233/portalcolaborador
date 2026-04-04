@@ -706,10 +706,12 @@ async function loadProfile() {
       document.querySelectorAll('.btn-danger').forEach(el => el.style.display = 'none');
     }
 
-    // TQS e APONTADOR: tudo menos acrescentar novo stock
+    // TQS e APONTADOR: tudo menos acrescentar novo stock e apagar inspecções
     if (role === 'tqs' || role === 'apontador') {
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-flex');
       if (document.getElementById('btn-novo-epc')) document.getElementById('btn-novo-epc').style.display = 'none';
+      // Não podem apagar registos de inspecção
+      document.querySelectorAll('.btn-delete-insp').forEach(el => el.style.display = 'none');
     }
 
     // ADMIN: tudo
@@ -1091,7 +1093,7 @@ function renderInspecoes() {
       <td>${resLabel[i.resultado] || i.resultado}</td>
       <td>${i.proxima_data || '—'}</td>
       <td style="font-size:12px;color:var(--gray-400);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${i.observacoes||''}">${i.observacoes || '—'}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteInspecao('${i.id}')">🗑️</button></td>
+      <td><button class="btn btn-danger btn-sm btn-delete-insp" onclick="deleteInspecao('${i.id}')">🗑️</button></td>
     </tr>
   `).join('');
 }
