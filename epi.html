@@ -300,7 +300,7 @@
         <div class="page-header">
           <div><div class="page-title">Dashboard</div><div class="page-subtitle">Visão geral do stock</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-outline btn-sm" onclick="exportPDF('todos')">📄 PDF Todos EPIs</button>
+            <button class="btn btn-outline btn-sm pdf-export" onclick="exportPDF('todos')">📄 PDF Todos EPIs</button>
             <button class="btn btn-success btn-sm admin-only" onclick="exportExcel('todos')" style="display:none;">📊 Excel Todos EPIs</button>
           </div>
         </div>
@@ -309,7 +309,7 @@
           <div class="table-toolbar">
             <strong style="font-size:15px;color:var(--navy);">⚠️ Alertas de Stock Baixo</strong>
             <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-danger btn-sm" onclick="pedidoCompraPDF()">📄 Pedido de Compra PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="pedidoCompraPDF()">📄 Pedido de Compra PDF</button>
               <button class="btn btn-danger btn-sm admin-only" onclick="pedidoCompraExcel()" style="display:none;">📊 Pedido de Compra Excel</button>
             </div>
           </div>
@@ -853,10 +853,8 @@ async function loadProfile() {
     if (role === 'viewer') {
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
       document.getElementById('btn-nova-entrada').style.display = 'none';
-      document.querySelectorAll('.btn-danger').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('button:not(.btn-outline)').forEach(el => {
-        if (el.textContent.includes('Guardar') || el.textContent.includes('Nova') || el.textContent.includes('Editar') || el.textContent.includes('Apagar')) el.style.display = 'none';
-      });
+      // Esconder só botões de acção (não os de PDF)
+      document.querySelectorAll('.btn-danger:not(.pdf-export)').forEach(el => el.style.display = 'none');
     }
 
     // TQS e APONTADOR: tudo menos acrescentar novo stock
