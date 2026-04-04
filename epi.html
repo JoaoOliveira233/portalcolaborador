@@ -831,7 +831,20 @@ async function loadProfile() {
     document.getElementById('topbar-user-name').textContent = window.innerWidth < 768 ? primeiroNome : nomeCompleto;
 
     // Mostrar seccao admin
-    const isAdmin = data.role === 'admin';
+    const role = data.role;
+    const isAdmin = role === 'admin';
+    const isTqs = role === 'tqs';
+    const isApontador = role === 'apontador';
+    const isViewer = role === 'viewer';
+
+    // Viewer - read only
+    if (isViewer) {
+      document.querySelectorAll('.admin-only, .btn-primary, .btn-danger').forEach(el => el.style.display = 'none');
+      document.getElementById('btn-nova-entrada').style.display = 'none';
+      return;
+    }
+
+    // Nova Entrada: admin e TQS nao (TQS nao pode acrescentar stock)
     document.getElementById('btn-nova-entrada').style.display = isAdmin ? 'flex' : 'none';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
 

@@ -190,6 +190,7 @@
     <div class="portal-nav-item active" onclick="navigate('home')" id="nav-home">🏠 Início</div>
     <a class="portal-nav-item module-link" href="qsa.html" id="nav-qsa">🛡️ Portal QSA</a>
     <a class="portal-nav-item module-link" href="#" id="nav-oficina" style="opacity:.5;cursor:not-allowed;" onclick="return false;">🔩 Oficina <span style="font-size:10px;background:rgba(255,255,255,.2);padding:1px 6px;border-radius:10px;margin-left:4px;">Em breve</span></a>
+    <a class="portal-nav-item module-link" href="#" id="nav-armazem" style="opacity:.5;cursor:not-allowed;" onclick="return false;">📦 Armazém <span style="font-size:10px;background:rgba(255,255,255,.2);padding:1px 6px;border-radius:10px;margin-left:4px;">Em breve</span></a>
     <a class="portal-nav-item module-link" href="#" id="nav-rh" style="opacity:.5;cursor:not-allowed;" onclick="return false;">👔 RH <span style="font-size:10px;background:rgba(255,255,255,.2);padding:1px 6px;border-radius:10px;margin-left:4px;">Em breve</span></a>
     <div class="portal-nav-item" onclick="navigate('colaboradores')" id="nav-colabs">👷 Colaboradores</div>
     <div class="portal-nav-item admin-only" onclick="navigate('utilizadores')" id="nav-users" style="display:none;">👥 Utilizadores <span id="nav-pending" style="display:none;background:var(--red);color:white;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></div>
@@ -216,6 +217,12 @@
           <div class="module-card-icon">🔩</div>
           <div class="module-card-title">Portal Oficina</div>
           <div class="module-card-desc">Gestão de oficina e manutenção de equipamentos e viaturas.</div>
+          <span class="module-card-badge">Em breve</span>
+        </div>
+        <div class="module-card" style="opacity:.6;cursor:not-allowed;">
+          <div class="module-card-icon">📦</div>
+          <div class="module-card-title">Portal Armazém</div>
+          <div class="module-card-desc">Gestão de armazém, materiais e requisições.</div>
           <span class="module-card-badge">Em breve</span>
         </div>
         <div class="module-card" style="opacity:.6;cursor:not-allowed;">
@@ -518,20 +525,32 @@ async function renderUtilizadores() {
 
   const body = document.getElementById('users-body');
   const activeUsers = (users || []).filter(u => u.ativo && u.role !== 'pendente');
+  const roles = ['admin','tqs','apontador','mecanico','gestor_oficina','viewer'];
+  const roleLabel = { admin:'Admin', tqs:'TQS', apontador:'Apontador', mecanico:'Mecânico', gestor_oficina:'Gestor Oficina', viewer:'Viewer' };
+  const roleBadge = { admin:'badge-blue', tqs:'badge-green', apontador:'badge-blue', mecanico:'badge-gray', gestor_oficina:'badge-gray', viewer:'badge-gray' };
   body.innerHTML = activeUsers.map(u => `
     <tr>
       <td><strong>${u.nome || '—'}</strong><br><span style="font-size:12px;color:var(--gray-400);">${u.email}</span></td>
-      <td><span class="badge ${u.role === 'admin' ? 'badge-blue' : 'badge-gray'}">${u.role === 'admin' ? 'Admin' : 'Utilizador'}</span></td>
+      <td>
+        ${u.id !== currentUser.id ? `
+        <select onchange="changeRole('${u.id}', this.value)" style="padding:4px 8px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:12px;font-family:'Barlow',sans-serif;">
+          ${roles.map(r => `<option value="${r}" ${u.role===r?'selected':''}>${roleLabel[r]}</option>`).join('')}
+        </select>` : `<span class="badge badge-blue">Admin (você)</span>`}
+      </td>
       <td><span class="badge badge-green">Ativo</span></td>
       <td style="font-size:13px;color:var(--gray-400);">${u.created_at?.slice(0,10) || ''}</td>
-      <td>${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}')">Remover</button>` : '<span style="font-size:12px;color:var(--gray-400);">(você)</span>'}</td>
+      <td>${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}')">Remover</button>` : ''}</td>
     </tr>
   `).join('');
 }
 
 async function approveUser(id) {
-  await sb.from('profiles').update({ ativo: true, role: 'utilizador' }).eq('id', id);
+  await sb.from('profiles').update({ ativo: true, role: 'viewer' }).eq('id', id);
   renderUtilizadores();
+}
+
+async function changeRole(id, role) {
+  await sb.from('profiles').update({ role }).eq('id', id);
 }
 async function rejectUser(id) {
   if (!confirm('Recusar este utilizador?')) return;

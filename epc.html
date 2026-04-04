@@ -682,8 +682,21 @@ async function loadProfile() {
     document.getElementById('app-screen').style.display = 'flex';
     const nomeCompleto = data.nome || data.email;
     document.getElementById('topbar-user-name').textContent = window.innerWidth < 768 ? nomeCompleto.split(' ')[0] : nomeCompleto;
-    const isAdmin = data.role === 'admin';
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
+    const role = data.role;
+    const isAdmin = role === 'admin';
+    const isTqs = role === 'tqs';
+    const isViewer = role === 'viewer';
+
+    // Viewer - read only
+    if (isViewer) {
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    } else if (isTqs) {
+      // TQS - can do everything except add new stock
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-flex');
+      document.getElementById('btn-novo-epc')?.style && (document.getElementById('btn-novo-epc').style.display = 'none');
+    } else {
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
+    }
     await loadAll();
   } catch(e) { showAlert('login-alert', 'Erro: ' + e.message, 'error'); }
 }
