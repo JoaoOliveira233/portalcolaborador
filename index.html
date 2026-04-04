@@ -180,7 +180,10 @@
     <span class="topbar-sep">|</span>
     <span class="topbar-title">Portal do Colaborador</span>
     <div class="topbar-right">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
       <span class="topbar-user" id="topbar-user-name"></span>
+      <span id="topbar-user-role" style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500;letter-spacing:.3px;text-transform:uppercase;"></span>
+    </div>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -410,6 +413,9 @@ async function loadProfile() {
     document.getElementById('app-screen').style.display = 'flex';
     const nomeCompleto = data.nome || data.email;
     document.getElementById('topbar-user-name').textContent = window.innerWidth < 768 ? nomeCompleto.split(' ')[0] : nomeCompleto;
+    const roleLabels = {"admin": "Administrador", "tqs": "Técnico QSA", "apontador": "Apontador", "mecanico": "Mecânico", "gestor_oficina": "Gestor de Oficina", "viewer": "Visualizador"};
+    const roleEl = document.getElementById('topbar-user-role');
+    if (roleEl) roleEl.textContent = roleLabels[data.role] || data.role;
     const isAdmin = data.role === 'admin';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
     document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
