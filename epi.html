@@ -357,8 +357,8 @@
           <div><div class="page-title">Saídas de Stock</div><div class="page-subtitle">Registo de entrega de EPIs</div></div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-outline admin-only" onclick="openSaidaModal()" style="display:none;">+ Saída Individual</button>
-            <button class="btn btn-danger" onclick="openDevolucaoModal()">↩️ Devolução</button>
-            <button class="btn btn-primary" onclick="openEntregaModal()">📦 Nova Entrega</button>
+            <button class="btn btn-danger viewer-hidden" onclick="openDevolucaoModal()">↩️ Devolução</button>
+            <button class="btn btn-primary viewer-hidden" onclick="openEntregaModal()">📦 Nova Entrega</button>
           </div>
         </div>
         <div class="table-card">
@@ -853,7 +853,7 @@ async function loadProfile() {
     if (role === 'viewer') {
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
       document.getElementById('btn-nova-entrada').style.display = 'none';
-      // Esconder só botões de acção (não os de PDF)
+      document.querySelectorAll('.viewer-hidden').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.btn-danger:not(.pdf-export)').forEach(el => el.style.display = 'none');
     }
 
@@ -1185,7 +1185,7 @@ async function loadHistorico() {
     return; 
   }
   document.getElementById('btn-export-hist').style.display = 'inline-flex';
-  document.getElementById('btn-devolucao-hist').style.display = 'inline-flex';
+  if (currentProfile?.role !== 'viewer') document.getElementById('btn-devolucao-hist').style.display = 'inline-flex';
 
   const { data } = await sb.from('saidas').select('*, epis(nome,tamanho)').eq('colaborador_id', colabId).order('data', { ascending: false });
   document.getElementById('hist-summary').style.display = 'block';
