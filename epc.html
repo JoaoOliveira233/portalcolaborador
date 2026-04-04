@@ -397,7 +397,7 @@
       <div class="page" id="page-inspecoes">
         <div class="page-header">
           <div><div class="page-title">Inspecções e Manutenções</div><div class="page-subtitle">Histórico de inspecções e manutenções externas</div></div>
-          <button class="btn btn-primary" onclick="openNovaInspecaoModal()">+ Registar</button>
+          <button class="btn btn-primary viewer-hidden" onclick="openNovaInspecaoModal()">+ Registar</button>
         </div>
         <div class="table-card">
           <div class="table-toolbar">
@@ -704,6 +704,7 @@ async function loadProfile() {
     if (role === 'viewer') {
       document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.btn-danger').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.viewer-hidden').forEach(el => el.style.display = 'none');
     }
 
     // TQS e APONTADOR: tudo menos acrescentar novo stock e apagar inspecções
@@ -806,7 +807,7 @@ function renderDashboard() {
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
           <span>${i.locais?.nome || '—'} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal('${i.id}','inspecao')">Registar</button>
+        ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'inspecao\')">Registar</button>' : ''}
       </div>`;
     }).join('');
   }
@@ -824,7 +825,7 @@ function renderDashboard() {
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
           <span>${i.locais?.nome || '—'} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal('${i.id}','manutencao')">Registar</button>
+        ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'manutencao\')">Registar</button>' : ''}
       </div>`;
     }).join('');
   }
@@ -1018,7 +1019,7 @@ function renderInstalacoes() {
       <td><span class="badge ${estadoBadge[i.estado] || 'badge-gray'}">${i.estado}</span></td>
       <td style="display:flex;gap:4px;">
         ${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="editInstalacao('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="deleteInstalacao('${i.id}')">🗑️</button>` : ''}
-        <button class="btn btn-primary btn-sm" onclick="openNovaInspecaoModal('${i.id}','inspecao')">🔍</button>
+        ${currentProfile?.role !== 'viewer' ? `<button class="btn btn-primary btn-sm" onclick="openNovaInspecaoModal('${i.id}','inspecao')">🔍</button>` : ''}
       </td>
     </tr>`;
   }).join('');
