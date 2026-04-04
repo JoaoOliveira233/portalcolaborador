@@ -833,20 +833,37 @@ async function loadProfile() {
     // Mostrar seccao admin
     const role = data.role;
     const isAdmin = role === 'admin';
-    const isTqs = role === 'tqs';
-    const isApontador = role === 'apontador';
-    const isViewer = role === 'viewer';
 
-    // Viewer - read only
-    if (isViewer) {
-      document.querySelectorAll('.admin-only, .btn-primary, .btn-danger').forEach(el => el.style.display = 'none');
-      document.getElementById('btn-nova-entrada').style.display = 'none';
+    // SEM PERMISSÃO: Mecânico e Gestor Oficina
+    if (role === 'mecanico' || role === 'gestor_oficina') {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'flex';
+      document.getElementById('topbar-user-name').textContent = data.nome || data.email;
+      document.querySelector('.main').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;text-align:center;gap:16px;"><div style="font-size:64px;">🚫</div><div style="font-family:Barlow Condensed,sans-serif;font-size:28px;font-weight:700;color:#1b2a4a;">Sem Permissão</div><div style="font-size:15px;color:#9099ab;max-width:400px;">Não tem permissão para aceder ao Portal de Gestão de EPIs.<br>Contacte o administrador do sistema.</div><a href="index.html" style="margin-top:8px;background:#1b2a4a;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">← Voltar ao Portal</a></div>';
       return;
     }
 
-    // Nova Entrada: admin e TQS nao (TQS nao pode acrescentar stock)
-    document.getElementById('btn-nova-entrada').style.display = isAdmin ? 'flex' : 'none';
-    document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
+    // VIEWER: vê tudo, exporta PDF, sem alterações
+    if (role === 'viewer') {
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+      document.getElementById('btn-nova-entrada').style.display = 'none';
+      document.querySelectorAll('.btn-danger').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('button:not(.btn-outline)').forEach(el => {
+        if (el.textContent.includes('Guardar') || el.textContent.includes('Nova') || el.textContent.includes('Editar') || el.textContent.includes('Apagar')) el.style.display = 'none';
+      });
+    }
+
+    // TQS e APONTADOR: tudo menos acrescentar novo stock
+    if (role === 'tqs' || role === 'apontador') {
+      document.getElementById('btn-nova-entrada').style.display = 'none';
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    }
+
+    // ADMIN: tudo
+    if (isAdmin) {
+      document.getElementById('btn-nova-entrada').style.display = 'flex';
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-flex');
+    }
 
     await loadAll();
 
