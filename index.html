@@ -352,22 +352,23 @@
   </div>
 </div>
 
-<!-- Modal Admin - Alterar Password de Utilizador -->
+<!-- Modal Admin - Recuperação Password de Utilizador -->
 <div class="modal-overlay" id="modal-admin-pw">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">🔑 Alterar Password do Utilizador</span>
+      <span class="modal-title">🔑 Recuperação de Password</span>
       <button class="modal-close" onclick="closeModal('modal-admin-pw')">×</button>
     </div>
     <div class="modal-body">
       <div id="admin-pw-alert"></div>
       <input type="hidden" id="admin-pw-user-id">
+      <input type="hidden" id="admin-pw-user-email">
       <div class="form-group"><label>Utilizador</label><input type="text" id="admin-pw-user-nome" readonly style="background:var(--gray-50);"></div>
-      <div class="form-group"><label>Nova Password *</label><input type="password" id="admin-new-pw" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <div style="font-size:13px;color:var(--gray-400);margin-top:8px;">Será enviado um email de recuperação de password para este utilizador.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-admin-pw')">Cancelar</button>
-      <button class="btn btn-primary" onclick="doAdminAlterarPw()">Guardar</button>
+      <button class="btn btn-primary" onclick="doAdminAlterarPw()">📧 Enviar Email</button>
     </div>
   </div>
 </div>
@@ -442,27 +443,23 @@ async function doAlterarPw() {
   setTimeout(() => closeModal('modal-alterar-pw'), 2000);
 }
 
-function openAdminPw(userId, userName) {
+function openAdminPw(userId, userName, userEmail) {
   document.getElementById('admin-pw-user-id').value = userId;
   document.getElementById('admin-pw-user-nome').value = userName;
-  document.getElementById('admin-new-pw').value = '';
+  document.getElementById('admin-pw-user-email').value = userEmail || '';
   document.getElementById('admin-pw-alert').innerHTML = '';
   openModal('modal-admin-pw');
 }
 
 async function doAdminAlterarPw() {
-  const userId = document.getElementById('admin-pw-user-id').value;
-  const newPw = document.getElementById('admin-new-pw').value;
-  if (!newPw || newPw.length < 6) return showAlert('admin-pw-alert', 'A password deve ter pelo menos 6 caracteres.', 'error');
-  // Use Supabase Admin API via edge function - for now use direct update
-  const { error } = await sb.auth.admin?.updateUserById(userId, { password: newPw });
-  if (error) {
-    // Fallback: show instructions
-    showAlert('admin-pw-alert', 'Para alterar a password de outro utilizador, use o painel do Supabase em Authentication → Users.', 'warn');
-    return;
-  }
-  showAlert('admin-pw-alert', 'Password alterada com sucesso!', 'success');
-  setTimeout(() => closeModal('modal-admin-pw'), 2000);
+  const userEmail = document.getElementById('admin-pw-user-email').value;
+  if (!userEmail) return showAlert('admin-pw-alert', 'Erro ao obter email do utilizador.', 'error');
+  const { error } = await sb.auth.resetPasswordForEmail(userEmail, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) return showAlert('admin-pw-alert', error.message, 'error');
+  showAlert('admin-pw-alert', '✅ Email de recuperação enviado para ' + userEmail, 'success');
+  setTimeout(() => closeModal('modal-admin-pw'), 3000);
 }
 
 // Handle password reset redirect - detect token in URL hash immediately
@@ -712,7 +709,7 @@ async function renderUtilizadores() {
       <td><span class="badge badge-green">Ativo</span></td>
       <td style="font-size:13px;color:var(--gray-400);">${u.created_at?.slice(0,10) || ''}</td>
       <td style="display:flex;gap:6px;">${u.id !== currentUser.id ? `
-        <button class="btn btn-outline btn-sm" onclick="openAdminPw('${u.id}','${u.nome||u.email}')">🔑</button>
+        <button class="btn btn-outline btn-sm" onclick="openAdminPw('${u.id}','${u.nome||u.email}','${u.email}')">🔑</button>
         <button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}')">Remover</button>
       ` : '<span style="font-size:12px;color:var(--gray-400);">(você)</span>'}</td>
     </tr>
