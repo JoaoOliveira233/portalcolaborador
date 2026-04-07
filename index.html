@@ -159,7 +159,7 @@
         <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" name="password">
       </div>
       <button class="btn btn-primary btn-full" onclick="doLogin()">Entrar</button>
-      <div class="login-switch">Não tem conta? <a onclick="showRegister()">Registar</a></div>
+      <div class="login-switch">Não tem conta? <a onclick="showRegister()">Registar</a> · <a onclick="showRecuperar()">Esqueci a password</a></div>
     </div>
 
     <div id="register-form" style="display:none;">
@@ -168,6 +168,13 @@
       <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
       <button class="btn btn-primary btn-full" onclick="doRegister()">Criar Conta</button>
       <div class="login-switch">Já tem conta? <a onclick="showLogin()">Entrar</a></div>
+    </div>
+
+    <div id="recuperar-form" style="display:none;">
+      <div style="text-align:center;margin-bottom:16px;font-size:14px;color:var(--gray-600);">Introduza o seu email e receberá um link para redefinir a password.</div>
+      <div class="form-group"><label>Email</label><input type="email" id="rec-email" placeholder="seu@email.com" autocomplete="email"></div>
+      <button class="btn btn-primary btn-full" onclick="doRecuperar()">Enviar Link</button>
+      <div class="login-switch">Voltar ao <a onclick="showLogin()">Login</a></div>
     </div>
   </div>
 </div>
@@ -184,6 +191,7 @@
       <span class="topbar-user" id="topbar-user-name"></span>
       <span id="topbar-user-role" style="font-size:10px;color:rgba(255,255,255,.4);font-weight:500;letter-spacing:.3px;text-transform:uppercase;"></span>
     </div>
+      <button class="btn btn-outline btn-sm" onclick="openAlterarPw()">🔑</button>
       <button class="btn btn-outline btn-sm" onclick="doLogout()">Sair</button>
     </div>
   </div>
@@ -325,6 +333,45 @@
   </div>
 </div>
 
+<!-- Modal Alterar Password -->
+<div class="modal-overlay" id="modal-alterar-pw">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🔑 Alterar Password</span>
+      <button class="modal-close" onclick="closeModal('modal-alterar-pw')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="alterar-pw-alert"></div>
+      <div class="form-group"><label>Nova Password *</label><input type="password" id="new-pw" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <div class="form-group"><label>Confirmar Password *</label><input type="password" id="confirm-pw" placeholder="Repetir password" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-alterar-pw')">Cancelar</button>
+      <button class="btn btn-primary" onclick="doAlterarPw()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Admin - Alterar Password de Utilizador -->
+<div class="modal-overlay" id="modal-admin-pw">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🔑 Alterar Password do Utilizador</span>
+      <button class="modal-close" onclick="closeModal('modal-admin-pw')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="admin-pw-alert"></div>
+      <input type="hidden" id="admin-pw-user-id">
+      <div class="form-group"><label>Utilizador</label><input type="text" id="admin-pw-user-nome" readonly style="background:var(--gray-50);"></div>
+      <div class="form-group"><label>Nova Password *</label><input type="password" id="admin-new-pw" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-admin-pw')">Cancelar</button>
+      <button class="btn btn-primary" onclick="doAdminAlterarPw()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://qumkxsztptvpgqywenmd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1bWt4c3p0cHR2cGdxeXdlbm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1OTAwMzIsImV4cCI6MjA5MDE2NjAzMn0.gxewTnfX-DxXWPIsb8rTbKvDng-jRI21bo8LOCbNzrI';
@@ -355,6 +402,104 @@ document.getElementById('topbar-logo-img').src = 'data:image/png;base64,' + LOGO
     await loadProfile();
   }
 })();
+
+
+// ═══════════════════════════════ PASSWORD ═══════════════════════════════
+
+function showRecuperar() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('recuperar-form').style.display = 'block';
+  document.getElementById('login-alert').innerHTML = '';
+}
+
+async function doRecuperar() {
+  const email = document.getElementById('rec-email').value.trim();
+  if (!email) return showAlert('login-alert', 'Introduza o seu email.', 'error');
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) return showAlert('login-alert', error.message, 'error');
+  showAlert('login-alert', 'Email enviado! Verifique a sua caixa de entrada.', 'success');
+  setTimeout(showLogin, 4000);
+}
+
+function openAlterarPw() {
+  document.getElementById('new-pw').value = '';
+  document.getElementById('confirm-pw').value = '';
+  document.getElementById('alterar-pw-alert').innerHTML = '';
+  openModal('modal-alterar-pw');
+}
+
+async function doAlterarPw() {
+  const newPw = document.getElementById('new-pw').value;
+  const confirmPw = document.getElementById('confirm-pw').value;
+  if (!newPw || newPw.length < 6) return showAlert('alterar-pw-alert', 'A password deve ter pelo menos 6 caracteres.', 'error');
+  if (newPw !== confirmPw) return showAlert('alterar-pw-alert', 'As passwords não coincidem.', 'error');
+  const { error } = await sb.auth.updateUser({ password: newPw });
+  if (error) return showAlert('alterar-pw-alert', error.message, 'error');
+  showAlert('alterar-pw-alert', 'Password alterada com sucesso!', 'success');
+  setTimeout(() => closeModal('modal-alterar-pw'), 2000);
+}
+
+function openAdminPw(userId, userName) {
+  document.getElementById('admin-pw-user-id').value = userId;
+  document.getElementById('admin-pw-user-nome').value = userName;
+  document.getElementById('admin-new-pw').value = '';
+  document.getElementById('admin-pw-alert').innerHTML = '';
+  openModal('modal-admin-pw');
+}
+
+async function doAdminAlterarPw() {
+  const userId = document.getElementById('admin-pw-user-id').value;
+  const newPw = document.getElementById('admin-new-pw').value;
+  if (!newPw || newPw.length < 6) return showAlert('admin-pw-alert', 'A password deve ter pelo menos 6 caracteres.', 'error');
+  // Use Supabase Admin API via edge function - for now use direct update
+  const { error } = await sb.auth.admin?.updateUserById(userId, { password: newPw });
+  if (error) {
+    // Fallback: show instructions
+    showAlert('admin-pw-alert', 'Para alterar a password de outro utilizador, use o painel do Supabase em Authentication → Users.', 'warn');
+    return;
+  }
+  showAlert('admin-pw-alert', 'Password alterada com sucesso!', 'success');
+  setTimeout(() => closeModal('modal-admin-pw'), 2000);
+}
+
+// Handle password reset redirect (when user clicks link in email)
+(async () => {
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery')) {
+    // Show change password modal after login completes
+    const { data } = await sb.auth.getSession();
+    if (data?.session) {
+      currentUser = data.session.user;
+      document.getElementById('login-screen').style.display = 'none';
+      // Show a special "define new password" screen
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('recuperar-form').style.display = 'none';
+      document.getElementById('login-alert').innerHTML = '<div class="alert alert-success">Defina a sua nova password abaixo.</div>';
+      // Show alter pw form inline
+      const card = document.querySelector('.login-card');
+      const div = document.createElement('div');
+      div.id = 'nova-pw-form';
+      div.innerHTML = '<div class="form-group"><label>Nova Password</label><input type="password" id="reset-pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div><div class="form-group"><label>Confirmar</label><input type="password" id="reset-pw2" placeholder="Repetir" autocomplete="new-password"></div><button class="btn btn-primary btn-full" onclick="doResetPw()">Guardar Nova Password</button>';
+      card.appendChild(div);
+    }
+  }
+})();
+
+async function doResetPw() {
+  const pw1 = document.getElementById('reset-pw1').value;
+  const pw2 = document.getElementById('reset-pw2').value;
+  if (!pw1 || pw1.length < 6) return showAlert('login-alert', 'A password deve ter pelo menos 6 caracteres.', 'error');
+  if (pw1 !== pw2) return showAlert('login-alert', 'As passwords não coincidem.', 'error');
+  const { error } = await sb.auth.updateUser({ password: pw1 });
+  if (error) return showAlert('login-alert', error.message, 'error');
+  showAlert('login-alert', 'Password definida com sucesso! A entrar...', 'success');
+  await loadProfile();
+}
 
 function showLogin() {
   document.getElementById('login-form').style.display = 'block';
@@ -545,7 +690,10 @@ async function renderUtilizadores() {
       </td>
       <td><span class="badge badge-green">Ativo</span></td>
       <td style="font-size:13px;color:var(--gray-400);">${u.created_at?.slice(0,10) || ''}</td>
-      <td>${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}')">Remover</button>` : ''}</td>
+      <td style="display:flex;gap:6px;">${u.id !== currentUser.id ? `
+        <button class="btn btn-outline btn-sm" onclick="openAdminPw('${u.id}','${u.nome||u.email}')">🔑</button>
+        <button class="btn btn-danger btn-sm" onclick="removeUser('${u.id}')">Remover</button>
+      ` : '<span style="font-size:12px;color:var(--gray-400);">(você)</span>'}</td>
     </tr>
   `).join('');
 }
