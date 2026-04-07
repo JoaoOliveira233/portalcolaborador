@@ -466,39 +466,44 @@ async function doAdminAlterarPw() {
 }
 
 // Handle password reset redirect (when user clicks link in email)
-(async () => {
-  const hash = window.location.hash;
-  if (hash.includes('type=recovery')) {
-    // Show change password modal after login completes
-    const { data } = await sb.auth.getSession();
-    if (data?.session) {
-      currentUser = data.session.user;
-      document.getElementById('login-screen').style.display = 'none';
-      // Show a special "define new password" screen
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('register-form').style.display = 'none';
-      document.getElementById('recuperar-form').style.display = 'none';
-      document.getElementById('login-alert').innerHTML = '<div class="alert alert-success">Defina a sua nova password abaixo.</div>';
-      // Show alter pw form inline
-      const card = document.querySelector('.login-card');
-      const div = document.createElement('div');
-      div.id = 'nova-pw-form';
-      div.innerHTML = '<div class="form-group"><label>Nova Password</label><input type="password" id="reset-pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div><div class="form-group"><label>Confirmar</label><input type="password" id="reset-pw2" placeholder="Repetir" autocomplete="new-password"></div><button class="btn btn-primary btn-full" onclick="doResetPw()">Guardar Nova Password</button>';
-      card.appendChild(div);
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    currentUser = session.user;
+    // Hide login, show reset form
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('register-form').style.display = 'none';
+    document.getElementById('recuperar-form').style.display = 'none';
+    document.getElementById('login-alert').innerHTML = '';
+    // Show reset password form
+    let resetForm = document.getElementById('nova-pw-form');
+    if (!resetForm) {
+      resetForm = document.createElement('div');
+      resetForm.id = 'nova-pw-form';
+      document.querySelector('.login-card').appendChild(resetForm);
     }
+    resetForm.innerHTML = `
+      <div style="text-align:center;margin-bottom:16px;font-size:15px;font-weight:600;color:var(--navy);">🔑 Definir Nova Password</div>
+      <div id="reset-pw-alert"></div>
+      <div class="form-group"><label>Nova Password</label><input type="password" id="reset-pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <div class="form-group"><label>Confirmar Password</label><input type="password" id="reset-pw2" placeholder="Repetir" autocomplete="new-password"></div>
+      <button class="btn btn-primary btn-full" onclick="doResetPw()">Guardar Nova Password</button>
+    `;
+    resetForm.style.display = 'block';
   }
-})();
+});
 
 async function doResetPw() {
   const pw1 = document.getElementById('reset-pw1').value;
   const pw2 = document.getElementById('reset-pw2').value;
-  if (!pw1 || pw1.length < 6) return showAlert('login-alert', 'A password deve ter pelo menos 6 caracteres.', 'error');
-  if (pw1 !== pw2) return showAlert('login-alert', 'As passwords não coincidem.', 'error');
+  if (!pw1 || pw1.length < 6) return showAlert('reset-pw-alert', 'A password deve ter pelo menos 6 caracteres.', 'error');
+  if (pw1 !== pw2) return showAlert('reset-pw-alert', 'As passwords não coincidem.', 'error');
   const { error } = await sb.auth.updateUser({ password: pw1 });
-  if (error) return showAlert('login-alert', error.message, 'error');
-  showAlert('login-alert', 'Password definida com sucesso! A entrar...', 'success');
-  await loadProfile();
+  if (error) return showAlert('reset-pw-alert', error.message, 'error');
+  showAlert('reset-pw-alert', '✅ Password alterada com sucesso! A entrar...', 'success');
+  setTimeout(async () => {
+    document.getElementById('nova-pw-form').style.display = 'none';
+    await loadProfile();
+  }, 2000);
 }
 
 function showLogin() {
