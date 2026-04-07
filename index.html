@@ -465,32 +465,48 @@ async function doAdminAlterarPw() {
   setTimeout(() => closeModal('modal-admin-pw'), 2000);
 }
 
-// Handle password reset redirect (when user clicks link in email)
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    currentUser = session.user;
-    // Hide login, show reset form
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('register-form').style.display = 'none';
-    document.getElementById('recuperar-form').style.display = 'none';
-    document.getElementById('login-alert').innerHTML = '';
-    // Show reset password form
-    let resetForm = document.getElementById('nova-pw-form');
-    if (!resetForm) {
-      resetForm = document.createElement('div');
-      resetForm.id = 'nova-pw-form';
-      document.querySelector('.login-card').appendChild(resetForm);
-    }
-    resetForm.innerHTML = `
-      <div style="text-align:center;margin-bottom:16px;font-size:15px;font-weight:600;color:var(--navy);">🔑 Definir Nova Password</div>
-      <div id="reset-pw-alert"></div>
-      <div class="form-group"><label>Nova Password</label><input type="password" id="reset-pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
-      <div class="form-group"><label>Confirmar Password</label><input type="password" id="reset-pw2" placeholder="Repetir" autocomplete="new-password"></div>
-      <button class="btn btn-primary btn-full" onclick="doResetPw()">Guardar Nova Password</button>
-    `;
-    resetForm.style.display = 'block';
+// Handle password reset redirect - detect token in URL hash immediately
+function checkRecoveryToken() {
+  const hash = window.location.hash;
+  if (!hash.includes('type=recovery')) return;
+
+  // Extract access token from hash
+  const params = new URLSearchParams(hash.substring(1));
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken) return;
+
+  // Set session with the tokens from the URL
+  sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ data, error }) => {
+    if (error || !data?.session) return;
+    currentUser = data.session.user;
+    showResetPwForm();
+  });
+}
+
+function showResetPwForm() {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('recuperar-form').style.display = 'none';
+  document.getElementById('login-alert').innerHTML = '';
+  let resetForm = document.getElementById('nova-pw-form');
+  if (!resetForm) {
+    resetForm = document.createElement('div');
+    resetForm.id = 'nova-pw-form';
+    document.querySelector('.login-card').appendChild(resetForm);
   }
-});
+  resetForm.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;font-size:15px;font-weight:600;color:var(--navy);">🔑 Definir Nova Password</div>
+    <div id="reset-pw-alert"></div>
+    <div class="form-group"><label>Nova Password</label><input type="password" id="reset-pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+    <div class="form-group"><label>Confirmar Password</label><input type="password" id="reset-pw2" placeholder="Repetir" autocomplete="new-password"></div>
+    <button class="btn btn-primary btn-full" onclick="doResetPw()">Guardar Nova Password</button>
+  `;
+  resetForm.style.display = 'block';
+}
+
+// Run immediately on page load
+checkRecoveryToken();
 
 async function doResetPw() {
   const pw1 = document.getElementById('reset-pw1').value;
