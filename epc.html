@@ -409,6 +409,7 @@
               <option value="manutencao">Manutenções Externas</option>
               <option value="regresso">Regressos</option>
             </select>
+            <button class="btn btn-outline btn-sm" onclick="pdfFormulario()">📋 Formulário</button>
           </div>
           <div class="table-wrap"><table>
             <thead><tr>
@@ -1294,6 +1295,88 @@ function pdfInstalacoesByLocal() {
   pdfFooter(doc);
   const filename = local ? 'Instalacoes_' + local.nome.replace(/[^a-zA-Z0-9]/g,'_') : 'Instalacoes_Todas';
   doc.save(filename + '_' + new Date().toLocaleDateString('pt-PT').replace(/[/]/g,'-') + '.pdf');
+}
+
+
+function pdfFormulario() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.width;
+  const pageH = doc.internal.pageSize.height;
+
+  // Header
+  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 10, 6, 45, 12); } catch(e) {}
+  doc.setFontSize(14); doc.setTextColor(27,42,74); doc.setFont('helvetica','bold');
+  doc.text('Formulário de Inspecção e Manutenção de EPCs', pageW/2, 13, { align: 'center' });
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100);
+  doc.text('EIP Angola · Data: _____ / _____ / _________   Técnico: ___________________________________   Assinatura: ___________________', pageW/2, 20, { align: 'center' });
+  doc.setDrawColor(27,42,74); doc.setLineWidth(0.5);
+  doc.line(10, 24, pageW-10, 24);
+
+  // Table setup
+  const cols = [
+    { header: 'Tipo EPC', width: 35 },
+    { header: 'Código', width: 22 },
+    { header: 'Local', width: 38 },
+    { header: 'Próx. Inspecção', width: 30 },
+    { header: 'Próx. Manutenção', width: 32 },
+    { header: 'Data Inspecção', width: 28 },
+    { header: 'Resultado', width: 28 },
+    { header: 'Observações', width: 0 }, // fill remaining
+  ];
+
+  // Calculate remaining width for last col
+  const usedW = cols.slice(0,-1).reduce((s,c) => s + c.width, 0);
+  cols[cols.length-1].width = pageW - 20 - usedW;
+
+  const startX = 10;
+  const headerY = 27;
+  const rowH = 10; // tall enough to write by hand
+  const headerH = 8;
+
+  // Draw header background
+  doc.setFillColor(27, 42, 74);
+  doc.rect(startX, headerY, pageW-20, headerH, 'F');
+
+  // Header text
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  let x = startX;
+  cols.forEach(col => {
+    doc.text(col.header, x + col.width/2, headerY + 5.5, { align: 'center' });
+    x += col.width;
+  });
+
+  // Draw empty rows
+  const availH = pageH - headerY - headerH - 15; // space for footer
+  const nRows = Math.floor(availH / rowH);
+
+  doc.setFont('helvetica','normal'); doc.setTextColor(50);
+  doc.setDrawColor(180); doc.setLineWidth(0.3);
+
+  for (let r = 0; r < nRows; r++) {
+    const rowY = headerY + headerH + r * rowH;
+    const bg = r % 2 === 0 ? [255,255,255] : [248,249,251];
+    doc.setFillColor(...bg);
+    doc.rect(startX, rowY, pageW-20, rowH, 'F');
+    doc.setDrawColor(210); doc.rect(startX, rowY, pageW-20, rowH, 'S');
+
+    // vertical col lines
+    let cx = startX;
+    cols.slice(0,-1).forEach(col => {
+      cx += col.width;
+      doc.setDrawColor(200); doc.line(cx, rowY, cx, rowY + rowH);
+    });
+  }
+
+  // Outer border
+  doc.setDrawColor(27,42,74); doc.setLineWidth(0.5);
+  doc.rect(startX, headerY, pageW-20, headerH + nRows*rowH, 'S');
+
+  // Footer
+  doc.setFontSize(8); doc.setTextColor(150);
+  doc.text('© 2026 EIP Angola | Portal do Colaborador — EPCs', pageW/2, pageH-5, { align: 'center' });
+
+  doc.save('Formulario_Inspecao_EPC_' + new Date().toLocaleDateString('pt-PT').replace(/[/]/g,'-') + '.pdf');
 }
 
 // ═══════════════════════════════ INDICADORES ═══════════════════════════════
