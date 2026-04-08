@@ -1247,9 +1247,11 @@ function pdfInstalacoesByLocal() {
   const filterSel = document.getElementById('inst-filter-local');
   const localId = filterSel?.value || '';
   const local = localId ? allLocais.find(l => l.id === localId) : null;
-  const dados = localId ? allInstalacoes.filter(i => i.local_id === localId) : allInstalacoes;
 
-  if (!dados.length) return alert('Sem instalações para exportar.');
+  // Reads rows from the visible table — respects current sort and filter
+  const tbody = document.getElementById('instalacoes-body');
+  const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none' && r.cells.length > 1);
+  if (!rows.length) return alert('Sem instalações para exportar.');
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape' });
@@ -1258,29 +1260,28 @@ function pdfInstalacoesByLocal() {
   pdfHeader(doc, titulo, subtitulo);
 
   const hoje = new Date(); hoje.setHours(0,0,0,0);
+
+  // cols: 0=EPC, 1=Codigo(badge), 2=Local, 3=Data, 4=Insp, 5=Manut, 6=Estado(badge), 7=Obs, 8=Ações
+  const body = rows.map(r => [
+    r.cells[0]?.textContent.trim() || '—',
+    r.cells[1]?.textContent.trim() || '—',
+    r.cells[2]?.textContent.trim() || '—',
+    r.cells[3]?.textContent.trim() || '—',
+    r.cells[4]?.textContent.trim() || '—',
+    r.cells[5]?.textContent.trim() || '—',
+    r.cells[6]?.textContent.trim() || '—',
+    r.cells[7]?.textContent.trim() || '—',
+  ]);
+
   doc.autoTable({
     startY: 35,
     head: [['EPC', 'Código', 'Local', 'Instalado em', 'Próx. Inspecção', 'Próx. Manutenção', 'Estado', 'Observações']],
-    body: dados.map(i => {
-      const inspDate = i.data_proxima_inspecao ? new Date(i.data_proxima_inspecao) : null;
-      const manutDate = i.data_proxima_manutencao ? new Date(i.data_proxima_manutencao) : null;
-      return [
-        i.epcs?.nome||'—',
-        i.codigo||'—',
-        (i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : ''),
-        i.data_instalacao||'—',
-        i.data_proxima_inspecao || '—',
-        i.data_proxima_manutencao || '—',
-        i.estado,
-        i.observacoes || '—'
-      ];
-    }),
+    body,
     headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245,247,250] },
     styles: { fontSize: 9 },
     didParseCell: (data) => {
       if (data.section === 'body') {
-        // Red for overdue dates
         const val = data.cell.raw?.toString();
         if ((data.column.index === 4 || data.column.index === 5) && val && val !== '—') {
           const d = new Date(val); d.setHours(0,0,0,0);
