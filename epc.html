@@ -293,6 +293,7 @@
               <th class="sortable" onclick="sortTable('instalacoes-body',4,'date')">Próx. Inspecção</th>
               <th class="sortable" onclick="sortTable('instalacoes-body',5,'date')">Próx. Manutenção</th>
               <th>Estado</th>
+              <th>Observações</th>
               <th>Ações</th>
             </tr></thead>
             <tbody id="instalacoes-body"><tr><td colspan="8" class="empty-state"><div class="empty-icon">🔧</div>Sem instalações</td></tr></tbody>
@@ -1017,6 +1018,7 @@ function renderInstalacoes() {
       <td style="${inspStyle}">${i.data_proxima_inspecao || '—'}</td>
       <td style="${manutStyle}">${i.data_proxima_manutencao || '—'}</td>
       <td><span class="badge ${estadoBadge[i.estado] || 'badge-gray'}">${i.estado}</span></td>
+      <td style="font-size:12px;color:var(--gray-400);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${i.observacoes||''}">${i.observacoes || '—'}</td>
       <td style="display:flex;gap:4px;">
         ${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="editInstalacao('${i.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="deleteInstalacao('${i.id}')">🗑️</button>` : ''}
         ${currentProfile?.role !== 'viewer' ? `<button class="btn btn-primary btn-sm" onclick="openNovaInspecaoModal('${i.id}','inspecao')">🔍</button>` : ''}
@@ -1258,7 +1260,7 @@ function pdfInstalacoesByLocal() {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   doc.autoTable({
     startY: 35,
-    head: [['EPC', 'Código', 'Local', 'Instalado em', 'Próx. Inspecção', 'Próx. Manutenção', 'Estado']],
+    head: [['EPC', 'Código', 'Local', 'Instalado em', 'Próx. Inspecção', 'Próx. Manutenção', 'Estado', 'Observações']],
     body: dados.map(i => {
       const inspDate = i.data_proxima_inspecao ? new Date(i.data_proxima_inspecao) : null;
       const manutDate = i.data_proxima_manutencao ? new Date(i.data_proxima_manutencao) : null;
@@ -1269,7 +1271,8 @@ function pdfInstalacoesByLocal() {
         i.data_instalacao||'—',
         i.data_proxima_inspecao || '—',
         i.data_proxima_manutencao || '—',
-        i.estado
+        i.estado,
+        i.observacoes || '—'
       ];
     }),
     headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
