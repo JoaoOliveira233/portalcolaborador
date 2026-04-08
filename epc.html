@@ -1013,7 +1013,7 @@ function renderInstalacoes() {
     return `<tr>
       <td><strong>${i.epcs?.nome || '—'}</strong></td>
       <td><span class="badge badge-blue">${i.codigo || '—'}</span></td>
-      <td>${i.locais?.nome || '—'}</td>
+      <td>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}</td>
       <td>${i.data_instalacao || '—'}</td>
       <td style="${inspStyle}">${i.data_proxima_inspecao || '—'}</td>
       <td style="${manutStyle}">${i.data_proxima_manutencao || '—'}</td>
@@ -1267,7 +1267,7 @@ function pdfInstalacoesByLocal() {
       return [
         i.epcs?.nome||'—',
         i.codigo||'—',
-        i.locais?.nome||'—',
+        (i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : ''),
         i.data_instalacao||'—',
         i.data_proxima_inspecao || '—',
         i.data_proxima_manutencao || '—',
