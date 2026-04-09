@@ -740,6 +740,22 @@ async function loadAll() {
   allInstalacoes = inst || [];
   allInspecoes = insp || [];
   window._allColabs = colabs || [];
+
+  // Auto-actualizar estado para danificado se manutenção expirada
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const expiradas = allInstalacoes.filter(i =>
+    i.estado === 'activo' &&
+    i.data_proxima_manutencao &&
+    new Date(i.data_proxima_manutencao) < hoje
+  );
+  if (expiradas.length > 0) {
+    await Promise.all(expiradas.map(i =>
+      sb.from('instalacoes').update({ estado: 'danificado' }).eq('id', i.id)
+    ));
+    // Update local state
+    expiradas.forEach(i => { i.estado = 'danificado'; });
+  }
+
   renderDashboard();
 }
 
@@ -1070,18 +1086,21 @@ async function saveInstalacao() {
   const proxInsp = document.getElementById('inst-prox-insp').value || null;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const manutExpirada = proxManut && new Date(proxManut) < hoje;
-  const estadoInicial = manutExpirada ? 'danificado' : 'activo';
+  const estadoNovo = manutExpirada ? 'danificado' : 'activo';
 
   const payload = {
     epc_id: epcId, local_id: localId, codigo, quantidade: 1, data_instalacao: data,
     data_proxima_inspecao: proxInsp,
     data_proxima_manutencao: proxManut,
     observacoes: document.getElementById('inst-obs').value.trim() || null,
-    estado: estadoInicial
+    estado: id ? undefined : estadoNovo  // ao editar não altera o estado
   };
+  // Remove estado do payload se for edição
+  if (id) delete payload.estado;
+
   let error;
   if (id) { ({ error } = await sb.from('instalacoes').update(payload).eq('id', id)); }
-  else { ({ error } = await sb.from('instalacoes').insert(payload)); }
+  else { payload.estado = estadoNovo; ({ error } = await sb.from('instalacoes').insert(payload)); }
   if (error) return showAlert('nova-inst-alert', error.message, 'error');
   closeModal('modal-nova-instalacao');
   await loadAll(); renderInstalacoes();
