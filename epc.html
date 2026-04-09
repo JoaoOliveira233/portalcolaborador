@@ -788,16 +788,16 @@ function renderDashboard() {
   const totalEpcs = allEpcs.length;
   const totalInst = allInstalacoes.filter(i => i.estado === 'activo').length;
 
-  // Alertas inspecção
+  // Alertas inspecção - activo e danificado
   const alertasInsp = allInstalacoes.filter(i => {
-    if (i.estado !== 'activo' || !i.data_proxima_inspecao) return false;
+    if (i.estado === 'inactivo' || !i.data_proxima_inspecao) return false;
     const d = new Date(i.data_proxima_inspecao); d.setHours(0,0,0,0);
     return d <= em30dias;
   });
 
-  // Alertas manutenção
+  // Alertas manutenção - activo, danificado e manutencao
   const alertasManut = allInstalacoes.filter(i => {
-    if (i.estado !== 'activo' || !i.data_proxima_manutencao) return false;
+    if (i.estado === 'inactivo' || !i.data_proxima_manutencao) return false;
     const d = new Date(i.data_proxima_manutencao); d.setHours(0,0,0,0);
     return d <= em30dias;
   });
