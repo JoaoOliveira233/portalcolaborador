@@ -284,6 +284,13 @@
             <select id="inst-filter-local" onchange="filterInstalacoesByLocal()" style="padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:'Barlow',sans-serif;">
               <option value="">Todos os locais</option>
             </select>
+            <select id="inst-filter-estado" onchange="filterInstalacoesByLocal()" style="padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:'Barlow',sans-serif;">
+              <option value="">Todos os estados</option>
+              <option value="activo">Activo</option>
+              <option value="danificado">Danificado</option>
+              <option value="manutencao">Manutenção</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
             <button class="btn btn-outline btn-sm" onclick="pdfInstalacoesByLocal()" id="btn-pdf-inst-local">📄 PDF</button>
           </div>
           <div class="table-wrap"><table>
@@ -813,12 +820,14 @@ function renderDashboard() {
   if (!alertasInsp.length) {
     divInsp.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Sem inspecções pendentes</div>';
   } else {
-    divInsp.innerHTML = alertasInsp.map(i => {
+    divInsp.innerHTML = '<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;"><label style="font-size:12px;color:var(--gray-400);"><input type="checkbox" id="insp-sel-all" onchange="toggleAllDash(\'insp-check\',this.checked)"> Seleccionar todos</label><button class="btn btn-outline btn-sm" onclick="pdfDashSelecionados(\'insp\')">📄 PDF Seleccionados</button></div>' +
+    alertasInsp.map((i,idx) => {
       const d = new Date(i.data_proxima_inspecao); d.setHours(0,0,0,0);
       const atrasado = d < hoje;
-      return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}">
+      return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${i.locais?.nome||'—'}" data-data="${i.data_proxima_inspecao||'—'}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
-        <div class="alert-card-text">
+        <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
           <span>${i.locais?.nome || '—'} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
         </div>
@@ -838,7 +847,8 @@ function renderDashboard() {
   if (!manutPendentes.length) {
     divManut.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Sem manutenções pendentes</div>';
   } else {
-    divManut.innerHTML = manutPendentes.map(i => {
+    divManut.innerHTML = '<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;"><label style="font-size:12px;color:var(--gray-400);"><input type="checkbox" id="manut-sel-all" onchange="toggleAllDash(\'manut-check\',this.checked)"> Seleccionar todos</label><button class="btn btn-outline btn-sm" onclick="pdfDashSelecionados(\'manut\')">📄 PDF Seleccionados</button></div>' +
+    manutPendentes.map((i,idx) => {
       const d = new Date(i.data_proxima_manutencao); d.setHours(0,0,0,0);
       const diff = Math.ceil((d - hoje) / 86400000);
       const atrasado = diff < 0;
@@ -847,9 +857,10 @@ function renderDashboard() {
       const prazoLabel = atrasado
         ? '<strong style="color:var(--danger)">Expirou há ' + Math.abs(diff) + ' dias</strong>'
         : '<strong style="color:var(--warning)">Expira em ' + diff + ' dias</strong>';
-      return `<div class="alert-card ${cardClass}">
+      return `<div class="alert-card ${cardClass}" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${i.locais?.nome||'—'}" data-data="${i.data_proxima_manutencao||'—'}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${icon}</div>
-        <div class="alert-card-text">
+        <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
           <span>${i.locais?.nome || '—'} · ${prazoLabel}</span>
         </div>
@@ -1032,7 +1043,12 @@ function renderInstalacoes() {
   }
 
   const filterLocalId = filterSel?.value || '';
-  const dados = filterLocalId ? allInstalacoes.filter(i => i.local_id === filterLocalId) : allInstalacoes;
+  const filterEstado = document.getElementById('inst-filter-estado')?.value || '';
+  const dados = allInstalacoes.filter(i => {
+    if (filterLocalId && i.local_id !== filterLocalId) return false;
+    if (filterEstado && i.estado !== filterEstado) return false;
+    return true;
+  });
 
   if (!dados.length) { body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">🔧</div>Sem instalações</td></tr>'; return; }
   const estadoBadge = { activo: 'badge-green', inactivo: 'badge-gray', manutencao: 'badge-orange', danificado: 'badge-yellow' };
