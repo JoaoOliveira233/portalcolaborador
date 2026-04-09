@@ -827,33 +827,33 @@ function renderDashboard() {
     }).join('');
   }
 
-  // EPCs em manutenção externa (estado = 'manutencao')
-  const emManutencao = allInstalacoes.filter(i => i.estado === 'manutencao');
+  // Manutenções pendentes - instalações com data de manutenção a expirar ou expirada
+  const manutPendentes = allInstalacoes.filter(i => {
+    if (i.estado === 'inactivo' || !i.data_proxima_manutencao) return false;
+    const d = new Date(i.data_proxima_manutencao); d.setHours(0,0,0,0);
+    return d <= em30dias;
+  }).sort((a, b) => new Date(a.data_proxima_manutencao) - new Date(b.data_proxima_manutencao));
 
-  // Get last manutencao inspecao date for each instalacao
   const divManut = document.getElementById('dash-alertas-manut');
-  if (!emManutencao.length) {
-    divManut.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Sem EPCs em manutenção externa</div>';
+  if (!manutPendentes.length) {
+    divManut.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Sem manutenções pendentes</div>';
   } else {
-    divManut.innerHTML = emManutencao.map(i => {
-      // Find latest manutencao record for this instalacao
-      const ultimaManut = allInspecoes
-        .filter(ins => ins.instalacao_id === i.id && ins.tipo === 'manutencao')
-        .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
-      const dataSaida = ultimaManut ? ultimaManut.data : '—';
-      const proxManutD = i.data_proxima_manutencao ? new Date(i.data_proxima_manutencao) : null;
-      proxManutD && proxManutD.setHours(0,0,0,0);
-      const diffManut = proxManutD ? Math.ceil((proxManutD - hoje) / 86400000) : null;
-      const cardClass = diffManut === null ? 'warn' : diffManut < 0 ? 'danger' : diffManut <= 30 ? 'warn' : 'warn';
-      const icon = diffManut !== null && diffManut < 0 ? '🔴' : '🟡';
-      const prazoLabel = diffManut === null ? '' : diffManut < 0 ? ' · <strong style="color:var(--danger)">Expirou em ' + i.data_proxima_manutencao + '</strong>' : diffManut <= 30 ? ' · <strong style="color:var(--warning)">Expira em ' + diffManut + ' dias</strong>' : '';
+    divManut.innerHTML = manutPendentes.map(i => {
+      const d = new Date(i.data_proxima_manutencao); d.setHours(0,0,0,0);
+      const diff = Math.ceil((d - hoje) / 86400000);
+      const atrasado = diff < 0;
+      const cardClass = atrasado ? 'danger' : 'warn';
+      const icon = atrasado ? '🔴' : '🟡';
+      const prazoLabel = atrasado
+        ? '<strong style="color:var(--danger)">Expirou há ' + Math.abs(diff) + ' dias</strong>'
+        : '<strong style="color:var(--warning)">Expira em ' + diff + ' dias</strong>';
       return `<div class="alert-card ${cardClass}">
         <div class="alert-card-icon">${icon}</div>
         <div class="alert-card-text">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${i.locais?.nome || '—'} · Saiu em ${dataSaida}${prazoLabel}</span>
+          <span>${i.locais?.nome || '—'} · ${prazoLabel}</span>
         </div>
-        ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'regresso\')">Regresso</button>' : ''}
+        ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'manutencao\')">Registar</button>' : ''}
       </div>`;
     }).join('');
   }
