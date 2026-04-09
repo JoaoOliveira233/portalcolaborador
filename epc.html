@@ -841,11 +841,17 @@ function renderDashboard() {
         .filter(ins => ins.instalacao_id === i.id && ins.tipo === 'manutencao')
         .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
       const dataSaida = ultimaManut ? ultimaManut.data : '—';
-      return `<div class="alert-card warn">
-        <div class="alert-card-icon">🔧</div>
+      const proxManutD = i.data_proxima_manutencao ? new Date(i.data_proxima_manutencao) : null;
+      proxManutD && proxManutD.setHours(0,0,0,0);
+      const diffManut = proxManutD ? Math.ceil((proxManutD - hoje) / 86400000) : null;
+      const cardClass = diffManut === null ? 'warn' : diffManut < 0 ? 'danger' : diffManut <= 30 ? 'warn' : 'warn';
+      const icon = diffManut !== null && diffManut < 0 ? '🔴' : '🟡';
+      const prazoLabel = diffManut === null ? '' : diffManut < 0 ? ' · <strong style="color:var(--danger)">Expirou em ' + i.data_proxima_manutencao + '</strong>' : diffManut <= 30 ? ' · <strong style="color:var(--warning)">Expira em ' + diffManut + ' dias</strong>' : '';
+      return `<div class="alert-card ${cardClass}">
+        <div class="alert-card-icon">${icon}</div>
         <div class="alert-card-text">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${i.locais?.nome || '—'} · Saiu em ${dataSaida}</span>
+          <span>${i.locais?.nome || '—'} · Saiu em ${dataSaida}${prazoLabel}</span>
         </div>
         ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'regresso\')">Regresso</button>' : ''}
       </div>`;
@@ -1034,8 +1040,10 @@ function renderInstalacoes() {
   body.innerHTML = dados.map(i => {
     const inspDate = i.data_proxima_inspecao ? new Date(i.data_proxima_inspecao) : null;
     const manutDate = i.data_proxima_manutencao ? new Date(i.data_proxima_manutencao) : null;
-    const inspStyle = inspDate && inspDate <= hoje ? 'color:var(--danger);font-weight:700;' : '';
-    const manutStyle = manutDate && manutDate <= hoje ? 'color:var(--danger);font-weight:700;' : '';
+    const diffInsp = inspDate ? Math.ceil((inspDate - hoje) / 86400000) : null;
+    const diffManut = manutDate ? Math.ceil((manutDate - hoje) / 86400000) : null;
+    const inspStyle = diffInsp === null ? '' : diffInsp < 0 ? 'color:var(--danger);font-weight:700;' : diffInsp <= 30 ? 'color:var(--warning);font-weight:700;' : '';
+    const manutStyle = diffManut === null ? '' : diffManut < 0 ? 'color:var(--danger);font-weight:700;' : diffManut <= 30 ? 'color:var(--warning);font-weight:700;' : '';
     return `<tr>
       <td><strong>${i.epcs?.nome || '—'}</strong></td>
       <td><span class="badge badge-blue">${i.codigo || '—'}</span></td>
