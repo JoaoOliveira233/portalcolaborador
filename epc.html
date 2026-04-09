@@ -301,7 +301,7 @@
               <th class="sortable" onclick="sortTable('instalacoes-body',3,'date')">Instalado em</th>
               <th class="sortable" onclick="sortTable('instalacoes-body',4,'date')">Próx. Inspecção</th>
               <th class="sortable" onclick="sortTable('instalacoes-body',5,'date')">Próx. Manutenção</th>
-              <th>Estado</th>
+              <th class="sortable" onclick="sortTable('instalacoes-body',6,'str')">Estado</th>
               <th>Observações</th>
               <th>Ações</th>
             </tr></thead>
@@ -825,7 +825,7 @@ function renderDashboard() {
       const d = new Date(i.data_proxima_inspecao); d.setHours(0,0,0,0);
       const atrasado = d < hoje;
       return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}" style="display:flex;align-items:center;gap:10px;">
-        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${i.locais?.nome||'—'}" data-data="${i.data_proxima_inspecao||'—'}" style="width:16px;height:16px;cursor:pointer;">
+        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_inspecao||'—'}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
@@ -858,7 +858,7 @@ function renderDashboard() {
         ? '<strong style="color:var(--danger)">Expirou há ' + Math.abs(diff) + ' dias</strong>'
         : '<strong style="color:var(--warning)">Expira em ' + diff + ' dias</strong>';
       return `<div class="alert-card ${cardClass}" style="display:flex;align-items:center;gap:10px;">
-        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${i.locais?.nome||'—'}" data-data="${i.data_proxima_manutencao||'—'}" style="width:16px;height:16px;cursor:pointer;">
+        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_manutencao||'—'}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${icon}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
