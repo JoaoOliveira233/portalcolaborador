@@ -1066,12 +1066,18 @@ async function saveInstalacao() {
   const data = document.getElementById('inst-data').value;
   if (!epcId || !localId || !codigo || !data) return showAlert('nova-inst-alert', 'Preencha os campos obrigatórios.', 'error');
   const id = document.getElementById('edit-inst-id').value;
+  const proxManut = document.getElementById('inst-prox-manut').value || null;
+  const proxInsp = document.getElementById('inst-prox-insp').value || null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const manutExpirada = proxManut && new Date(proxManut) < hoje;
+  const estadoInicial = manutExpirada ? 'danificado' : 'activo';
+
   const payload = {
     epc_id: epcId, local_id: localId, codigo, quantidade: 1, data_instalacao: data,
-    data_proxima_inspecao: document.getElementById('inst-prox-insp').value || null,
-    data_proxima_manutencao: document.getElementById('inst-prox-manut').value || null,
+    data_proxima_inspecao: proxInsp,
+    data_proxima_manutencao: proxManut,
     observacoes: document.getElementById('inst-obs').value.trim() || null,
-    estado: 'activo'
+    estado: estadoInicial
   };
   let error;
   if (id) { ({ error } = await sb.from('instalacoes').update(payload).eq('id', id)); }
