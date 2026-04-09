@@ -1160,8 +1160,8 @@ async function saveInspecao() {
         if (epc) await sb.from('epcs').update({ stock_atual: Math.max(0, epc.stock_atual - (instalacao.quantidade || 1)) }).eq('id', epc.id);
       }
     } else if (resultado === 'danificado') {
-      // Keep active but flag it
-      await sb.from('instalacoes').update({ estado: 'danificado', data_proxima_inspecao: proxima }).eq('id', instId);
+      const { error: errDan } = await sb.from('instalacoes').update({ estado: 'danificado', data_proxima_inspecao: proxima }).eq('id', instId);
+      if (errDan) console.error('Erro ao actualizar estado danificado:', errDan.message);
     } else {
       // OK - just update next inspection date
       await sb.from('instalacoes').update({ estado: 'activo', data_proxima_inspecao: proxima }).eq('id', instId);
