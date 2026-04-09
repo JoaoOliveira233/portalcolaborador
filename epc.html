@@ -1116,7 +1116,7 @@ function openNovaInspecaoModal(instalacaoId, tipo) {
 
   // Fill instalacoes select
   const sel = document.getElementById('insp-instalacao');
-  sel.innerHTML = '<option value="">-- Selecionar --</option>' + allInstalacoes.filter(i => i.estado === 'activo' || i.estado === 'manutencao').map(i => '<option value="' + i.id + '" ' + (i.id===instalacaoId?'selected':'') + '>' + (i.epcs?.nome||'—') + ' [' + (i.codigo||'s/cod') + '] — ' + (i.locais?.nome||'—') + '</option>').join('');
+  sel.innerHTML = '<option value="">-- Selecionar --</option>' + allInstalacoes.filter(i => i.estado === 'activo' || i.estado === 'manutencao' || i.estado === 'danificado').map(i => '<option value="' + i.id + '" ' + (i.id===instalacaoId?'selected':'') + '>' + (i.epcs?.nome||'—') + ' [' + (i.codigo||'s/cod') + '] — ' + (i.locais?.nome||'—') + '</option>').join('');
 
   updateInspModal();
   openModal('modal-nova-insp');
