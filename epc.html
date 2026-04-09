@@ -1096,7 +1096,7 @@ function renderInspecoes() {
       <td><span style="font-size:12px;">${tipoLabel[i.tipo] || i.tipo}</span></td>
       <td>${i.instalacoes?.epcs?.nome || '—'}</td>
       <td><span class="badge badge-blue">${i.instalacoes?.codigo || '—'}</span></td>
-      <td>${i.instalacoes?.locais?.nome || '—'}</td>
+      <td>${(i.instalacoes?.locais?.nome || '—') + (i.instalacoes?.locais?.tipo ? ' (' + i.instalacoes.locais.tipo + ')' : '')}</td>
       <td>${resLabel[i.resultado] || i.resultado}</td>
       <td>${i.proxima_data || '—'}</td>
       <td style="font-size:12px;color:var(--gray-400);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${i.observacoes||''}">${i.observacoes || '—'}</td>
