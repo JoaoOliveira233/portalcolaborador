@@ -7,56 +7,7 @@
   <title>EPCs — Portal do Colaborador</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js">// ═══ DASHBOARD CHECKBOXES ═══
-function toggleAllDash(cls, checked) {
-  document.querySelectorAll('.' + cls).forEach(cb => cb.checked = checked);
-}
-
-function pdfDashSelecionados(tipo) {
-  const cls = tipo === 'insp' ? 'insp-check' : 'manut-check';
-  const titulo = tipo === 'insp' ? 'Inspeccoes Pendentes' : 'Manutencoes Pendentes';
-  const colData = tipo === 'insp' ? 'Prox. Inspeccao' : 'Prox. Manutencao';
-  const selected = [...document.querySelectorAll('.' + cls + ':checked')];
-  if (!selected.length) return alert('Seleccione pelo menos um registo.');
-  const lista = selected.map(cb => ({
-    nome: cb.dataset.nome,
-    codigo: cb.dataset.codigo,
-    local: cb.dataset.local,
-    data: cb.dataset.data
-  }));
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape' });
-  const dataHoje = new Date().toLocaleDateString('pt-PT');
-  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 60, 16); } catch(e) {}
-  doc.setFontSize(16); doc.setTextColor(27,42,74);
-  doc.text(titulo, 80, 16);
-  doc.setFontSize(9); doc.setTextColor(100);
-  doc.text('Data: ' + dataHoje, 80, 22);
-  doc.setDrawColor(27,42,74);
-  doc.line(14, 28, doc.internal.pageSize.width - 14, 28);
-  doc.autoTable({
-    startY: 33,
-    head: [['EPC', 'Codigo', 'Local', colData]],
-    body: lista.map(r => [r.nome, r.codigo, r.local, r.data]),
-    headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [245,247,250] },
-    styles: { fontSize: 10 }
-  });
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8); doc.setTextColor(150);
-    const pageW = doc.internal.pageSize.width;
-    const pageH = doc.internal.pageSize.height;
-    doc.setDrawColor(200);
-    doc.line(14, pageH-12, pageW-14, pageH-12);
-    doc.text('EIP Angola | Sistema de Gestao de EPC', pageW/2, pageH-6, { align: 'center' });
-    doc.text('Pagina ' + i + ' de ' + pageCount, pageW-14, pageH-6, { align: 'right' });
-  }
-  doc.save('EIP_Angola_' + titulo.replace(/ /g,'_') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
-}
-
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1791,6 +1742,57 @@ function pdfIndicadorDanos() {
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', function(e) { if (e.target===this) this.classList.remove('open'); });
 });
+</script>
+
+<script>
+// ═══ DASHBOARD CHECKBOXES ═══
+function toggleAllDash(cls, checked) {
+  document.querySelectorAll('.' + cls).forEach(cb => cb.checked = checked);
+}
+
+function pdfDashSelecionados(tipo) {
+  const cls = tipo === 'insp' ? 'insp-check' : 'manut-check';
+  const titulo = tipo === 'insp' ? 'Inspeccoes Pendentes' : 'Manutencoes Pendentes';
+  const colData = tipo === 'insp' ? 'Prox. Inspeccao' : 'Prox. Manutencao';
+  const selected = [...document.querySelectorAll('.' + cls + ':checked')];
+  if (!selected.length) return alert('Seleccione pelo menos um registo.');
+  const lista = selected.map(cb => ({
+    nome: cb.dataset.nome,
+    codigo: cb.dataset.codigo,
+    local: cb.dataset.local,
+    data: cb.dataset.data
+  }));
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const dataHoje = new Date().toLocaleDateString('pt-PT');
+  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 60, 16); } catch(e) {}
+  doc.setFontSize(16); doc.setTextColor(27,42,74);
+  doc.text(titulo, 80, 16);
+  doc.setFontSize(9); doc.setTextColor(100);
+  doc.text('Data: ' + dataHoje, 80, 22);
+  doc.setDrawColor(27,42,74);
+  doc.line(14, 28, doc.internal.pageSize.width - 14, 28);
+  doc.autoTable({
+    startY: 33,
+    head: [['EPC', 'Codigo', 'Local', colData]],
+    body: lista.map(r => [r.nome, r.codigo, r.local, r.data]),
+    headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245,247,250] },
+    styles: { fontSize: 10 }
+  });
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(150);
+    const pageW = doc.internal.pageSize.width;
+    const pageH = doc.internal.pageSize.height;
+    doc.setDrawColor(200);
+    doc.line(14, pageH-12, pageW-14, pageH-12);
+    doc.text('EIP Angola | Sistema de Gestao de EPC', pageW/2, pageH-6, { align: 'center' });
+    doc.text('Pagina ' + i + ' de ' + pageCount, pageW-14, pageH-6, { align: 'right' });
+  }
+  doc.save('EIP_Angola_' + titulo.replace(/ /g,'_') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
+}
 </script>
 </body>
 </html>
