@@ -732,7 +732,7 @@ async function loadAll() {
     sb.from('epcs').select('*').order('nome'),
     sb.from('locais').select('*').order('nome'),
     sb.from('instalacoes').select('*, epcs(nome), locais(nome,tipo)').order('created_at', { ascending: false }),
-    sb.from('inspecoes').select('*, instalacoes(*, epcs(nome), locais(nome,tipo))').order('data', { ascending: false }).limit(200),
+    sb.from('inspecoes').select('*, instalacoes(id, codigo, epcs(nome), locais(nome,tipo))').order('data', { ascending: false }).limit(200),
     sb.from('colaboradores').select('*').order('nome')
   ]);
   allEpcs = epcs || [];
@@ -1095,6 +1095,7 @@ function renderInspecoes() {
       <td>${i.data}</td>
       <td><span style="font-size:12px;">${tipoLabel[i.tipo] || i.tipo}</span></td>
       <td>${i.instalacoes?.epcs?.nome || '—'}</td>
+      <td><span class="badge badge-blue">${i.instalacoes?.codigo || '—'}</span></td>
       <td>${i.instalacoes?.locais?.nome || '—'}</td>
       <td>${resLabel[i.resultado] || i.resultado}</td>
       <td>${i.proxima_data || '—'}</td>
