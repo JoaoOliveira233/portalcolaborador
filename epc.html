@@ -827,20 +827,27 @@ function renderDashboard() {
     }).join('');
   }
 
+  // EPCs em manutenção externa (estado = 'manutencao')
+  const emManutencao = allInstalacoes.filter(i => i.estado === 'manutencao');
+
+  // Get last manutencao inspecao date for each instalacao
   const divManut = document.getElementById('dash-alertas-manut');
-  if (!alertasManut.length) {
-    divManut.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Sem manutenções pendentes</div>';
+  if (!emManutencao.length) {
+    divManut.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Sem EPCs em manutenção externa</div>';
   } else {
-    divManut.innerHTML = alertasManut.map(i => {
-      const d = new Date(i.data_proxima_manutencao); d.setHours(0,0,0,0);
-      const atrasado = d < hoje;
-      return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}">
-        <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
+    divManut.innerHTML = emManutencao.map(i => {
+      // Find latest manutencao record for this instalacao
+      const ultimaManut = allInspecoes
+        .filter(ins => ins.instalacao_id === i.id && ins.tipo === 'manutencao')
+        .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+      const dataSaida = ultimaManut ? ultimaManut.data : '—';
+      return `<div class="alert-card warn">
+        <div class="alert-card-icon">🔧</div>
         <div class="alert-card-text">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${i.locais?.nome || '—'} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
+          <span>${i.locais?.nome || '—'} · Saiu em ${dataSaida}</span>
         </div>
-        ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'manutencao\')">Registar</button>' : ''}
+        ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'regresso\')">Regresso</button>' : ''}
       </div>`;
     }).join('');
   }
