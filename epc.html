@@ -441,10 +441,7 @@
     <div class="modal-header"><span class="modal-title">🧯 Novo EPC</span><button class="modal-close" onclick="closeModal('modal-novo-epc')">×</button></div>
     <div class="modal-body">
       <div id="novo-epc-alert"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Nome *</label><input type="text" id="ne-nome" placeholder="Ex: Extintor CO2"></div>
-        <div class="form-group"><label>Stock Inicial</label><input type="number" id="ne-stock" min="0" value="0"></div>
-      </div>
+      <div class="form-group"><label>Nome *</label><input type="text" id="ne-nome" placeholder="Ex: Extintor CO2"></div>
       <div class="form-group"><label>Descrição</label><input type="text" id="ne-descricao" placeholder="Opcional"></div>
       <div class="form-row">
         <div class="form-group"><label>Fornecedor</label><input type="text" id="ne-fornecedor"></div>
@@ -485,10 +482,7 @@
     <div class="modal-body">
       <div id="edit-epc-alert"></div>
       <input type="hidden" id="edit-epc-id">
-      <div class="form-row">
-        <div class="form-group"><label>Nome *</label><input type="text" id="edit-epc-nome"></div>
-        <div class="form-group"><label>Stock Atual</label><input type="number" id="edit-epc-stock" min="0"></div>
-      </div>
+      <div class="form-group"><label>Nome *</label><input type="text" id="edit-epc-nome"></div>
       <div class="form-group"><label>Descrição</label><input type="text" id="edit-epc-descricao"></div>
       <div class="form-row">
         <div class="form-group"><label>Fornecedor</label><input type="text" id="edit-epc-fornecedor"></div>
@@ -855,17 +849,19 @@ function renderStock() {
   const isAdmin = currentProfile?.role === 'admin';
   const body = document.getElementById('epc-body');
   if (!allEpcs.length) { body.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-icon">🧯</div>Sem EPCs registados</td></tr>'; return; }
-  body.innerHTML = allEpcs.map(e => `
+  body.innerHTML = allEpcs.map(e => {
+    const stock = allInstalacoes.filter(i => i.epc_id === e.id && i.estado === 'activo').length;
+    return `
     <tr>
       <td><strong>${e.nome}</strong></td>
       <td style="color:var(--gray-600);font-size:12px;">${e.descricao || '—'}</td>
-      <td><strong>${e.stock_atual}</strong></td>
+      <td><strong>${stock}</strong></td>
       <td>${e.requer_inspecao ? e.periodicidade_inspecao + ' dias' : '—'}</td>
       <td>${e.requer_manutencao ? e.periodicidade_manutencao + ' dias' : '—'}</td>
       <td>${e.fornecedor || '—'}</td>
       <td>${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditEpcModal('${e.id}')">✏️ Editar</button>` : ''}</td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 async function saveNovoEpc() {
@@ -874,7 +870,7 @@ async function saveNovoEpc() {
   const payload = {
     nome,
     descricao: document.getElementById('ne-descricao').value.trim() || null,
-    stock_atual: parseInt(document.getElementById('ne-stock').value) || 0,
+
     fornecedor: document.getElementById('ne-fornecedor').value.trim() || null,
     referencia_fornecedor: document.getElementById('ne-ref').value.trim() || null,
     requer_inspecao: document.getElementById('ne-requer-insp').value === 'true',
@@ -891,7 +887,6 @@ async function saveNovoEpc() {
 
 function openNovoEpcModal() {
   ['ne-nome','ne-descricao','ne-fornecedor','ne-ref'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('ne-stock').value = 0;
   document.getElementById('ne-period-insp').value = 90;
   document.getElementById('ne-period-manut').value = 365;
   document.getElementById('novo-epc-alert').innerHTML = '';
@@ -903,7 +898,7 @@ function openEditEpcModal(id) {
   if (!e) return;
   document.getElementById('edit-epc-id').value = e.id;
   document.getElementById('edit-epc-nome').value = e.nome;
-  document.getElementById('edit-epc-stock').value = e.stock_atual;
+
   document.getElementById('edit-epc-descricao').value = e.descricao || '';
   document.getElementById('edit-epc-fornecedor').value = e.fornecedor || '';
   document.getElementById('edit-epc-ref').value = e.referencia_fornecedor || '';
@@ -919,7 +914,7 @@ async function saveEditEpc() {
   if (!nome) return showAlert('edit-epc-alert', 'Nome é obrigatório.', 'error');
   const { error } = await sb.from('epcs').update({
     nome,
-    stock_atual: parseInt(document.getElementById('edit-epc-stock').value) || 0,
+
     descricao: document.getElementById('edit-epc-descricao').value.trim() || null,
     fornecedor: document.getElementById('edit-epc-fornecedor').value.trim() || null,
     referencia_fornecedor: document.getElementById('edit-epc-ref').value.trim() || null,
