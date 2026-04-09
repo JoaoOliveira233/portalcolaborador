@@ -236,7 +236,9 @@
             <thead><tr>
               <th class="sortable" onclick="sortTable('epc-body',0,'str')">Nome</th>
               <th class="sortable" onclick="sortTable('epc-body',1,'str')">Descrição</th>
-              <th class="sortable" onclick="sortTable('epc-body',2,'num')">Stock</th>
+              <th class="sortable" onclick="sortTable('epc-body',2,'num')">Stock Activo</th>
+              <th class="sortable" onclick="sortTable('epc-body',3,'num')">Stock Danificado</th>
+              <th class="sortable" onclick="sortTable('epc-body',4,'num')">Stock Total</th>
               <th>Inspecção (dias)</th>
               <th>Manutenção (dias)</th>
               <th>Fornecedor</th>
@@ -850,12 +852,16 @@ function renderStock() {
   const body = document.getElementById('epc-body');
   if (!allEpcs.length) { body.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-icon">🧯</div>Sem EPCs registados</td></tr>'; return; }
   body.innerHTML = allEpcs.map(e => {
-    const stock = allInstalacoes.filter(i => i.epc_id === e.id && i.estado === 'activo').length;
+    const stockActivo = allInstalacoes.filter(i => i.epc_id === e.id && i.estado === 'activo').length;
+    const stockDanificado = allInstalacoes.filter(i => i.epc_id === e.id && i.estado === 'danificado').length;
+    const stockTotal = allInstalacoes.filter(i => i.epc_id === e.id && i.estado !== 'inactivo').length;
     return `
     <tr>
       <td><strong>${e.nome}</strong></td>
       <td style="color:var(--gray-600);font-size:12px;">${e.descricao || '—'}</td>
-      <td><strong>${stock}</strong></td>
+      <td><strong>${stockActivo}</strong></td>
+      <td style="color:${stockDanificado > 0 ? 'var(--danger)' : 'inherit'};"><strong>${stockDanificado}</strong></td>
+      <td><strong>${stockTotal}</strong></td>
       <td>${e.requer_inspecao ? e.periodicidade_inspecao + ' dias' : '—'}</td>
       <td>${e.requer_manutencao ? e.periodicidade_manutencao + ' dias' : '—'}</td>
       <td>${e.fornecedor || '—'}</td>
