@@ -416,9 +416,10 @@
               <th class="sortable" onclick="sortTable('insp-body',0,'date')">Data</th>
               <th>Tipo</th>
               <th class="sortable" onclick="sortTable('insp-body',2,'str')">EPC</th>
-              <th class="sortable" onclick="sortTable('insp-body',3,'str')">Local</th>
+              <th class="sortable" onclick="sortTable('insp-body',3,'str')">Código</th>
+              <th class="sortable" onclick="sortTable('insp-body',4,'str')">Local</th>
               <th>Resultado</th>
-              <th class="sortable" onclick="sortTable('insp-body',5,'date')">Próxima Data</th>
+              <th class="sortable" onclick="sortTable('insp-body',6,'date')">Próxima Data</th>
               <th>Obs.</th>
               <th>Ações</th>
             </tr></thead>
@@ -731,7 +732,7 @@ async function loadAll() {
     sb.from('epcs').select('*').order('nome'),
     sb.from('locais').select('*').order('nome'),
     sb.from('instalacoes').select('*, epcs(nome), locais(nome,tipo)').order('created_at', { ascending: false }),
-    sb.from('inspecoes').select('*, instalacoes(*, epcs(nome), locais(nome))').order('data', { ascending: false }).limit(200),
+    sb.from('inspecoes').select('*, instalacoes(*, epcs(nome), locais(nome,tipo))').order('data', { ascending: false }).limit(200),
     sb.from('colaboradores').select('*').order('nome')
   ]);
   allEpcs = epcs || [];
