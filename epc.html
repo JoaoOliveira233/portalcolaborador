@@ -1451,11 +1451,20 @@ let _charts = {};
 function calcIndicadoresPorTipo(tipo) {
   const locaisFiltrados = tipo ? allLocais.filter(l => l.tipo === tipo) : allLocais;
   return locaisFiltrados.map(l => {
-    const instActivas = allInstalacoes.filter(i => i.local_id === l.id && i.estado === 'activo').length;
-    const inspOk = allInspecoes.filter(i => i.instalacoes?.local_id === l.id && i.resultado === 'ok').length;
-    const danos = allInspecoes.filter(i => i.instalacoes?.local_id === l.id && (i.resultado === 'danificado' || i.resultado === 'desaparecido')).length;
-    return { nome: l.nome, tipo: l.tipo, instalados: instActivas, ok: inspOk, danos };
-  }).filter(l => l.instalados > 0 || l.ok > 0 || l.danos > 0);
+    // Instalações deste local (todas excepto inactivo)
+    const instDeste = allInstalacoes.filter(i => i.local_id === l.id && i.estado !== 'inactivo');
+    const activos    = instDeste.filter(i => i.estado === 'activo').length;
+    const danificados = instDeste.filter(i => i.estado === 'danificado').length;
+    const manutencao  = instDeste.filter(i => i.estado === 'manutencao').length;
+    const total = instDeste.length;
+
+    // Inspecções ligadas a instalações deste local
+    const idsInst = instDeste.map(i => i.id);
+    const inspOk   = allInspecoes.filter(i => idsInst.includes(i.instalacao_id) && i.resultado === 'ok').length;
+    const inspDanos = allInspecoes.filter(i => idsInst.includes(i.instalacao_id) && (i.resultado === 'danificado' || i.resultado === 'desaparecido')).length;
+
+    return { nome: l.nome, tipo: l.tipo, instalados: total, activos, danificados, manutencao, ok: inspOk, danos: inspDanos };
+  }).filter(l => l.instalados > 0);
 }
 
 function buildChart(canvasId, dados, titulo) {
