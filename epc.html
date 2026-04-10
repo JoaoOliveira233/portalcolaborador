@@ -829,7 +829,7 @@ function renderDashboard() {
         <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${i.locais?.nome || '—'} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
+          <span>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
         </div>
         ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'inspecao\')">Registar</button>' : ''}
       </div>`;
@@ -862,7 +862,7 @@ function renderDashboard() {
         <div class="alert-card-icon">${icon}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${i.locais?.nome || '—'} · ${prazoLabel}</span>
+          <span>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')} · ${prazoLabel}</span>
         </div>
         ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'manutencao\')">Registar</button>' : ''}
       </div>`;
