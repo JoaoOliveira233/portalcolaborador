@@ -975,7 +975,7 @@ function renderLocais() {
     const nInst = allInstalacoes.filter(i => i.local_id === l.id && i.estado === 'activo').length;
     const tipos = { departamento: '🏢 Departamento', estaleiro: '🏗️ Estaleiro', equipa: '👷 Equipa', armazem: '🏭 Armazém', sede: '🏛️ Sede' };
     return `<tr>
-      <td><strong>${l.nome}</strong></td>
+      <td><strong style='cursor:pointer;color:var(--navy);text-decoration:underline;' onclick='openLocalDetail("${l.id}")'>${l.nome}</strong></td>
       <td>${tipos[l.tipo] || l.tipo}</td>
       <td>${l.responsavel || '—'}</td>
       <td><strong>${nInst}</strong></td>
@@ -1512,7 +1512,7 @@ function renderIndicadores() {
   }
   body.innerHTML = todos.map(l => `
     <tr>
-      <td><strong>${l.nome}</strong></td>
+      <td><strong style='cursor:pointer;color:var(--navy);text-decoration:underline;' onclick='openLocalDetail("${l.id}")'>${l.nome}</strong></td>
       <td>${tipoIcon[l.tipo] || ''} ${l.tipo}</td>
       <td style="text-align:center;"><strong>${l.instalados}</strong></td>
       <td style="text-align:center;color:var(--success);"><strong>${l.ok}</strong></td>
@@ -1792,6 +1792,122 @@ function pdfDashSelecionados(tipo) {
     doc.text('Pagina ' + i + ' de ' + pageCount, pageW-14, pageH-6, { align: 'right' });
   }
   doc.save('EIP_Angola_' + titulo.replace(/ /g,'_') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
+}
+</script>
+
+<!-- MODAL DETALHE LOCAL -->
+<div class="modal-overlay" id="modal-local-detail">
+  <div class="modal" style="max-width:900px;width:95%;">
+    <div class="modal-header">
+      <h3 id="modal-local-title">📍 Local</h3>
+      <button class="modal-close" onclick="closeModal('modal-local-detail')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="local-detail-info" style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:8px;font-size:14px;"></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn btn-outline" onclick="pdfLocalDetail()">📄 Exportar PDF</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>EPC</th><th>Código</th><th>Instalado Em</th><th>Próx. Inspecção</th><th>Próx. Manutenção</th><th>Estado</th><th>Observações</th>
+        </tr></thead>
+        <tbody id="local-detail-body"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+<script>
+// ═══ DETALHE LOCAL ═══
+let _localDetailId = null;
+
+function openLocalDetail(localId) {
+  _localDetailId = localId;
+  const local = allLocais.find(l => l.id === localId);
+  if (!local) return;
+
+  const tipos = { departamento: '🏢 Departamento', estaleiro: '🏗️ Estaleiro', equipa: '👷 Equipa', armazem: '🏭 Armazém', sede: '🏛️ Sede' };
+  document.getElementById('modal-local-title').textContent = '📍 ' + local.nome + ' (' + local.tipo + ')';
+
+  document.getElementById('local-detail-info').innerHTML = `
+    <div><span style="color:var(--gray-400);font-size:12px;">Tipo</span><br><strong>${tipos[local.tipo] || local.tipo}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">Responsável</span><br><strong>${local.responsavel || '—'}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">Instalações Activas</span><br><strong>${allInstalacoes.filter(i => i.local_id === localId && i.estado === 'activo').length}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">Danificados</span><br><strong style="color:var(--danger)">${allInstalacoes.filter(i => i.local_id === localId && i.estado === 'danificado').length}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">Em Manutenção</span><br><strong style="color:var(--warning)">${allInstalacoes.filter(i => i.local_id === localId && i.estado === 'manutencao').length}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">Total</span><br><strong>${allInstalacoes.filter(i => i.local_id === localId && i.estado !== 'inactivo').length}</strong></div>
+  `;
+
+  const estadoBadge = { activo: 'badge-green', inactivo: 'badge-gray', manutencao: 'badge-orange', danificado: 'badge-yellow' };
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const inst = allInstalacoes.filter(i => i.local_id === localId && i.estado !== 'inactivo');
+  const body = document.getElementById('local-detail-body');
+
+  if (!inst.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty-state">Sem instalações neste local</td></tr>';
+  } else {
+    body.innerHTML = inst.map(i => {
+      const diffInsp = i.data_proxima_inspecao ? Math.ceil((new Date(i.data_proxima_inspecao) - hoje) / 86400000) : null;
+      const diffManut = i.data_proxima_manutencao ? Math.ceil((new Date(i.data_proxima_manutencao) - hoje) / 86400000) : null;
+      const inspStyle = diffInsp === null ? '' : diffInsp < 0 ? 'color:var(--danger);font-weight:700;' : diffInsp <= 30 ? 'color:var(--warning);font-weight:700;' : '';
+      const manutStyle = diffManut === null ? '' : diffManut < 0 ? 'color:var(--danger);font-weight:700;' : diffManut <= 30 ? 'color:var(--warning);font-weight:700;' : '';
+      return `<tr>
+        <td><strong>${i.epcs?.nome || '—'}</strong></td>
+        <td><span class="badge badge-blue">${i.codigo || '—'}</span></td>
+        <td>${i.data_instalacao || '—'}</td>
+        <td style="${inspStyle}">${i.data_proxima_inspecao || '—'}</td>
+        <td style="${manutStyle}">${i.data_proxima_manutencao || '—'}</td>
+        <td><span class="badge ${estadoBadge[i.estado] || 'badge-gray'}">${i.estado}</span></td>
+        <td style="font-size:12px;color:var(--gray-400);">${i.observacoes || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  openModal('modal-local-detail');
+}
+
+function pdfLocalDetail() {
+  const local = allLocais.find(l => l.id === _localDetailId);
+  if (!local) return;
+  const inst = allInstalacoes.filter(i => i.local_id === _localDetailId && i.estado !== 'inactivo');
+  if (!inst.length) return alert('Sem instalações para exportar.');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const dataHoje = new Date().toLocaleDateString('pt-PT');
+  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 60, 16); } catch(e) {}
+  doc.setFontSize(16); doc.setTextColor(27,42,74);
+  doc.text('Local: ' + local.nome + ' (' + local.tipo + ')', 80, 16);
+  doc.setFontSize(9); doc.setTextColor(100);
+  doc.text('Responsável: ' + (local.responsavel || '—') + '   |   Data: ' + dataHoje, 80, 22);
+  doc.setDrawColor(27,42,74);
+  doc.line(14, 28, doc.internal.pageSize.width - 14, 28);
+  doc.autoTable({
+    startY: 33,
+    head: [['EPC', 'Código', 'Instalado Em', 'Próx. Inspecção', 'Próx. Manutenção', 'Estado', 'Observações']],
+    body: inst.map(i => [
+      i.epcs?.nome || '—',
+      i.codigo || '—',
+      i.data_instalacao || '—',
+      i.data_proxima_inspecao || '—',
+      i.data_proxima_manutencao || '—',
+      i.estado,
+      i.observacoes || '—'
+    ]),
+    headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245,247,250] },
+    styles: { fontSize: 9 }
+  });
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(150);
+    const pageW = doc.internal.pageSize.width;
+    const pageH = doc.internal.pageSize.height;
+    doc.setDrawColor(200);
+    doc.line(14, pageH-12, pageW-14, pageH-12);
+    doc.text('EIP Angola | Sistema de Gestão de EPC', pageW/2, pageH-6, { align: 'center' });
+    doc.text('Página ' + i + ' de ' + pageCount, pageW-14, pageH-6, { align: 'right' });
+  }
+  doc.save('EIP_Angola_Local_' + local.nome.replace(/ /g,'_') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
 }
 </script>
 </body>
