@@ -1497,14 +1497,18 @@ function renderIndicadores() {
   const equipas = calcIndicadoresPorTipo('equipa');
   const estaleiros = calcIndicadoresPorTipo('estaleiro');
   const departamentos = calcIndicadoresPorTipo('departamento');
+  const sedes = calcIndicadoresPorTipo('sede');
+  const armazens = calcIndicadoresPorTipo('armazem');
 
   buildChart('chart-equipas', equipas, 'Equipas');
   buildChart('chart-estaleiros', estaleiros, 'Estaleiros');
   buildChart('chart-departamentos', departamentos, 'Departamentos');
+  buildChart('chart-sede', sedes, 'Sede');
+  buildChart('chart-armazem', armazens, 'Armazém');
 
   // Tabela resumo - todos os locais
-  const todos = [...equipas, ...estaleiros, ...departamentos].sort((a,b) => b.danos - a.danos || b.instalados - a.instalados);
-  const tipoIcon = { equipa: '👷', estaleiro: '🏗️', departamento: '🏢', armazem: '🏭', sede: '🏛️' };
+  const todos = [...equipas, ...estaleiros, ...departamentos, ...sedes, ...armazens].sort((a,b) => b.danos - a.danos || b.instalados - a.instalados);
+  const tipoIcon = { equipa: '👷', estaleiro: '🏗️', departamento: '🏢', sede: '🏛️', armazem: '🏭', departamento: '🏢', armazem: '🏭', sede: '🏛️' };
   const body = document.getElementById('indicadores-body');
   if (!todos.length) {
     body.innerHTML = '<tr><td colspan="7" class="empty-state">Sem dados suficientes</td></tr>';
