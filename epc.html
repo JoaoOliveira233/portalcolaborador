@@ -833,7 +833,7 @@ function renderDashboard() {
       const d = new Date(i.data_proxima_inspecao); d.setHours(0,0,0,0);
       const atrasado = d < hoje;
       return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}" style="display:flex;align-items:center;gap:10px;">
-        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_inspecao||'—'}" style="width:16px;height:16px;cursor:pointer;">
+        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_inspecao||'—'}" data-obs="${i.observacoes||''}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
@@ -866,7 +866,7 @@ function renderDashboard() {
         ? '<strong style="color:var(--danger)">Expirou há ' + Math.abs(diff) + ' dias</strong>'
         : '<strong style="color:var(--warning)">Expira em ' + diff + ' dias</strong>';
       return `<div class="alert-card ${cardClass}" style="display:flex;align-items:center;gap:10px;">
-        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_manutencao||'—'}" style="width:16px;height:16px;cursor:pointer;">
+        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_manutencao||'—'}" data-obs="${i.observacoes||''}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${icon}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
@@ -1783,7 +1783,8 @@ function pdfDashSelecionados(tipo) {
     nome: cb.dataset.nome,
     codigo: cb.dataset.codigo,
     local: cb.dataset.local,
-    data: cb.dataset.data
+    data: cb.dataset.data,
+    obs: cb.dataset.obs || '—'
   }));
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape' });
@@ -1797,8 +1798,8 @@ function pdfDashSelecionados(tipo) {
   doc.line(14, 28, doc.internal.pageSize.width - 14, 28);
   doc.autoTable({
     startY: 33,
-    head: [['EPC', 'Codigo', 'Local', colData]],
-    body: lista.map(r => [r.nome, r.codigo, r.local, r.data]),
+    head: [['EPC', 'Codigo', 'Local', colData, 'Observacoes']],
+    body: lista.map(r => [r.nome, r.codigo, r.local, r.data, r.obs]),
     headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [245,247,250] },
     styles: { fontSize: 10 }
