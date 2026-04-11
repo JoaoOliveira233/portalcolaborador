@@ -833,11 +833,11 @@ function renderDashboard() {
       const d = new Date(i.data_proxima_inspecao); d.setHours(0,0,0,0);
       const atrasado = d < hoje;
       return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}" style="display:flex;align-items:center;gap:10px;">
-        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_inspecao||'—'}" data-obs="${i.observacoes||''}" style="width:16px;height:16px;cursor:pointer;">
+        <input type="checkbox" class="insp-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + {'equipa':'equipa','estaleiro':'estaleiro','departamento':'departamento','armazem':'armazém','sede':'sede'}[i.locais.tipo] + ')' : '')}" data-data="${i.data_proxima_inspecao||'—'}" data-obs="${i.observacoes||''}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
+          <span>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + {'equipa':'equipa','estaleiro':'estaleiro','departamento':'departamento','armazem':'armazém','sede':'sede'}[i.locais.tipo] + ')' : '')} · ${atrasado ? 'Em atraso' : 'Vence em ' + Math.ceil((d-hoje)/86400000) + ' dias'}</span>
         </div>
         ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'inspecao\')">Registar</button>' : ''}
       </div>`;
@@ -866,11 +866,11 @@ function renderDashboard() {
         ? '<strong style="color:var(--danger)">Expirou há ' + Math.abs(diff) + ' dias</strong>'
         : '<strong style="color:var(--warning)">Expira em ' + diff + ' dias</strong>';
       return `<div class="alert-card ${cardClass}" style="display:flex;align-items:center;gap:10px;">
-        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}" data-data="${i.data_proxima_manutencao||'—'}" data-obs="${i.observacoes||''}" style="width:16px;height:16px;cursor:pointer;">
+        <input type="checkbox" class="manut-check" data-id="${i.id}" data-nome="${i.epcs?.nome||'—'}" data-codigo="${i.codigo||'—'}" data-local="${(i.locais?.nome||'—') + (i.locais?.tipo ? ' (' + {'equipa':'equipa','estaleiro':'estaleiro','departamento':'departamento','armazem':'armazém','sede':'sede'}[i.locais.tipo] + ')' : '')}" data-data="${i.data_proxima_manutencao||'—'}" data-obs="${i.observacoes||''}" style="width:16px;height:16px;cursor:pointer;">
         <div class="alert-card-icon">${icon}</div>
         <div class="alert-card-text" style="flex:1;">
           <strong>${i.epcs?.nome || '—'} [${i.codigo || '—'}]</strong>
-          <span>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')} · ${prazoLabel}</span>
+          <span>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + {'equipa':'equipa','estaleiro':'estaleiro','departamento':'departamento','armazem':'armazém','sede':'sede'}[i.locais.tipo] + ')' : '')} · ${prazoLabel}</span>
         </div>
         ${currentProfile?.role !== 'viewer' ? '<button class="btn btn-outline btn-sm" onclick="openNovaInspecaoModal(\'' + i.id + '\',\'manutencao\')">Registar</button>' : ''}
       </div>`;
@@ -1071,7 +1071,7 @@ function renderInstalacoes() {
     return `<tr>
       <td><strong>${i.epcs?.nome || '—'}</strong></td>
       <td><span class="badge badge-blue">${i.codigo || '—'}</span></td>
-      <td>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + i.locais.tipo + ')' : '')}</td>
+      <td>${(i.locais?.nome || '—') + (i.locais?.tipo ? ' (' + {'equipa':'equipa','estaleiro':'estaleiro','departamento':'departamento','armazem':'armazém','sede':'sede'}[i.locais.tipo] + ')' : '')}</td>
       <td>${i.data_instalacao || '—'}</td>
       <td style="${inspStyle}">${i.data_proxima_inspecao || '—'}</td>
       <td style="${manutStyle}">${i.data_proxima_manutencao || '—'}</td>
@@ -1161,7 +1161,7 @@ function renderInspecoes() {
       <td><span style="font-size:12px;">${tipoLabel[i.tipo] || i.tipo}</span></td>
       <td>${i.instalacoes?.epcs?.nome || '—'}</td>
       <td><span class="badge badge-blue">${i.instalacoes?.codigo || '—'}</span></td>
-      <td>${(i.instalacoes?.locais?.nome || '—') + (i.instalacoes?.locais?.tipo ? ' (' + i.instalacoes.locais.tipo + ')' : '')}</td>
+      <td>${(i.instalacoes?.locais?.nome || '—') + (i.instalacoes?.locais?.tipo ? ' (' + {'equipa':'equipa','estaleiro':'estaleiro','departamento':'departamento','armazem':'armazém','sede':'sede'}[i.instalacoes.locais.tipo] + ')' : '')}</td>
       <td>${resLabel[i.resultado] || i.resultado}</td>
       <td>${i.proxima_data || '—'}</td>
       <td style="font-size:12px;color:var(--gray-400);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${i.observacoes||''}">${i.observacoes || '—'}</td>
