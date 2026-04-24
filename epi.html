@@ -411,12 +411,16 @@
     <div class="modal-header"><span class="modal-title">📦 Nova Entrada de Stock</span><button class="modal-close" onclick="closeModal('modal-entrada')">×</button></div>
     <div class="modal-body">
       <div id="entrada-alert"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Nome do EPI *</label><input type="text" id="e-nome" placeholder="Ex: Capacete de Segurança" list="epi-datalist"></div>
-        <div class="form-group"><label>Tamanho</label><input type="text" id="e-tamanho" placeholder="Ex: M, L, XL, 42..."></div>
+      <div class="form-group">
+        <label>EPI *</label>
+        <select id="e-epi-id" onchange="onEntradaEpiChange()" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;">
+          <option value="">-- Selecionar EPI --</option>
+        </select>
       </div>
-      <datalist id="epi-datalist"></datalist>
-      <div class="form-group"><label>Descrição</label><input type="text" id="e-descricao" placeholder="Opcional"></div>
+      <div class="form-row">
+        <div class="form-group"><label>NSAP</label><input type="text" id="e-nsap-display" disabled style="background:var(--gray-50);color:var(--gray-400);"></div>
+        <div class="form-group"><label>Tamanho</label><input type="text" id="e-tamanho-display" disabled style="background:var(--gray-50);color:var(--gray-400);"></div>
+      </div>
       <div class="form-row">
         <div class="form-group"><label>Quantidade *</label><input type="number" id="e-qtd" min="1" value="1"></div>
         <div class="form-group"><label>Data *</label><input type="date" id="e-data"></div>
@@ -993,11 +997,13 @@ async function renderEntradas() {
 }
 
 async function openEntradaModal() {
-  // Preencher datalist
-  const dl = document.getElementById('epi-datalist');
-  dl.innerHTML = [...new Set(allEpis.map(e => e.nome))].map(n => `<option value="${n}">`).join('');
+  const sel = document.getElementById('e-epi-id');
+  sel.innerHTML = '<option value="">-- Selecionar EPI --</option>' +
+    allEpis.map(e => `<option value="${e.id}">${e.nome}${e.tamanho ? ' – ' + e.tamanho : ''}${e.nsap ? ' [' + e.nsap + ']' : ''}</option>`).join('');
   document.getElementById('e-data').value = new Date().toISOString().slice(0, 10);
-  ['e-nome','e-tamanho','e-descricao','e-fornecedor','e-ref'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('e-nsap-display').value = '';
+  document.getElementById('e-tamanho-display').value = '';
+  ['e-fornecedor','e-ref'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('e-qtd').value = 1;
   document.getElementById('e-preco-kz').value = '';
   document.getElementById('e-preco-usd').value = '';
@@ -1005,26 +1011,24 @@ async function openEntradaModal() {
   openModal('modal-entrada');
 }
 
+function onEntradaEpiChange() {
+  const epiId = document.getElementById('e-epi-id').value;
+  const epi = allEpis.find(e => e.id === epiId);
+  document.getElementById('e-nsap-display').value = epi?.nsap || '—';
+  document.getElementById('e-tamanho-display').value = epi?.tamanho || '—';
+}
+
 async function saveEntrada() {
-  const nome = document.getElementById('e-nome').value.trim();
+  const epiId = document.getElementById('e-epi-id').value;
   const qtd = parseInt(document.getElementById('e-qtd').value);
   const data = document.getElementById('e-data').value;
-  if (!nome || !qtd || !data) return showAlert('entrada-alert', 'Nome, quantidade e data são obrigatórios.', 'error');
+  if (!epiId) return showAlert('entrada-alert', 'Selecione um EPI.', 'error');
+  if (!qtd || !data) return showAlert('entrada-alert', 'Quantidade e data são obrigatórios.', 'error');
 
-  const tamanho = document.getElementById('e-tamanho').value.trim() || null;
-  const descricao = document.getElementById('e-descricao').value.trim() || null;
-
-  // Verificar se EPI existe, senão criar
-  let epi = allEpis.find(e => e.nome.toLowerCase() === nome.toLowerCase() && (e.tamanho || '').toLowerCase() === (tamanho || '').toLowerCase());
-  if (!epi) {
-    const { data: newEpi, error } = await sb.from('epis').insert({ nome, tamanho, descricao }).select().single();
-    if (error) return showAlert('entrada-alert', 'Erro ao criar EPI: ' + error.message, 'error');
-    epi = newEpi;
-    allEpis.push(epi);
-  }
+  const epi = allEpis.find(e => e.id === epiId);
 
   const { error } = await sb.from('entradas').insert({
-    epi_id: epi.id,
+    epi_id: epiId,
     quantidade: qtd,
     fornecedor: document.getElementById('e-fornecedor').value.trim() || null,
     referencia_fornecedor: document.getElementById('e-ref').value.trim() || null,
