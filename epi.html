@@ -638,7 +638,7 @@
         <div class="form-group"><label>Stock Mínimo</label><input type="number" id="ne-stock-min" min="0" value="5"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Fornecedor</label><input type="text" id="ne-fornecedor" placeholder="Opcional"></div>
+        <div class="form-group"><label>Fornecedor</label><select id="ne-fornecedor" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;"><option value="">-- Selecionar Fornecedor --</option></select></div>
         <div class="form-group"><label>Ref. Fornecedor</label><input type="text" id="ne-ref" placeholder="Opcional"></div>
       </div>
       <div class="form-row">
@@ -669,7 +669,7 @@
       <div class="form-row">
         <div class="form-group"><label>Stock Atual</label><input type="number" id="edit-epi-stock-atual" min="0" value="0"></div>
         <div class="form-row">
-        <div class="form-group"><label>Fornecedor</label><input type="text" id="edit-epi-fornecedor" placeholder="Opcional"></div>
+        <div class="form-group"><label>Fornecedor</label><select id="edit-epi-fornecedor" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;"><option value="">-- Selecionar Fornecedor --</option></select></div>
         <div class="form-group"><label>Ref. Fornecedor</label><input type="text" id="edit-epi-ref" placeholder="Opcional"></div>
       </div>
       <div class="form-group"><label>Stock Mínimo</label><input type="number" id="edit-epi-stock-min" min="0" value="5"></div>
@@ -2042,7 +2042,8 @@ function openEditEpiModal(id) {
   document.getElementById('edit-epi-tamanho').value = e.tamanho || '';
   document.getElementById('edit-epi-descricao').value = e.descricao || '';
   document.getElementById('edit-epi-stock-atual').value = e.stock_atual || 0;
-  document.getElementById('edit-epi-fornecedor').value = e.fornecedor || '';
+  const editFornSel = document.getElementById('edit-epi-fornecedor');
+  editFornSel.innerHTML = '<option value="">-- Selecionar Fornecedor --</option>' + allFornecedores.map(f => `<option value="${f.nome}"${f.nome === e.fornecedor ? ' selected' : ''}>${f.nome}</option>`).join('');
   document.getElementById('edit-epi-ref').value = e.referencia_fornecedor || '';
   document.getElementById('edit-epi-stock-min').value = e.stock_minimo || 5;
   document.getElementById('edit-epi-alert').innerHTML = '';
@@ -2181,7 +2182,8 @@ function openNovoEpiModal() {
   document.getElementById('ne-descricao').value = '';
   document.getElementById('ne-stock').value = 0;
   document.getElementById('ne-stock-min').value = 5;
-  document.getElementById('ne-fornecedor').value = '';
+  const neFornSel = document.getElementById('ne-fornecedor');
+  neFornSel.innerHTML = '<option value="">-- Selecionar Fornecedor --</option>' + allFornecedores.map(f => `<option value="${f.nome}">${f.nome}</option>`).join('');
   document.getElementById('ne-ref').value = '';
   document.getElementById('ne-preco-kz').value = '';
   document.getElementById('ne-preco-usd').value = '';
