@@ -288,6 +288,7 @@
       <div class="nav-item" onclick="navigate('entradas')"><span class="nav-icon">📦</span> Entradas</div>
       <div class="nav-item" onclick="navigate('saidas')"><span class="nav-icon">🔄</span> Saídas</div>
       
+      <div class="nav-item" onclick="navigate('fornecedores')"><span class="nav-icon">🏢</span> Fornecedores</div>
       <div class="nav-item" onclick="navigate('historico')"><span class="nav-icon">📋</span> Histórico</div>
       
     </aside>
@@ -374,6 +375,29 @@
 
       <!-- ── COLABORADORES ── -->
       <!-- ── HISTÓRICO ── -->
+      <!-- ── FORNECEDORES ── -->
+      <div class="page" id="page-fornecedores">
+        <div class="page-header">
+          <div><div class="page-title">Fornecedores</div><div class="page-subtitle">Gestão de fornecedores de EPIs</div></div>
+          <button class="btn btn-primary admin-only" onclick="openNovoFornecedorModal()" style="display:none;">+ Adicionar Fornecedor</button>
+        </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <input class="search-input" placeholder="🔍 Pesquisar fornecedor..." oninput="filterTable('fornecedores-body', this.value)">
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr>
+              <th class="sortable" onclick="sortTable('fornecedores-body',0,'str')">Nome</th>
+              <th>Telefone</th>
+              <th>Email</th>
+              <th>NIF</th>
+              <th class="admin-only" style="display:none;">Ações</th>
+            </tr></thead>
+            <tbody id="fornecedores-body"></tbody>
+          </table></div>
+        </div>
+      </div>
+
       <div class="page" id="page-historico">
         <div class="page-header">
           <div><div class="page-title">Histórico por Colaborador</div></div>
@@ -894,6 +918,7 @@ function navigate(page) {
   if (page === 'entradas') renderEntradas();
   if (page === 'saidas') renderSaidas();
   if (page === 'colaboradores') renderColabs();
+  if (page === 'fornecedores') renderFornecedores();
   if (page === 'historico') renderHistoricoPage();
 
   // Fechar sidebar mobile
@@ -906,12 +931,14 @@ function toggleSidebar() {
 
 // ═══════════════════════════════ LOAD ALL ═══════════════════════════════
 async function loadAll() {
-  const [{ data: epis }, { data: colabs }] = await Promise.all([
+  const [{ data: epis }, { data: colabs }, { data: forn }] = await Promise.all([
     sb.from('epis').select('*').order('nome'),
-    sb.from('colaboradores').select('*').order('nome')
+    sb.from('colaboradores').select('*').order('nome'),
+    sb.from('fornecedores').select('*').order('nome')
   ]);
   allEpis = epis || [];
   allColabs = colabs || [];
+  allFornecedores = forn || [];
   renderDashboard();
   updateNavBadges();
 }
@@ -2697,5 +2724,122 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   <div id="app-footer" style="display:none;background:var(--navy-dark);color:rgba(255,255,255,.5);text-align:center;padding:12px;font-size:12px;letter-spacing:.3px;">
     © 2026 EIP Angola | Sistema de Gestão de EPI | Desenvolvido por João Oliveira
   </div>
+
+<!-- Modal Novo Fornecedor -->
+<div class="modal-overlay" id="modal-novo-fornecedor">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title">🏢 Fornecedor</span>
+      <button class="modal-close" onclick="closeModal('modal-novo-fornecedor')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="fornecedor-alert"></div>
+      <input type="hidden" id="f-id">
+      <div class="form-group"><label>Nome *</label><input type="text" id="f-nome" placeholder="Nome do fornecedor"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Telefone</label><input type="text" id="f-telefone" placeholder="Ex: +244 900 000 000"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="f-email" placeholder="email@fornecedor.com"></div>
+      </div>
+      <div class="form-group"><label>NIF</label><input type="text" id="f-nif" placeholder="Número de Identificação Fiscal"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-novo-fornecedor')">Cancelar</button>
+      <button class="btn btn-danger admin-only" id="btn-delete-fornecedor" onclick="deleteFornecedor()" style="display:none;">🗑️ Apagar</button>
+      <button class="btn btn-primary" onclick="saveFornecedor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════ FORNECEDORES ═══════════════════════════════
+let allFornecedores = [];
+
+async function loadFornecedores() {
+  const { data } = await sb.from('fornecedores').select('*').order('nome');
+  allFornecedores = data || [];
+}
+
+function renderFornecedores() {
+  const isAdmin = currentProfile?.role === 'admin';
+  const body = document.getElementById('fornecedores-body');
+  if (!allFornecedores.length) {
+    body.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-icon">🏢</div>Sem fornecedores registados</td></tr>';
+    return;
+  }
+  body.innerHTML = allFornecedores.map(f => `
+    <tr>
+      <td><strong>${f.nome}</strong></td>
+      <td>${f.telefone || '—'}</td>
+      <td>${f.email || '—'}</td>
+      <td>${f.nif || '—'}</td>
+      <td>${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditFornecedorModal('${f.id}')">✏️ Editar</button>` : ''}</td>
+    </tr>
+  `).join('');
+  // Show admin buttons
+  document.querySelectorAll('#page-fornecedores .admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
+  });
+}
+
+function openNovoFornecedorModal() {
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-nome').value = '';
+  document.getElementById('f-telefone').value = '';
+  document.getElementById('f-email').value = '';
+  document.getElementById('f-nif').value = '';
+  document.getElementById('fornecedor-alert').innerHTML = '';
+  document.getElementById('btn-delete-fornecedor').style.display = 'none';
+  openModal('modal-novo-fornecedor');
+}
+
+function openEditFornecedorModal(id) {
+  const f = allFornecedores.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('f-id').value = f.id;
+  document.getElementById('f-nome').value = f.nome || '';
+  document.getElementById('f-telefone').value = f.telefone || '';
+  document.getElementById('f-email').value = f.email || '';
+  document.getElementById('f-nif').value = f.nif || '';
+  document.getElementById('fornecedor-alert').innerHTML = '';
+  document.getElementById('btn-delete-fornecedor').style.display = '';
+  openModal('modal-novo-fornecedor');
+}
+
+async function saveFornecedor() {
+  const id = document.getElementById('f-id').value;
+  const nome = document.getElementById('f-nome').value.trim();
+  if (!nome) return showAlert('fornecedor-alert', 'Nome é obrigatório.', 'error');
+
+  const payload = {
+    nome,
+    telefone: document.getElementById('f-telefone').value.trim() || null,
+    email: document.getElementById('f-email').value.trim() || null,
+    nif: document.getElementById('f-nif').value.trim() || null
+  };
+
+  let error;
+  if (id) {
+    ({ error } = await sb.from('fornecedores').update(payload).eq('id', id));
+  } else {
+    ({ error } = await sb.from('fornecedores').insert(payload));
+  }
+  if (error) return showAlert('fornecedor-alert', error.message, 'error');
+
+  closeModal('modal-novo-fornecedor');
+  await loadFornecedores();
+  renderFornecedores();
+}
+
+async function deleteFornecedor() {
+  const id = document.getElementById('f-id').value;
+  const nome = document.getElementById('f-nome').value;
+  if (!confirm('Apagar fornecedor "' + nome + '"?')) return;
+  const { error } = await sb.from('fornecedores').delete().eq('id', id);
+  if (error) return showAlert('fornecedor-alert', error.message, 'error');
+  closeModal('modal-novo-fornecedor');
+  await loadFornecedores();
+  renderFornecedores();
+}
+</script>
 </body>
 </html>
