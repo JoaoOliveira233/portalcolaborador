@@ -450,7 +450,7 @@
         <div class="form-group"><label>Data *</label><input type="date" id="e-data"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Fornecedor</label><input type="text" id="e-fornecedor"></div>
+        <div class="form-group"><label>Fornecedor</label><input type="text" id="e-fornecedor" disabled style="background:var(--gray-50);color:var(--gray-400);"></div>
         <div class="form-group"><label>Referência Fornecedor</label><input type="text" id="e-ref"></div>
       </div>
       <div class="form-row">
@@ -1043,6 +1043,7 @@ function onEntradaEpiChange() {
   const epi = allEpis.find(e => e.id === epiId);
   document.getElementById('e-nsap-display').value = epi?.nsap || '—';
   document.getElementById('e-tamanho-display').value = epi?.tamanho || '—';
+  document.getElementById('e-fornecedor').value = epi?.fornecedor || '—';
 }
 
 async function saveEntrada() {
@@ -2770,7 +2771,7 @@ function renderFornecedores() {
   }
   body.innerHTML = allFornecedores.map(f => `
     <tr>
-      <td><strong>${f.nome}</strong></td>
+      <td><strong style="cursor:pointer;color:var(--navy);text-decoration:underline;" onclick="openFornecedorDetalhe('${f.id}')">${f.nome}</strong></td>
       <td>${f.telefone || '—'}</td>
       <td>${f.email || '—'}</td>
       <td>${f.nif || '—'}</td>
@@ -2841,6 +2842,57 @@ async function deleteFornecedor() {
   closeModal('modal-novo-fornecedor');
   await loadFornecedores();
   renderFornecedores();
+}
+</script>
+
+<!-- Modal Detalhe Fornecedor -->
+<div class="modal-overlay" id="modal-fornecedor-detalhe">
+  <div class="modal" style="max-width:800px;width:95%;">
+    <div class="modal-header">
+      <h3 id="modal-forn-title">🏢 Fornecedor</h3>
+      <button class="modal-close" onclick="closeModal('modal-fornecedor-detalhe')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="forn-detalhe-info" style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:8px;font-size:14px;"></div>
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th>NSAP</th><th>Nome EPI</th><th>Tamanho</th><th>Stock Actual</th><th>Stock Mínimo</th><th>Ref. Fornecedor</th>
+        </tr></thead>
+        <tbody id="forn-detalhe-epis"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openFornecedorDetalhe(fornId) {
+  const f = allFornecedores.find(x => x.id === fornId);
+  if (!f) return;
+
+  document.getElementById('modal-forn-title').textContent = '🏢 ' + f.nome;
+  document.getElementById('forn-detalhe-info').innerHTML = `
+    <div><span style="color:var(--gray-400);font-size:12px;">Telefone</span><br><strong>${f.telefone || '—'}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">Email</span><br><strong>${f.email || '—'}</strong></div>
+    <div><span style="color:var(--gray-400);font-size:12px;">NIF</span><br><strong>${f.nif || '—'}</strong></div>
+  `;
+
+  const epis = allEpis.filter(e => e.fornecedor === f.nome);
+  const body = document.getElementById('forn-detalhe-epis');
+  if (!epis.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty-state">Sem EPIs associados a este fornecedor</td></tr>';
+  } else {
+    body.innerHTML = epis.map(e => `
+      <tr>
+        <td>${e.nsap || '—'}</td>
+        <td><strong>${e.nome}</strong></td>
+        <td>${e.tamanho || '—'}</td>
+        <td><strong>${e.stock_atual}</strong></td>
+        <td>${e.stock_minimo}</td>
+        <td style="font-size:13px;">${e.referencia_fornecedor || '—'}</td>
+      </tr>
+    `).join('');
+  }
+  openModal('modal-fornecedor-detalhe');
 }
 </script>
 </body>
