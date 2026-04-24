@@ -328,7 +328,7 @@
             <input class="search-input" placeholder="🔍 Pesquisar EPI..." oninput="filterTable('epis-body', this.value)">
           </div>
           <div class="table-wrap"><table>
-            <thead><tr><th class="sortable" onclick="sortTable('epis-body',0,'str')">Nome</th><th class="sortable" onclick="sortTable('epis-body',1,'str')">Tamanho</th><th>Descrição</th><th class="sortable" onclick="sortTable('epis-body',3,'num')">Stock</th><th class="sortable" onclick="sortTable('epis-body',4,'num')">Danificado / Devolvido</th><th class="sortable" onclick="sortTable('epis-body',5,'num')">Mín.</th><th class="sortable" onclick="sortTable('epis-body',6,'str')">Estado</th><th>Ações</th></tr></thead>
+            <thead><tr><th class="sortable" onclick="sortTable('epis-body',0,'str')">NSAP</th><th class="sortable" onclick="sortTable('epis-body',1,'str')">Nome</th><th class="sortable" onclick="sortTable('epis-body',1,'str')">Tamanho</th><th>Descrição</th><th class="sortable" onclick="sortTable('epis-body',3,'num')">Stock</th><th class="sortable" onclick="sortTable('epis-body',4,'num')">Danificado / Devolvido</th><th class="sortable" onclick="sortTable('epis-body',5,'num')">Mín.</th><th class="sortable" onclick="sortTable('epis-body',6,'str')">Estado</th><th>Ações</th></tr></thead>
             <tbody id="epis-body"></tbody>
           </table></div>
         </div>
@@ -950,6 +950,7 @@ function renderEpis() {
   if (!allEpis.length) { body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">🦺</div>Sem EPIs registados</td></tr>'; return; }
   body.innerHTML = allEpis.map(e => `
     <tr>
+      <td>${e.nsap || '—'}</td>
       <td><strong>${e.nome}</strong></td>
       <td>${e.tamanho || '—'}</td>
       <td style="color:var(--gray-600);font-size:13px;">${e.descricao || '—'}</td>
