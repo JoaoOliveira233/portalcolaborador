@@ -450,7 +450,7 @@
         <div class="form-group"><label>Data *</label><input type="date" id="e-data"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Fornecedor</label><input type="text" id="e-fornecedor" disabled style="background:var(--gray-50);color:var(--gray-400);"></div>
+        <div class="form-group"><label>Fornecedor</label><select id="e-fornecedor" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;"><option value="">-- Selecionar Fornecedor --</option></select></div>
         <div class="form-group"><label>Referência Fornecedor</label><input type="text" id="e-ref"></div>
       </div>
       <div class="form-row">
@@ -1030,7 +1030,9 @@ async function openEntradaModal() {
   document.getElementById('e-data').value = new Date().toISOString().slice(0, 10);
   document.getElementById('e-nsap-display').value = '';
   document.getElementById('e-tamanho-display').value = '';
-  ['e-fornecedor','e-ref'].forEach(id => document.getElementById(id).value = '');
+  const eFornSel = document.getElementById('e-fornecedor');
+  eFornSel.innerHTML = '<option value="">-- Selecionar Fornecedor --</option>' + allFornecedores.map(f => `<option value="${f.nome}">${f.nome}</option>`).join('');
+  document.getElementById('e-ref').value = '';
   document.getElementById('e-qtd').value = 1;
   document.getElementById('e-preco-kz').value = '';
   document.getElementById('e-preco-usd').value = '';
@@ -1043,7 +1045,7 @@ function onEntradaEpiChange() {
   const epi = allEpis.find(e => e.id === epiId);
   document.getElementById('e-nsap-display').value = epi?.nsap || '—';
   document.getElementById('e-tamanho-display').value = epi?.tamanho || '—';
-  document.getElementById('e-fornecedor').value = epi?.fornecedor || '—';
+
 }
 
 async function saveEntrada() {
@@ -2856,7 +2858,7 @@ async function deleteFornecedor() {
       <div id="forn-detalhe-info" style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:8px;font-size:14px;"></div>
       <div class="table-wrap"><table>
         <thead><tr>
-          <th>NSAP</th><th>Nome EPI</th><th>Tamanho</th><th>Stock Actual</th><th>Stock Mínimo</th><th>Ref. Fornecedor</th>
+          <th>NSAP</th><th>Nome EPI</th><th>Tamanho</th><th>Qtd. Total Adquirida</th><th>Total (Kz)</th><th>Total ($)</th>
         </tr></thead>
         <tbody id="forn-detalhe-epis"></tbody>
       </table></div>
@@ -2865,7 +2867,7 @@ async function deleteFornecedor() {
 </div>
 
 <script>
-function openFornecedorDetalhe(fornId) {
+async function openFornecedorDetalhe(fornId) {
   const f = allFornecedores.find(x => x.id === fornId);
   if (!f) return;
 
@@ -2876,19 +2878,43 @@ function openFornecedorDetalhe(fornId) {
     <div><span style="color:var(--gray-400);font-size:12px;">NIF</span><br><strong>${f.nif || '—'}</strong></div>
   `;
 
-  const epis = allEpis.filter(e => e.fornecedor === f.nome);
+  // Load entradas for this fornecedor
+  const { data: entradas } = await sb.from('entradas')
+    .select('*, epis(nome,tamanho,nsap)')
+    .eq('fornecedor', f.nome)
+    .order('data', { ascending: false });
+
   const body = document.getElementById('forn-detalhe-epis');
-  if (!epis.length) {
-    body.innerHTML = '<tr><td colspan="6" class="empty-state">Sem EPIs associados a este fornecedor</td></tr>';
+  if (!entradas?.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty-state">Sem entradas registadas para este fornecedor</td></tr>';
   } else {
-    body.innerHTML = epis.map(e => `
+    // Group by EPI
+    const grouped = {};
+    entradas.forEach(e => {
+      const key = e.epi_id;
+      if (!grouped[key]) grouped[key] = {
+        nsap: e.epis?.nsap || '—',
+        nome: e.epis?.nome || '—',
+        tamanho: e.epis?.tamanho || '—',
+        totalQtd: 0,
+        totalKz: 0,
+        totalUsd: 0,
+        nEntradas: 0
+      };
+      grouped[key].totalQtd += e.quantidade || 0;
+      grouped[key].totalKz += e.preco_kwanzas || 0;
+      grouped[key].totalUsd += e.preco_dolares || 0;
+      grouped[key].nEntradas++;
+    });
+
+    body.innerHTML = Object.values(grouped).map(g => `
       <tr>
-        <td>${e.nsap || '—'}</td>
-        <td><strong>${e.nome}</strong></td>
-        <td>${e.tamanho || '—'}</td>
-        <td><strong>${e.stock_atual}</strong></td>
-        <td>${e.stock_minimo}</td>
-        <td style="font-size:13px;">${e.referencia_fornecedor || '—'}</td>
+        <td>${g.nsap}</td>
+        <td><strong>${g.nome}</strong></td>
+        <td>${g.tamanho}</td>
+        <td><strong>${g.totalQtd}</strong></td>
+        <td>${g.totalKz > 0 ? g.totalKz.toLocaleString('pt-PT') + ' Kz' : '—'}</td>
+        <td>${g.totalUsd > 0 ? '$' + g.totalUsd.toLocaleString('pt-PT') : '—'}</td>
       </tr>
     `).join('');
   }
