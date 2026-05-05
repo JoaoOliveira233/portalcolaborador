@@ -563,11 +563,11 @@
         <div style="margin-bottom:10px;">
           <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Propriedade (escolher um)</div>
           <div class="form-row">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+            <label id="label-registo" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
               <input type="radio" name="doc-propriedade" id="v-registo" value="registo" onchange="togglePropriedade()" style="width:16px;height:16px;">
               <span>Título de Registo de Propriedade</span>
             </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+            <label id="label-guia" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
               <input type="radio" name="doc-propriedade" id="v-guia-prov-reg" value="guia" onchange="togglePropriedade()" style="width:16px;height:16px;">
               <span>Guia Provisória de Registo</span>
             </label>
@@ -581,11 +581,11 @@
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Livrete (escolher um)</div>
           <div class="form-row">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+            <label id="label-livrete" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
               <input type="radio" name="doc-livrete" id="v-livrete" value="livrete" onchange="toggleVerbete()" style="width:16px;height:16px;">
               <span>Livrete</span>
             </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+            <label id="label-verbete" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
               <input type="radio" name="doc-livrete" id="v-verbete" value="verbete" onchange="toggleVerbete()" style="width:16px;height:16px;">
               <span>Verbete Provisório</span>
             </label>
@@ -1080,6 +1080,8 @@ function openNovaViaturaModal() {
   document.querySelectorAll('input[name="doc-propriedade"], input[name="doc-livrete"]').forEach(r => r.checked = false);
   document.getElementById('guia-prov-reg-data-wrap').style.display = 'none';
   document.getElementById('verbete-data-wrap').style.display = 'none';
+  // Reset label visibility
+  ['label-registo','label-guia','label-livrete','label-verbete'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = ''; });
   document.getElementById('v-inspecao-val').value = '';
   // Reset seg
   ['v-chave-rodas','v-macaco','v-triangulo','v-extintor-check'].forEach(id => { const el = document.getElementById(id); if(el) el.checked = false; });
@@ -1189,11 +1191,17 @@ function toggleDocTipo() {
 }
 function togglePropriedade() {
   const isGuia = document.getElementById('v-guia-prov-reg').checked;
+  // Show/hide the date field
   document.getElementById('guia-prov-reg-data-wrap').style.display = isGuia ? '' : 'none';
+  // Hide the non-selected option label
+  document.getElementById('label-registo').style.display = isGuia ? 'none' : '';
+  document.getElementById('label-guia').style.display = isGuia ? '' : 'none';
 }
 function toggleVerbete() {
   const isVerbete = document.getElementById('v-verbete').checked;
   document.getElementById('verbete-data-wrap').style.display = isVerbete ? '' : 'none';
+  document.getElementById('label-livrete').style.display = isVerbete ? 'none' : '';
+  document.getElementById('label-verbete').style.display = isVerbete ? '' : 'none';
 }
 
 async function saveViatura() {
