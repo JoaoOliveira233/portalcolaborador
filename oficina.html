@@ -536,49 +536,63 @@
       </div>
 
       <div class="section-divider">Documentos</div>
+
+      <!-- Inspecção — sempre presente -->
+      <div class="form-group">
+        <label>📋 Data de Validade da Inspecção</label>
+        <input type="date" id="v-inspecao-val">
+      </div>
+
+      <!-- Documento Único vs Separados -->
       <div style="padding:10px;background:var(--gray-50);border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;color:var(--gray-600);">
         ℹ️ O <strong>Documento Único</strong> substitui o Registo de Propriedade e o Livrete.
       </div>
-      <div class="form-group">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="v-doc-unico" onchange="toggleDocUnico()" style="width:16px;height:16px;">
-          <span>Tem Documento Único</span>
+      <div class="form-row" style="margin-bottom:12px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);" id="doc-unico-label">
+          <input type="radio" name="doc-tipo" id="v-doc-unico" value="unico" onchange="toggleDocTipo()" style="width:16px;height:16px;">
+          <span>📄 Documento Único</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);" id="doc-sep-label">
+          <input type="radio" name="doc-tipo" id="v-doc-separados" value="separados" onchange="toggleDocTipo()" style="width:16px;height:16px;" checked>
+          <span>📑 Documentos Separados</span>
         </label>
       </div>
+
       <div id="docs-separados">
-        <div class="form-row">
-          <div class="form-group">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="v-registo" style="width:16px;height:16px;">
+        <!-- Registo OU Guia Provisória -->
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Propriedade (escolher um)</div>
+          <div class="form-row">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+              <input type="radio" name="doc-propriedade" id="v-registo" value="registo" onchange="togglePropriedade()" style="width:16px;height:16px;">
               <span>Título de Registo de Propriedade</span>
             </label>
-          </div>
-          <div class="form-group">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="v-guia-prov-reg" style="width:16px;height:16px;">
-              <span>Guia Provisória Registo</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+              <input type="radio" name="doc-propriedade" id="v-guia-prov-reg" value="guia" onchange="togglePropriedade()" style="width:16px;height:16px;">
+              <span>Guia Provisória de Registo</span>
             </label>
           </div>
+          <div id="guia-prov-reg-data-wrap" style="display:none;margin-top:8px;">
+            <div class="form-group"><label>Validade Guia Provisória</label><input type="date" id="v-guia-prov-reg-val"></div>
+          </div>
         </div>
-        <div id="guia-prov-reg-data-wrap" style="display:none;">
-          <div class="form-group"><label>Validade Guia Prov. Registo</label><input type="date" id="v-guia-prov-reg-val"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="v-livrete" style="width:16px;height:16px;">
+
+        <!-- Livrete OU Verbete -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Livrete (escolher um)</div>
+          <div class="form-row">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+              <input type="radio" name="doc-livrete" id="v-livrete" value="livrete" onchange="toggleVerbete()" style="width:16px;height:16px;">
               <span>Livrete</span>
             </label>
-          </div>
-          <div class="form-group">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="checkbox" id="v-verbete" style="width:16px;height:16px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);">
+              <input type="radio" name="doc-livrete" id="v-verbete" value="verbete" onchange="toggleVerbete()" style="width:16px;height:16px;">
               <span>Verbete Provisório</span>
             </label>
           </div>
-        </div>
-        <div id="verbete-data-wrap" style="display:none;">
-          <div class="form-group"><label>Validade Verbete Provisório</label><input type="date" id="v-verbete-val"></div>
+          <div id="verbete-data-wrap" style="display:none;margin-top:8px;">
+            <div class="form-group"><label>Validade Verbete Provisório</label><input type="date" id="v-verbete-val"></div>
+          </div>
         </div>
       </div>
       <div class="section-divider">Revisão / Inspecção</div>
@@ -1060,7 +1074,15 @@ function openNovaViaturaModal() {
   document.getElementById('v-tipo').value = '';
   document.getElementById('v-estado').value = 'operacional';
   document.getElementById('v-ano').value = '';
-  ['v-chave-rodas','v-macaco','v-triangulo','v-extintor-check','v-registo','v-livrete','v-guia-prov-reg','v-verbete','v-doc-unico'].forEach(id => { const el = document.getElementById(id); if(el) el.checked = false; });
+  // Reset docs
+  document.getElementById('v-doc-separados').checked = true;
+  document.getElementById('docs-separados').style.display = '';
+  document.querySelectorAll('input[name="doc-propriedade"], input[name="doc-livrete"]').forEach(r => r.checked = false);
+  document.getElementById('guia-prov-reg-data-wrap').style.display = 'none';
+  document.getElementById('verbete-data-wrap').style.display = 'none';
+  document.getElementById('v-inspecao-val').value = '';
+  // Reset seg
+  ['v-chave-rodas','v-macaco','v-triangulo','v-extintor-check'].forEach(id => { const el = document.getElementById(id); if(el) el.checked = false; });
   document.getElementById('extintor-select-wrap').style.display = 'none';
   document.getElementById('guia-prov-reg-data-wrap').style.display = 'none';
   document.getElementById('verbete-data-wrap').style.display = 'none';
@@ -1161,9 +1183,17 @@ function updateSegStyle(tipo) {
   item.classList.toggle('ok', cb.checked);
   item.classList.toggle('nok', !cb.checked);
 }
-function toggleDocUnico() {
-  const checked = document.getElementById('v-doc-unico').checked;
-  document.getElementById('docs-separados').style.display = checked ? 'none' : '';
+function toggleDocTipo() {
+  const isUnico = document.getElementById('v-doc-unico').checked;
+  document.getElementById('docs-separados').style.display = isUnico ? 'none' : '';
+}
+function togglePropriedade() {
+  const isGuia = document.getElementById('v-guia-prov-reg').checked;
+  document.getElementById('guia-prov-reg-data-wrap').style.display = isGuia ? '' : 'none';
+}
+function toggleVerbete() {
+  const isVerbete = document.getElementById('v-verbete').checked;
+  document.getElementById('verbete-data-wrap').style.display = isVerbete ? '' : 'none';
 }
 
 async function saveViatura() {
@@ -1191,12 +1221,13 @@ async function saveViatura() {
     tem_macaco: document.getElementById('v-macaco').checked,
     tem_triangulo: document.getElementById('v-triangulo').checked,
     extintor_id: extId,
+    inspecao_validade: document.getElementById('v-inspecao-val').value || null,
     tem_documento_unico: document.getElementById('v-doc-unico').checked,
-    tem_registo_propriedade: document.getElementById('v-registo').checked,
-    tem_livrete: document.getElementById('v-livrete').checked,
-    tem_guia_prov_registo: hasGuiaProv,
+    tem_registo_propriedade: document.getElementById('v-registo')?.checked || false,
+    tem_livrete: document.getElementById('v-livrete')?.checked || false,
+    tem_guia_prov_registo: document.getElementById('v-guia-prov-reg')?.checked || false,
     guia_prov_registo_validade: hasGuiaProv ? (document.getElementById('v-guia-prov-reg-val').value || null) : null,
-    tem_verbete_provisorio: hasVerbete,
+    tem_verbete_provisorio: document.getElementById('v-verbete')?.checked || false,
     verbete_provisorio_validade: hasVerbete ? (document.getElementById('v-verbete-val').value || null) : null,
     km_actuais: parseInt(document.getElementById('v-km-actuais').value) || null,
     km_proxima_revisao: parseInt(document.getElementById('v-km-proxima').value) || null,
@@ -1860,12 +1891,7 @@ function pdfViaturaDetalhe() {
     el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
   });
   // Guia-prov-reg toggle
-  document.getElementById('v-guia-prov-reg').addEventListener('change', function() {
-    document.getElementById('guia-prov-reg-data-wrap').style.display = this.checked ? '' : 'none';
-  });
-  document.getElementById('v-verbete').addEventListener('change', function() {
-    document.getElementById('verbete-data-wrap').style.display = this.checked ? '' : 'none';
-  });
+
 })();
 </script>
 </body>
