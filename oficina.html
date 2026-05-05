@@ -1337,7 +1337,7 @@ function openViaturaDetalhe(id) {
       docItem('Guia Prov. Registo', v.tem_guia_prov_registo, v.guia_prov_registo_validade),
       docItem('Livrete', v.tem_livrete, null),
       docItem('Verbete Prov.', v.tem_verbete_provisorio, v.verbete_provisorio_validade)
-    ].join('');
+    ].join('') + docItem('📋 Inspecção', !!v.inspecao_validade, v.inspecao_validade) + docItem('🛡️ Seguro', !!v.seguro_validade, v.seguro_validade);
   }
 
 
