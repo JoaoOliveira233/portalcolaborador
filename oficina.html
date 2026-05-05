@@ -1126,6 +1126,8 @@ function populateExtintoresSelect() {
 function openEditViaturaModal(id) {
   const v = allViaturas.find(x => x.id === id);
   if (!v) return;
+
+  // Dados gerais
   document.getElementById('v-id').value = v.id;
   document.getElementById('modal-viatura-title').textContent = '✏️ Editar Viatura — ' + v.codigo;
   document.getElementById('v-codigo').value = v.codigo || '';
@@ -1153,23 +1155,42 @@ function openEditViaturaModal(id) {
   populateExtintoresSelect();
   updateSegStyle('chave'); updateSegStyle('macaco'); updateSegStyle('triangulo'); updateSegStyle('extintor');
 
-  // Documentos
-  document.getElementById('v-doc-unico').checked = v.tem_documento_unico || false;
-  document.getElementById('v-registo').checked = v.tem_registo_propriedade || false;
-  document.getElementById('v-livrete').checked = v.tem_livrete || false;
-  document.getElementById('v-guia-prov-reg').checked = v.tem_guia_prov_registo || false;
-  document.getElementById('v-guia-prov-reg-val').value = v.guia_prov_registo_validade || '';
-  document.getElementById('v-verbete').checked = v.tem_verbete_provisorio || false;
-  document.getElementById('v-verbete-val').value = v.verbete_provisorio_validade || '';
+  // Documentos — Inspecção e Seguro
+  document.getElementById('v-inspecao-val').value = v.inspecao_validade || '';
+  document.getElementById('v-seguro-val').value = v.seguro_validade || '';
+
+  // Documento Único vs Separados
+  if (v.tem_documento_unico) {
+    document.getElementById('v-doc-unico').checked = true;
+    document.getElementById('v-doc-separados').checked = false;
+    document.getElementById('docs-separados').style.display = 'none';
+  } else {
+    document.getElementById('v-doc-separados').checked = true;
+    document.getElementById('v-doc-unico').checked = false;
+    document.getElementById('docs-separados').style.display = '';
+    // Reset label visibility
+    ['label-registo','label-guia','label-livrete','label-verbete'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.display = '';
+    });
+    // Propriedade
+    if (v.tem_registo_propriedade) { document.getElementById('v-registo').checked = true; togglePropriedade(); }
+    else if (v.tem_guia_prov_registo) { document.getElementById('v-guia-prov-reg').checked = true; togglePropriedade(); }
+    else { document.querySelectorAll('input[name="doc-propriedade"]').forEach(r => r.checked = false); }
+    document.getElementById('v-guia-prov-reg-val').value = v.guia_prov_registo_validade || '';
+    // Livrete
+    if (v.tem_livrete) { document.getElementById('v-livrete').checked = true; toggleVerbete(); }
+    else if (v.tem_verbete_provisorio) { document.getElementById('v-verbete').checked = true; toggleVerbete(); }
+    else { document.querySelectorAll('input[name="doc-livrete"]').forEach(r => r.checked = false); }
+    document.getElementById('v-verbete-val').value = v.verbete_provisorio_validade || '';
+  }
+
+  // Revisão km/horas
   document.getElementById('v-km-actuais').value = v.km_actuais || '';
   document.getElementById('v-km-proxima').value = v.km_proxima_revisao || '';
   document.getElementById('v-km-period').value = v.km_periodicidade || '';
   document.getElementById('v-h-actuais').value = v.horas_actuais || '';
   document.getElementById('v-h-proxima').value = v.horas_proxima_revisao || '';
   document.getElementById('v-h-period').value = v.horas_periodicidade || '';
-  toggleDocUnico();
-  document.getElementById('guia-prov-reg-data-wrap').style.display = v.tem_guia_prov_registo ? '' : 'none';
-  document.getElementById('verbete-data-wrap').style.display = v.tem_verbete_provisorio ? '' : 'none';
 
   document.getElementById('btn-del-viatura').style.display = '';
   document.getElementById('viatura-alert').innerHTML = '';
