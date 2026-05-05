@@ -286,7 +286,7 @@
       <div class="page" id="page-viaturas">
         <div class="page-header">
           <div><div class="page-title">Viaturas e Equipamentos</div><div class="page-subtitle">Gestão de frota e equipamentos</div></div>
-          <button class="btn btn-primary admin-only" onclick="openNovaViaturaModal()">+ Adicionar</button>
+          <button class="btn btn-primary superadmin-only" onclick="openNovaViaturaModal()">+ Adicionar</button>
         </div>
         <div class="table-card">
           <div class="table-toolbar">
@@ -540,32 +540,62 @@
         ℹ️ O <strong>Documento Único</strong> substitui o Registo de Propriedade e o Livrete.
       </div>
       <div class="form-group">
-        <label><input type="checkbox" id="v-doc-unico" onchange="toggleDocUnico()"> Tem Documento Único</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="v-doc-unico" onchange="toggleDocUnico()" style="width:16px;height:16px;">
+          <span>Tem Documento Único</span>
+        </label>
       </div>
       <div id="docs-separados">
         <div class="form-row">
-          <div class="form-group"><label><input type="checkbox" id="v-registo"> Título de Registo de Propriedade</label></div>
-          <div class="form-group"><label><input type="checkbox" id="v-guia-prov-reg"> Guia Provisória Registo</label></div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="v-registo" style="width:16px;height:16px;">
+              <span>Título de Registo de Propriedade</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="v-guia-prov-reg" style="width:16px;height:16px;">
+              <span>Guia Provisória Registo</span>
+            </label>
+          </div>
         </div>
         <div id="guia-prov-reg-data-wrap" style="display:none;">
           <div class="form-group"><label>Validade Guia Prov. Registo</label><input type="date" id="v-guia-prov-reg-val"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label><input type="checkbox" id="v-livrete"> Livrete</label></div>
-          <div class="form-group"><label><input type="checkbox" id="v-verbete"> Verbete Provisório</label></div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="v-livrete" style="width:16px;height:16px;">
+              <span>Livrete</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="v-verbete" style="width:16px;height:16px;">
+              <span>Verbete Provisório</span>
+            </label>
+          </div>
         </div>
         <div id="verbete-data-wrap" style="display:none;">
           <div class="form-group"><label>Validade Verbete Provisório</label><input type="date" id="v-verbete-val"></div>
         </div>
       </div>
-      <div class="form-group" style="margin-top:10px;">
-        <label>Data Próxima Inspecção</label>
-        <input type="date" id="v-inspecao-val">
+      <div class="section-divider">Revisão / Inspecção</div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Km Actuais</label><input type="number" id="v-km-actuais" min="0" placeholder="Ex: 45000"></div>
+        <div class="form-group"><label>Próxima Revisão (km)</label><input type="number" id="v-km-proxima" min="0" placeholder="Ex: 50000"></div>
+        <div class="form-group"><label>Periodicidade (km)</label><input type="number" id="v-km-period" min="0" placeholder="Ex: 5000"></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label>Horas Actuais</label><input type="number" id="v-h-actuais" min="0" placeholder="Ex: 1200"></div>
+        <div class="form-group"><label>Próxima Revisão (h)</label><input type="number" id="v-h-proxima" min="0" placeholder="Ex: 1500"></div>
+        <div class="form-group"><label>Periodicidade (h)</label><input type="number" id="v-h-period" min="0" placeholder="Ex: 250"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-viatura')">Cancelar</button>
-      <button class="btn btn-danger" id="btn-del-viatura" onclick="deleteViatura()" style="display:none;">🗑️ Apagar</button>
+      <button class="btn btn-danger superadmin-only" id="btn-del-viatura" onclick="deleteViatura()" style="display:none;">🗑️ Apagar</button>
       <button class="btn btn-primary" onclick="saveViatura()">Guardar</button>
     </div>
   </div>
@@ -774,7 +804,9 @@ async function loadProfile() {
 
   // Admin-only buttons
   const isAdmin = p.role === 'admin' || p.role === 'gestor_oficina';
+  const isSuperAdmin = p.role === 'admin';
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = isSuperAdmin ? '' : 'none');
 
   await loadAll();
   renderDashboard();
@@ -866,33 +898,49 @@ function renderDashboard() {
   document.getElementById('d-ots-abertas').textContent = allOTs.filter(o => o.estado === 'aberta' || o.estado === 'em_curso').length;
   document.getElementById('d-pecas-baixo').textContent = allPecas.filter(p => p.stock_atual <= p.stock_minimo).length;
 
-  // Alertas documentos
+  // Alertas documentos + revisões por km/horas
   const dashDocs = document.getElementById('dash-docs');
   const docAlerts = [];
   allViaturas.forEach(v => {
     const checks = [
       ['Guia Prov. Registo', v.guia_prov_registo_validade],
-      ['Verbete Prov.', v.verbete_provisorio_validade],
-      ['Inspecção', v.inspecao_validade]
+      ['Verbete Prov.', v.verbete_provisorio_validade]
     ];
     checks.forEach(([label, val]) => {
       if (!val) return;
       const d = new Date(val); d.setHours(0,0,0,0);
       const diff = Math.ceil((d - hoje) / 86400000);
-      if (d <= em30) docAlerts.push({ v, label, val, diff });
+      if (d <= em30) docAlerts.push({ v, label, val, diff, tipo: 'doc' });
     });
+    // Alertas km
+    if (v.km_actuais && v.km_proxima_revisao) {
+      const diff = v.km_proxima_revisao - v.km_actuais;
+      if (diff <= 500) docAlerts.push({ v, label: 'Revisão (km)', val: v.km_proxima_revisao + ' km', diff, tipo: 'km' });
+    }
+    // Alertas horas
+    if (v.horas_actuais && v.horas_proxima_revisao) {
+      const diff = v.horas_proxima_revisao - v.horas_actuais;
+      if (diff <= 50) docAlerts.push({ v, label: 'Revisão (horas)', val: v.horas_proxima_revisao + ' h', diff, tipo: 'h' });
+    }
   });
   if (!docAlerts.length) {
     dashDocs.innerHTML = '<div class="empty-state" style="padding:20px;"><div class="empty-icon">✅</div>Sem alertas</div>';
   } else {
-    dashDocs.innerHTML = docAlerts.map(a => `
-      <div class="alert-card ${a.diff < 0 ? 'danger' : 'warn'}">
-        <div class="alert-card-icon">${a.diff < 0 ? '🔴' : '🟡'}</div>
+    dashDocs.innerHTML = docAlerts.map(a => {
+      const atrasado = a.tipo === 'doc' ? a.diff < 0 : a.diff < 0;
+      const label = a.tipo === 'doc'
+        ? (a.diff < 0 ? 'Expirou há ' + Math.abs(a.diff) + ' dias' : 'Expira em ' + a.diff + ' dias')
+        : a.tipo === 'km'
+          ? (a.diff < 0 ? 'Ultrapassou em ' + Math.abs(a.diff) + ' km' : 'Faltam ' + a.diff + ' km')
+          : (a.diff < 0 ? 'Ultrapassou em ' + Math.abs(a.diff) + ' h' : 'Faltam ' + a.diff + ' h');
+      return `<div class="alert-card ${atrasado ? 'danger' : 'warn'}">
+        <div class="alert-card-icon">${atrasado ? '🔴' : '🟡'}</div>
         <div class="alert-card-text">
           <strong>${a.v.codigo} — ${a.label}</strong>
-          <span>${a.diff < 0 ? 'Expirou há ' + Math.abs(a.diff) + ' dias' : 'Expira em ' + a.diff + ' dias'}</span>
+          <span>${label}</span>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   // Alertas segurança
@@ -965,6 +1013,7 @@ const tipoViatura = { viatura:'🚗 Viatura', equipamento_pesado:'🏗️ Equip.
 
 function renderViaturas() {
   const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'gestor_oficina';
+  const isSuperAdmin = currentProfile?.role === 'admin';
   const body = document.getElementById('viaturas-body');
   const filtroEstado = document.getElementById('filter-estado-viatura').value;
   const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -997,7 +1046,7 @@ function renderViaturas() {
       <td style="font-size:18px;text-align:center;">${docIcon}</td>
       <td style="font-size:18px;text-align:center;">${segIcon}</td>
       <td style="display:flex;gap:4px;">
-        ${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditViaturaModal('${v.id}')">✏️</button>` : ''}
+        ${isSuperAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditViaturaModal('${v.id}')">✏️</button>` : ''}
         <button class="btn btn-outline btn-sm" onclick="openViaturaDetalhe('${v.id}')">👁️</button>
       </td>
     </tr>`;
@@ -1007,7 +1056,7 @@ function renderViaturas() {
 function openNovaViaturaModal() {
   document.getElementById('v-id').value = '';
   document.getElementById('modal-viatura-title').textContent = '🚗 Nova Viatura';
-  ['v-codigo','v-matricula','v-marca','v-modelo','v-localizacao','v-obs','v-guia-prov-reg-val','v-verbete-val','v-inspecao-val'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  ['v-codigo','v-matricula','v-marca','v-modelo','v-localizacao','v-obs','v-guia-prov-reg-val','v-verbete-val','v-km-actuais','v-km-proxima','v-km-period','v-h-actuais','v-h-proxima','v-h-period'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('v-tipo').value = '';
   document.getElementById('v-estado').value = 'operacional';
   document.getElementById('v-ano').value = '';
@@ -1081,7 +1130,12 @@ function openEditViaturaModal(id) {
   document.getElementById('v-guia-prov-reg-val').value = v.guia_prov_registo_validade || '';
   document.getElementById('v-verbete').checked = v.tem_verbete_provisorio || false;
   document.getElementById('v-verbete-val').value = v.verbete_provisorio_validade || '';
-  document.getElementById('v-inspecao-val').value = v.inspecao_validade || '';
+  document.getElementById('v-km-actuais').value = v.km_actuais || '';
+  document.getElementById('v-km-proxima').value = v.km_proxima_revisao || '';
+  document.getElementById('v-km-period').value = v.km_periodicidade || '';
+  document.getElementById('v-h-actuais').value = v.horas_actuais || '';
+  document.getElementById('v-h-proxima').value = v.horas_proxima_revisao || '';
+  document.getElementById('v-h-period').value = v.horas_periodicidade || '';
   toggleDocUnico();
   document.getElementById('guia-prov-reg-data-wrap').style.display = v.tem_guia_prov_registo ? '' : 'none';
   document.getElementById('verbete-data-wrap').style.display = v.tem_verbete_provisorio ? '' : 'none';
@@ -1144,7 +1198,12 @@ async function saveViatura() {
     guia_prov_registo_validade: hasGuiaProv ? (document.getElementById('v-guia-prov-reg-val').value || null) : null,
     tem_verbete_provisorio: hasVerbete,
     verbete_provisorio_validade: hasVerbete ? (document.getElementById('v-verbete-val').value || null) : null,
-    inspecao_validade: document.getElementById('v-inspecao-val').value || null
+    km_actuais: parseInt(document.getElementById('v-km-actuais').value) || null,
+    km_proxima_revisao: parseInt(document.getElementById('v-km-proxima').value) || null,
+    km_periodicidade: parseInt(document.getElementById('v-km-period').value) || null,
+    horas_actuais: parseInt(document.getElementById('v-h-actuais').value) || null,
+    horas_proxima_revisao: parseInt(document.getElementById('v-h-proxima').value) || null,
+    horas_periodicidade: parseInt(document.getElementById('v-h-period').value) || null
   };
 
   let error;
@@ -1184,7 +1243,11 @@ function openViaturaDetalhe(id) {
     ['Matrícula', v.matricula || '—'],
     ['Localização', v.localizacao || '—'],
     ['Motorista', v.colaboradores?.nome || '—'],
-    ['Estado', `<span class="badge ${(estadoViatura[v.estado]||['badge-gray','?'])[0]}">${(estadoViatura[v.estado]||['','?'])[1]}</span>`]
+    ['Estado', `<span class="badge ${(estadoViatura[v.estado]||['badge-gray','?'])[0]}">${(estadoViatura[v.estado]||['','?'])[1]}</span>`],
+    ['Km Actuais', v.km_actuais ? v.km_actuais.toLocaleString('pt-PT') + ' km' : '—'],
+    ['Próx. Revisão (km)', v.km_proxima_revisao ? v.km_proxima_revisao.toLocaleString('pt-PT') + ' km' : '—'],
+    ['Horas Actuais', v.horas_actuais ? v.horas_actuais.toLocaleString('pt-PT') + ' h' : '—'],
+    ['Próx. Revisão (h)', v.horas_proxima_revisao ? v.horas_proxima_revisao.toLocaleString('pt-PT') + ' h' : '—']
   ].map(([l,v2]) => `<div><span style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;">${l}</span><br><strong>${v2}</strong></div>`).join('');
 
   // Documentos
@@ -1207,7 +1270,7 @@ function openViaturaDetalhe(id) {
       docItem('Verbete Prov.', v.tem_verbete_provisorio, v.verbete_provisorio_validade)
     ].join('');
   }
-  document.getElementById('vd-docs').innerHTML += docItem('🔍 Inspecção', !!v.inspecao_validade, v.inspecao_validade);
+
 
   // Segurança
   const extInst = v.extintor_id ? allInstalacoesEPC.find(i => i.id === v.extintor_id) : null;
