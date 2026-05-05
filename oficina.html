@@ -482,14 +482,13 @@
         <div class="form-group"><label>Tipo *</label>
           <select id="v-tipo">
             <option value="">-- Selecionar --</option>
-            <option value="viatura">Viatura</option>
-            <option value="equipamento_pesado">Equipamento Pesado</option>
-            <option value="gerador">Gerador</option>
-            <option value="compressor">Compressor</option>
-            <option value="outro">Outro</option>
+            <option value="ligeira">Viatura Ligeira</option>
+            <option value="pesada">Viatura Pesada</option>
+            <option value="maquina">Máquina</option>
           </select>
         </div>
         <div class="form-group"><label>Matrícula</label><input type="text" id="v-matricula"></div>
+        <div class="form-group"><label>Nº Chassi</label><input type="text" id="v-chassi" placeholder="Ex: VIN123456789"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Marca</label><input type="text" id="v-marca"></div>
@@ -1023,7 +1022,7 @@ function renderDashboard() {
 </script><script>
 // ═══════════════════ VIATURAS ═══════════════════
 const estadoViatura = { operacional: ['badge-green','Operacional'], manutencao: ['badge-orange','Manutenção'], imobilizado: ['badge-red','Imobilizada'] };
-const tipoViatura = { viatura:'🚗 Viatura', equipamento_pesado:'🏗️ Equip. Pesado', gerador:'⚡ Gerador', compressor:'💨 Compressor', outro:'📦 Outro' };
+const tipoViatura = { ligeira:'🚗 Viatura Ligeira', pesada:'🚛 Viatura Pesada', maquina:'🏗️ Máquina' };
 
 function renderViaturas() {
   const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'gestor_oficina';
@@ -1070,7 +1069,7 @@ function renderViaturas() {
 function openNovaViaturaModal() {
   document.getElementById('v-id').value = '';
   document.getElementById('modal-viatura-title').textContent = '🚗 Nova Viatura';
-  ['v-codigo','v-matricula','v-marca','v-modelo','v-localizacao','v-obs','v-guia-prov-reg-val','v-verbete-val','v-km-actuais','v-km-proxima','v-km-period','v-h-actuais','v-h-proxima','v-h-period'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  ['v-codigo','v-matricula','v-chassi','v-marca','v-modelo','v-localizacao','v-obs','v-guia-prov-reg-val','v-verbete-val','v-km-actuais','v-km-proxima','v-km-period','v-h-actuais','v-h-proxima','v-h-period'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   document.getElementById('v-tipo').value = '';
   document.getElementById('v-estado').value = 'operacional';
   document.getElementById('v-ano').value = '';
@@ -1125,6 +1124,7 @@ function openEditViaturaModal(id) {
   document.getElementById('v-codigo').value = v.codigo || '';
   document.getElementById('v-tipo').value = v.tipo || '';
   document.getElementById('v-matricula').value = v.matricula || '';
+  document.getElementById('v-chassi').value = v.chassi || '';
   document.getElementById('v-marca').value = v.marca || '';
   document.getElementById('v-modelo').value = v.modelo || '';
   document.getElementById('v-ano').value = v.ano || '';
@@ -1218,6 +1218,7 @@ async function saveViatura() {
   const payload = {
     codigo, tipo,
     matricula: document.getElementById('v-matricula').value.trim() || null,
+    chassi: document.getElementById('v-chassi').value.trim() || null,
     marca: document.getElementById('v-marca').value.trim() || null,
     modelo: document.getElementById('v-modelo').value.trim() || null,
     ano: parseInt(document.getElementById('v-ano').value) || null,
