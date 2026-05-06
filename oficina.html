@@ -434,7 +434,10 @@
       <div class="page" id="page-historico">
         <div class="page-header">
           <div><div class="page-title">Histórico Geral</div><div class="page-subtitle">Todas as OTs concluídas</div></div>
-          <button class="btn btn-outline btn-sm" onclick="pdfHistorico()">📄 PDF</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="pdfHistorico()">📄 PDF Geral</button>
+            <button class="btn btn-primary btn-sm" onclick="pdfHistoricoViatura()">📄 Historial por Viatura</button>
+          </div>
         </div>
         <div class="table-card">
           <div class="table-toolbar">
@@ -1838,6 +1841,11 @@ async function deleteOT() {
       }
     }
   }
+  // Repor requisição associada para pendente
+  const otToDelete = allOTs.find(o => o.id === id);
+  if (otToDelete?.requisicao_id) {
+    await sb.from('requisicoes_oficina').update({ estado: 'pendente', ot_id: null }).eq('id', otToDelete.requisicao_id);
+  }
   await sb.from('ot_pecas').delete().eq('ot_id', id);
   await sb.from('ordens_trabalho').delete().eq('id', id);
   closeModal('modal-ot');
@@ -2351,6 +2359,117 @@ function openOTDetalhe(id) {
 
   openModal('modal-ot-detalhe');
 }
+
+function pdfHistoricoViatura() {
+  const viaturaId = document.getElementById('filter-hist-viatura').value;
+  if (!viaturaId) {
+    alert('Seleccione uma viatura no filtro primeiro.');
+    return;
+  }
+  const viatura = allViaturas.find(v => v.id === viaturaId);
+  if (!viatura) return;
+
+  const ots = allOTs.filter(o => o.viatura_id === viaturaId && o.estado === 'concluida')
+    .sort((a,b) => new Date(a.data_abertura) - new Date(b.data_abertura));
+
+  if (!ots.length) { alert('Sem OTs concluídas para esta viatura.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const dataHoje = new Date().toLocaleDateString('pt-PT');
+  const pageW = doc.internal.pageSize.width;
+
+  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 55, 14); } catch(e) {}
+
+  // Título
+  doc.setFontSize(18); doc.setTextColor(27,42,74);
+  doc.text('Historial da Viatura', 75, 14);
+  doc.setFontSize(11); doc.setTextColor(80);
+  doc.text(viatura.codigo + (viatura.matricula ? ' — ' + viatura.matricula : '') + (viatura.marca ? ' | ' + viatura.marca + ' ' + (viatura.modelo||'') : ''), 75, 21);
+  doc.setFontSize(9); doc.setTextColor(120);
+  doc.text('Gerado em: ' + dataHoje, 75, 27);
+  doc.setDrawColor(27,42,74); doc.line(14, 31, pageW-14, 31);
+
+  let y = 38;
+
+  // Resumo da viatura
+  doc.setFontSize(10); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
+  doc.text('Dados da Viatura', 14, y); y += 6;
+  doc.setFont(undefined,'normal'); doc.setTextColor(60); doc.setFontSize(9);
+  const infoLines = [
+    ['Tipo', tipoViatura[viatura.tipo] || viatura.tipo],
+    ['Localização', viatura.localizacao || '—'],
+    ['Motorista Actual', viatura.colaboradores?.nome || '—'],
+    ['Estado', viatura.estado],
+    ['Nº Chassi', viatura.chassi || '—'],
+    ['Total de Intervenções', ots.length + ' OTs concluídas']
+  ];
+  infoLines.forEach(([l,v2]) => {
+    doc.setFont(undefined,'bold'); doc.text(l + ':', 14, y);
+    doc.setFont(undefined,'normal'); doc.text(v2 || '—', 70, y);
+    y += 5;
+  });
+  y += 4;
+  doc.setDrawColor(200); doc.line(14, y, pageW-14, y); y += 6;
+
+  // Cada OT com as suas peças
+  ots.forEach((o, idx) => {
+    // Check if need new page
+    if (y > 250) { doc.addPage(); y = 20; }
+
+    doc.setFontSize(11); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
+    doc.text('OT #' + o.numero + ' — ' + (tipoOTLabel[o.tipo]||o.tipo), 14, y); y += 6;
+
+    doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(60);
+    doc.text('Data: ' + (o.data_abertura||'—') + '   Conclusão: ' + (o.data_conclusao||'—'), 14, y); y += 5;
+    doc.text('Mecânico: ' + (o.mecanico?.nome||'—') + '   Condutor: ' + (o.condutor?.nome||'—'), 14, y); y += 5;
+
+    // Descrição
+    doc.setTextColor(40);
+    const descLines = doc.splitTextToSize('Descrição: ' + (o.descricao||'—'), pageW-28);
+    doc.text(descLines, 14, y); y += descLines.length * 5;
+
+    // Peças
+    const pecasDaOT = allOTPecas.filter(p => p.ot_id === o.id);
+    if (pecasDaOT.length) {
+      y += 2;
+      doc.autoTable({
+        startY: y,
+        head: [['Peça', 'Referência', 'Qtd']],
+        body: pecasDaOT.map(p => [p.pecas?.nome||'—', p.pecas?.referencia||'—', p.quantidade]),
+        headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        alternateRowStyles: { fillColor: [245,247,250] },
+        margin: { left: 14, right: 14 },
+        tableWidth: 'auto'
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    } else {
+      doc.setFontSize(8); doc.setTextColor(150);
+      doc.text('Sem peças registadas', 14, y); y += 5;
+    }
+
+    // Separador entre OTs
+    if (idx < ots.length - 1) {
+      y += 2;
+      doc.setDrawColor(220); doc.line(14, y, pageW-14, y); y += 6;
+    }
+  });
+
+  // Footer em todas as páginas
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(150);
+    const pH = doc.internal.pageSize.height;
+    doc.setDrawColor(200); doc.line(14, pH-12, pageW-14, pH-12);
+    doc.text('EIP Angola | Portal Oficina | ' + viatura.codigo, pageW/2, pH-6, { align: 'center' });
+    doc.text('Página ' + i + ' de ' + pageCount, pageW-14, pH-6, { align: 'right' });
+  }
+
+  doc.save('Historial_' + viatura.codigo.replace(/\//g,'-') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
+}
+
 </script>
 </body>
 </html>
