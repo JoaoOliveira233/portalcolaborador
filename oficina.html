@@ -1711,6 +1711,7 @@ async function saveOT() {
   if (!viaturaId || !descricao || !dataAbertura) return showAlert('ot-alert', 'Viatura, descrição e data são obrigatórios.', 'error');
 
   const novoEstado = document.getElementById('ot-estado').value;
+  if (novoEstado === 'concluida' && !document.getElementById('ot-data-conclusao').value) return showAlert('ot-alert', 'Data de conclusão é obrigatória para OTs concluídas.', 'error');
 
   // Se é edição, verificar estado anterior para gerir stock
   const otAnterior = otId ? allOTs.find(o => o.id === otId) : null;
@@ -1744,11 +1745,15 @@ async function saveOT() {
     savedOTId = data.id;
   }
 
-  // Atualizar requisição associada como em_curso/concluida
+  // Atualizar requisição associada conforme estado da OT
   const reqId = document.getElementById('ot-requisicao').value;
   if (reqId) {
-    const estado = ficaConcluidaAgora ? 'concluida' : 'em_curso';
-    await sb.from('requisicoes_oficina').update({ estado, ot_id: savedOTId }).eq('id', reqId);
+    let estadoReq = null;
+    if (novoEstado === 'concluida') estadoReq = 'concluida';
+    else if (novoEstado === 'em_curso') estadoReq = 'em_curso';
+    // Estado 'aberta' não altera a requisição (ou repõe para pendente se havia sido alterada)
+    else estadoReq = 'pendente';
+    await sb.from('requisicoes_oficina').update({ estado: estadoReq, ot_id: savedOTId }).eq('id', reqId);
   }
 
   // Gerir peças e stock
