@@ -1941,13 +1941,53 @@ function pdfViaturaDetalhe() {
       <button class="modal-close" onclick="closeModal('modal-req-detalhe')">×</button>
     </div>
     <div class="modal-body">
-      <div id="rd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
-      <div class="section-divider">Descrição / Avaria</div>
-      <div id="rd-descricao" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;"></div>
+      <div id="rd-alert"></div>
+      <!-- Vista leitura -->
+      <div id="rd-view">
+        <div id="rd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
+        <div class="section-divider">Descrição / Avaria</div>
+        <div id="rd-descricao" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;"></div>
+      </div>
+      <!-- Vista edição admin -->
+      <div id="rd-edit-admin" style="display:none;">
+        <div class="form-group"><label>Viatura</label><select id="rd-viatura"></select></div>
+        <div class="form-group"><label>Condutor</label><select id="rd-condutor"></select></div>
+        <div class="form-row">
+          <div class="form-group"><label>Urgência</label>
+            <select id="rd-urgencia">
+              <option value="normal">Normal</option>
+              <option value="urgente">Urgente</option>
+              <option value="critico">Crítico</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Estado</label>
+            <select id="rd-estado">
+              <option value="pendente">Pendente</option>
+              <option value="em_curso">Em Curso</option>
+              <option value="concluida">Concluída</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Descrição / Avaria</label><textarea id="rd-descricao-edit" rows="4"></textarea></div>
+      </div>
+      <!-- Vista edição gestor (só urgência) -->
+      <div id="rd-edit-gestor" style="display:none;">
+        <div id="rd-info-gestor" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
+        <div class="section-divider">Descrição / Avaria</div>
+        <div id="rd-descricao-gestor" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:16px;"></div>
+        <div class="form-group"><label>Urgência</label>
+          <select id="rd-urgencia-gestor">
+            <option value="normal">Normal</option>
+            <option value="urgente">Urgente</option>
+            <option value="critico">Crítico</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-req-detalhe')">Fechar</button>
-      <button class="btn btn-success admin-only" id="btn-rd-concluir" onclick="concluirReqFromDetalhe()">✓ Concluir</button>
+      <button class="btn btn-success" id="btn-rd-concluir" onclick="concluirReqFromDetalhe()" style="display:none;">✓ Concluir</button>
+      <button class="btn btn-primary" id="btn-rd-guardar" onclick="guardarReqDetalhe()" style="display:none;">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1961,9 +2001,20 @@ function openReqDetalhe(id) {
 
   const urgLabel = { normal: '🔵 Normal', urgente: '🟡 Urgente', critico: '🔴 Crítico' };
   const estLabel = { pendente: '⏳ Pendente', em_curso: '🔧 Em Curso', concluida: '✅ Concluída' };
+  const isAdmin = currentProfile?.role === 'admin';
+  const isGestor = currentProfile?.role === 'gestor_oficina';
 
   document.getElementById('modal-rd-title').textContent = '📋 Requisição — ' + (r.viaturas?.codigo || '?');
-  document.getElementById('rd-info').innerHTML = [
+  document.getElementById('rd-alert').innerHTML = '';
+
+  // Hide all views first
+  document.getElementById('rd-view').style.display = 'none';
+  document.getElementById('rd-edit-admin').style.display = 'none';
+  document.getElementById('rd-edit-gestor').style.display = 'none';
+  document.getElementById('btn-rd-concluir').style.display = 'none';
+  document.getElementById('btn-rd-guardar').style.display = 'none';
+
+  const infoHTML = [
     ['Data', r.created_at?.slice(0,10) || '—'],
     ['Viatura', r.viaturas?.codigo || '—'],
     ['Condutor', r.colaboradores?.nome || '—'],
@@ -1972,13 +2023,60 @@ function openReqDetalhe(id) {
     ['Criado por', r.profiles?.nome || '—']
   ].map(([l,v]) => `<div><span style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;">${l}</span><br><strong>${v}</strong></div>`).join('');
 
-  document.getElementById('rd-descricao').textContent = r.descricao || '—';
-
-  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'gestor_oficina';
-  const btnConcluir = document.getElementById('btn-rd-concluir');
-  btnConcluir.style.display = isAdmin && r.estado !== 'concluida' ? '' : 'none';
+  if (isAdmin) {
+    // Admin: full edit
+    document.getElementById('rd-edit-admin').style.display = '';
+    document.getElementById('btn-rd-guardar').style.display = '';
+    if (r.estado !== 'concluida') document.getElementById('btn-rd-concluir').style.display = '';
+    // Populate fields
+    const vs = document.getElementById('rd-viatura');
+    vs.innerHTML = '<option value="">-- Selecionar --</option>' + allViaturas.map(v => `<option value="${v.id}" ${v.id === r.viatura_id ? 'selected' : ''}>${v.codigo}${v.matricula ? ' ('+v.matricula+')' : ''}</option>`).join('');
+    const cs = document.getElementById('rd-condutor');
+    cs.innerHTML = '<option value="">-- Nenhum --</option>' + allColabs.map(c => `<option value="${c.id}" ${c.id === r.condutor_id ? 'selected' : ''}>${c.nome}</option>`).join('');
+    document.getElementById('rd-urgencia').value = r.urgencia || 'normal';
+    document.getElementById('rd-estado').value = r.estado || 'pendente';
+    document.getElementById('rd-descricao-edit').value = r.descricao || '';
+  } else if (isGestor) {
+    // Gestor: only urgência
+    document.getElementById('rd-edit-gestor').style.display = '';
+    document.getElementById('btn-rd-guardar').style.display = '';
+    if (r.estado !== 'concluida') document.getElementById('btn-rd-concluir').style.display = '';
+    document.getElementById('rd-info-gestor').innerHTML = infoHTML;
+    document.getElementById('rd-descricao-gestor').textContent = r.descricao || '—';
+    document.getElementById('rd-urgencia-gestor').value = r.urgencia || 'normal';
+  } else {
+    // Viewer: read only
+    document.getElementById('rd-view').style.display = '';
+    document.getElementById('rd-info').innerHTML = infoHTML;
+    document.getElementById('rd-descricao').textContent = r.descricao || '—';
+  }
 
   openModal('modal-req-detalhe');
+}
+
+async function guardarReqDetalhe() {
+  const r = allRequisicoes.find(x => x.id === _rdId);
+  if (!r) return;
+  const isAdmin = currentProfile?.role === 'admin';
+  const isGestor = currentProfile?.role === 'gestor_oficina';
+  let payload = {};
+  if (isAdmin) {
+    payload = {
+      viatura_id: document.getElementById('rd-viatura').value || null,
+      condutor_id: document.getElementById('rd-condutor').value || null,
+      urgencia: document.getElementById('rd-urgencia').value,
+      estado: document.getElementById('rd-estado').value,
+      descricao: document.getElementById('rd-descricao-edit').value.trim()
+    };
+  } else if (isGestor) {
+    payload = { urgencia: document.getElementById('rd-urgencia-gestor').value };
+  }
+  const { error } = await sb.from('requisicoes_oficina').update(payload).eq('id', _rdId);
+  if (error) return showAlert('rd-alert', error.message, 'error');
+  closeModal('modal-req-detalhe');
+  await loadAll();
+  renderRequisicoes();
+  renderDashboard();
 }
 
 async function concluirReqFromDetalhe() {
