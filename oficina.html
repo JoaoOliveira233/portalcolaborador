@@ -1710,6 +1710,13 @@ async function saveOT() {
   const dataAbertura = document.getElementById('ot-data-abertura').value;
   if (!viaturaId || !descricao || !dataAbertura) return showAlert('ot-alert', 'Viatura, descrição e data são obrigatórios.', 'error');
 
+  const novoEstado = document.getElementById('ot-estado').value;
+
+  // Se é edição, verificar estado anterior para gerir stock
+  const otAnterior = otId ? allOTs.find(o => o.id === otId) : null;
+  const eraConcluidaAntes = otAnterior?.estado === 'concluida';
+  const ficaConcluidaAgora = novoEstado === 'concluida';
+
   const payload = {
     viatura_id: viaturaId,
     condutor_id: document.getElementById('ot-condutor').value || null,
@@ -1717,7 +1724,7 @@ async function saveOT() {
     requisicao_id: document.getElementById('ot-requisicao').value || null,
     tipo, descricao,
     observacoes: document.getElementById('ot-obs').value.trim() || null,
-    estado: document.getElementById('ot-estado').value,
+    estado: novoEstado,
     data_abertura: dataAbertura,
     data_conclusao: document.getElementById('ot-data-conclusao').value || null,
     vr_chave_rodas: document.getElementById('ot-vr-chave').checked,
@@ -1740,11 +1747,24 @@ async function saveOT() {
   // Atualizar requisição associada como em_curso/concluida
   const reqId = document.getElementById('ot-requisicao').value;
   if (reqId) {
-    const estado = payload.estado === 'concluida' ? 'concluida' : 'em_curso';
+    const estado = ficaConcluidaAgora ? 'concluida' : 'em_curso';
     await sb.from('requisicoes_oficina').update({ estado, ot_id: savedOTId }).eq('id', reqId);
   }
 
-  // Gerir peças
+  // Gerir peças e stock
+  // 1. Se estava concluída e deixou de estar → devolver stock das peças anteriores
+  if (eraConcluidaAntes && !ficaConcluidaAgora) {
+    const pecasAnteriores = allOTPecas.filter(p => p.ot_id === otId);
+    for (const op of pecasAnteriores) {
+      const peca = allPecas.find(p => p.id === op.peca_id);
+      if (peca) {
+        const novoStock = (peca.stock_atual || 0) + op.quantidade;
+        await sb.from('pecas').update({ stock_atual: novoStock }).eq('id', op.peca_id);
+      }
+    }
+  }
+
+  // 2. Apagar peças antigas e reinserir com as novas
   if (otId) await sb.from('ot_pecas').delete().eq('ot_id', otId);
   const pecaRows = document.querySelectorAll('#pecas-list .peca-row');
   for (const row of pecaRows) {
@@ -1752,8 +1772,8 @@ async function saveOT() {
     const qty = parseInt(row.querySelector('.peca-qty').value) || 1;
     if (!pecaId) continue;
     await sb.from('ot_pecas').insert({ ot_id: savedOTId, peca_id: pecaId, quantidade: qty });
-    // Baixar stock se OT concluída
-    if (payload.estado === 'concluida') {
+    // 3. Baixar stock apenas se OT está a ser concluída agora (e não estava antes)
+    if (ficaConcluidaAgora && !eraConcluidaAntes) {
       const peca = allPecas.find(p => p.id === pecaId);
       if (peca) {
         const novoStock = Math.max(0, (peca.stock_atual || 0) - qty);
