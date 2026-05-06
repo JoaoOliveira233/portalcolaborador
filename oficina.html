@@ -2361,15 +2361,18 @@ function openOTDetalhe(id) {
 }
 
 function pdfHistoricoViatura() {
-  let viaturaId = document.getElementById('filter-hist-viatura').value;
+  const viaturaId = document.getElementById('filter-hist-viatura').value;
   if (!viaturaId) {
-    // Mostrar modal de seleção de viatura
     const sel = document.getElementById('modal-pick-viatura-sel');
     sel.innerHTML = '<option value="">-- Seleccionar Viatura --</option>' + 
       allViaturas.map(v => '<option value="' + v.id + '">' + v.codigo + (v.matricula ? ' (' + v.matricula + ')' : '') + (v.marca ? ' — ' + v.marca + ' ' + (v.modelo||'') : '') + '</option>').join('');
     openModal('modal-pick-viatura');
     return;
   }
+  pdfHistoricoViaturaById(viaturaId);
+}
+
+function pdfHistoricoViaturaById(viaturaId) {
   const viatura = allViaturas.find(v => v.id === viaturaId);
   if (!viatura) return;
 
@@ -2503,9 +2506,10 @@ function confirmarPickViatura() {
   const viaturaId = document.getElementById('modal-pick-viatura-sel').value;
   if (!viaturaId) return alert('Seleccione uma viatura.');
   closeModal('modal-pick-viatura');
+  // Set filter and generate PDF directly without re-rendering
   document.getElementById('filter-hist-viatura').value = viaturaId;
-  renderHistorico();
-  pdfHistoricoViatura();
+  // Call PDF directly with the selected ID
+  pdfHistoricoViaturaById(viaturaId);
 }
 </script>
 </body>
