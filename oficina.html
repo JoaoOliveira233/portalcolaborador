@@ -1966,7 +1966,9 @@ function renderHistoricoCondutor() {
 function renderHistorico() {
   const body = document.getElementById('hist-body');
   const selV = document.getElementById('filter-hist-viatura');
+  const currentVal = selV.value;
   selV.innerHTML = '<option value="">Todas as viaturas</option>' + allViaturas.map(v => `<option value="${v.id}">${v.codigo}</option>`).join('');
+  if (currentVal) selV.value = currentVal;
   const filtroV = selV.value;
   const filtroT = document.getElementById('filter-hist-tipo').value;
   let lista = allOTs.filter(o => o.estado === 'concluida');
@@ -2506,9 +2508,6 @@ function confirmarPickViatura() {
   const viaturaId = document.getElementById('modal-pick-viatura-sel').value;
   if (!viaturaId) return alert('Seleccione uma viatura.');
   closeModal('modal-pick-viatura');
-  // Set filter and generate PDF directly without re-rendering
-  document.getElementById('filter-hist-viatura').value = viaturaId;
-  // Call PDF directly with the selected ID
   pdfHistoricoViaturaById(viaturaId);
 }
 </script>
