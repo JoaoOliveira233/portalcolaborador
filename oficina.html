@@ -1385,15 +1385,15 @@ function renderRequisicoes() {
   let lista = isAdmin ? allRequisicoes : allRequisicoes.filter(r => r.criado_por === currentProfile?.id || r.estado === 'pendente');
   if (filtro) lista = lista.filter(r => r.estado === filtro);
   if (!lista.length) { body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">📋</div>Sem requisições</td></tr>'; return; }
-  body.innerHTML = lista.map(r => `<tr>
+  body.innerHTML = lista.map(r => `<tr style="cursor:pointer;" onclick="openReqDetalhe('${r.id}')">
     <td>${r.created_at?.slice(0,10) || '—'}</td>
     <td>${r.viaturas?.codigo || '—'}</td>
     <td>${r.colaboradores?.nome || '—'}</td>
-    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.descricao}">${r.descricao || '—'}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.descricao || '—'}</td>
     <td><span class="badge ${urgBadge[r.urgencia] || 'badge-gray'}">${r.urgencia}</span></td>
     <td><span class="badge ${estadoReqBadge[r.estado] || 'badge-gray'}">${r.estado}</span></td>
     <td>${r.profiles?.nome || '—'}</td>
-    <td style="display:flex;gap:4px;">
+    <td style="display:flex;gap:4px;" onclick="event.stopPropagation()">
       ${isAdmin && r.estado !== 'concluida' ? `<button class="btn btn-success btn-sm" onclick="concluirReq('${r.id}')">✓ Concluir</button>` : ''}
       ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteReq('${r.id}')">🗑️</button>` : ''}
     </td>
@@ -1931,6 +1931,65 @@ function pdfViaturaDetalhe() {
   // Guia-prov-reg toggle
 
 })();
+</script>
+
+<!-- Modal Detalhe Requisição -->
+<div class="modal-overlay" id="modal-req-detalhe">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h3 id="modal-rd-title">📋 Requisição</h3>
+      <button class="modal-close" onclick="closeModal('modal-req-detalhe')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="rd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
+      <div class="section-divider">Descrição / Avaria</div>
+      <div id="rd-descricao" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-req-detalhe')">Fechar</button>
+      <button class="btn btn-success admin-only" id="btn-rd-concluir" onclick="concluirReqFromDetalhe()">✓ Concluir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _rdId = null;
+function openReqDetalhe(id) {
+  _rdId = id;
+  const r = allRequisicoes.find(x => x.id === id);
+  if (!r) return;
+
+  const urgLabel = { normal: '🔵 Normal', urgente: '🟡 Urgente', critico: '🔴 Crítico' };
+  const estLabel = { pendente: '⏳ Pendente', em_curso: '🔧 Em Curso', concluida: '✅ Concluída' };
+
+  document.getElementById('modal-rd-title').textContent = '📋 Requisição — ' + (r.viaturas?.codigo || '?');
+  document.getElementById('rd-info').innerHTML = [
+    ['Data', r.created_at?.slice(0,10) || '—'],
+    ['Viatura', r.viaturas?.codigo || '—'],
+    ['Condutor', r.colaboradores?.nome || '—'],
+    ['Urgência', urgLabel[r.urgencia] || r.urgencia],
+    ['Estado', estLabel[r.estado] || r.estado],
+    ['Criado por', r.profiles?.nome || '—']
+  ].map(([l,v]) => `<div><span style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;">${l}</span><br><strong>${v}</strong></div>`).join('');
+
+  document.getElementById('rd-descricao').textContent = r.descricao || '—';
+
+  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'gestor_oficina';
+  const btnConcluir = document.getElementById('btn-rd-concluir');
+  btnConcluir.style.display = isAdmin && r.estado !== 'concluida' ? '' : 'none';
+
+  openModal('modal-req-detalhe');
+}
+
+async function concluirReqFromDetalhe() {
+  if (!_rdId) return;
+  if (!confirm('Marcar esta requisição como concluída?')) return;
+  await sb.from('requisicoes_oficina').update({ estado: 'concluida' }).eq('id', _rdId);
+  closeModal('modal-req-detalhe');
+  await loadAll();
+  renderRequisicoes();
+  renderDashboard();
+}
 </script>
 </body>
 </html>
