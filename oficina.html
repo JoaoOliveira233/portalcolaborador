@@ -1764,7 +1764,38 @@ async function saveOT() {
     }
   }
 
-  // 2. Apagar peças antigas e reinserir com as novas
+  // 2. Se estava concluída e continua concluída → calcular diferença de stock
+  if (eraConcluidaAntes && ficaConcluidaAgora && otId) {
+    const pecasAnteriores = allOTPecas.filter(p => p.ot_id === otId);
+    const pecasNovas = [];
+    document.querySelectorAll('#pecas-list .peca-row').forEach(row => {
+      const pecaId = row.querySelector('.peca-select').value;
+      const qty = parseInt(row.querySelector('.peca-qty').value) || 1;
+      if (pecaId) pecasNovas.push({ pecaId, qty });
+    });
+
+    // Devolver stock das peças antigas
+    for (const op of pecasAnteriores) {
+      const peca = allPecas.find(p => p.id === op.peca_id);
+      if (peca) {
+        await sb.from('pecas').update({ stock_atual: (peca.stock_atual || 0) + op.quantidade }).eq('id', op.peca_id);
+      }
+    }
+    // Recarregar peças actualizadas
+    const { data: pecasActualizadas } = await sb.from('pecas').select('*').order('nome');
+    allPecas = pecasActualizadas || [];
+
+    // Descontar stock das peças novas
+    for (const { pecaId, qty } of pecasNovas) {
+      const peca = allPecas.find(p => p.id === pecaId);
+      if (peca) {
+        const novoStock = Math.max(0, (peca.stock_atual || 0) - qty);
+        await sb.from('pecas').update({ stock_atual: novoStock }).eq('id', pecaId);
+      }
+    }
+  }
+
+  // 3. Apagar peças antigas e reinserir com as novas
   if (otId) await sb.from('ot_pecas').delete().eq('ot_id', otId);
   const pecaRows = document.querySelectorAll('#pecas-list .peca-row');
   for (const row of pecaRows) {
@@ -1772,7 +1803,7 @@ async function saveOT() {
     const qty = parseInt(row.querySelector('.peca-qty').value) || 1;
     if (!pecaId) continue;
     await sb.from('ot_pecas').insert({ ot_id: savedOTId, peca_id: pecaId, quantidade: qty });
-    // 3. Baixar stock apenas se OT está a ser concluída agora (e não estava antes)
+    // 4. Baixar stock apenas se OT está a ser concluída agora (e não estava antes)
     if (ficaConcluidaAgora && !eraConcluidaAntes) {
       const peca = allPecas.find(p => p.id === pecaId);
       if (peca) {
