@@ -1070,7 +1070,7 @@ function renderDashboard() {
       </div>`).join('');
   }
 }
-</script><script>
+
 // ═══════════════════ VIATURAS ═══════════════════
 const estadoViatura = { operacional: ['badge-green','Operacional'], manutencao: ['badge-orange','Manutenção'], imobilizado: ['badge-red','Imobilizada'] };
 const tipoViatura = { ligeira:'🚗 Viatura Ligeira', pesada:'🚛 Viatura Pesada', maquina:'🏗️ Máquina' };
@@ -1416,7 +1416,7 @@ function openViaturaDetalhe(id) {
   }
   openModal('modal-viatura-detalhe');
 }
-</script><script>
+
 // ═══════════════════ REQUISIÇÕES ═══════════════════
 const urgBadge = { normal: 'badge-blue', urgente: 'badge-yellow', critico: 'badge-red' };
 const estadoReqBadge = { pendente: 'badge-yellow', em_curso: 'badge-orange', concluida: 'badge-green' };
@@ -1975,7 +1975,6 @@ function pdfViaturaDetalhe() {
   // Guia-prov-reg toggle
 
 })();
-</script>
 
 <!-- Modal Detalhe Requisição -->
 <div class="modal-overlay" id="modal-req-detalhe">
@@ -2036,7 +2035,6 @@ function pdfViaturaDetalhe() {
   </div>
 </div>
 
-<script>
 let _rdId = null;
 function openReqDetalhe(id) {
   _rdId = id;
@@ -2132,6 +2130,7 @@ async function concluirReqFromDetalhe() {
   renderRequisicoes();
   renderDashboard();
 }
+
 </script>
 </body>
 </html>
