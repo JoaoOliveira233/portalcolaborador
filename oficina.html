@@ -385,7 +385,7 @@
       <div class="page" id="page-pecas">
         <div class="page-header">
           <div><div class="page-title">Peças e Materiais</div><div class="page-subtitle">Controlo de stock</div></div>
-          <button class="btn btn-primary admin-only" onclick="openNovaPecaModal()">+ Adicionar Peça</button>
+          <button class="btn btn-primary admin-only gestor-only" onclick="openNovaPecaModal()">+ Adicionar Peça</button>
         </div>
         <div class="table-card">
           <div class="table-toolbar">
@@ -814,17 +814,56 @@ async function loadProfile() {
   if (!allowed.includes(p.role)) { showLogin(); return; }
 
   currentProfile = p;
+
+  // Verificar acesso — TQS não pode aceder
+  if (p.role === 'tqs') {
+    await sb.auth.signOut();
+    document.getElementById('login-error').textContent = 'Não tem permissão de acesso. Contacte o administrador do sistema.';
+    document.getElementById('login-error').style.display = 'block';
+    return;
+  }
+
   document.getElementById('topbar-user').textContent = p.nome || p.email;
   document.getElementById('topbar-role').textContent = p.role;
   document.getElementById('login-screen').style.display = 'none';
   const app = document.getElementById('app-screen');
   app.style.display = 'flex';
 
-  // Admin-only buttons
-  const isAdmin = p.role === 'admin' || p.role === 'gestor_oficina';
-  const isSuperAdmin = p.role === 'admin';
-  document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
-  document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = isSuperAdmin ? '' : 'none');
+  // Permissões por role
+  const role = p.role;
+  const isAdmin = role === 'admin';
+  const isGestor = role === 'gestor_oficina';
+  const isApontador = role === 'apontador';
+  const isEncarregado = role === 'encarregado';
+  const isViewer = role === 'viewer';
+
+  // Admin-only (só admin pode adicionar viaturas)
+  document.querySelectorAll('.superadmin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  // Admin + Gestor
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = (isAdmin || isGestor) ? '' : 'none');
+
+  // Controlo de navegação por role
+  const navRules = {
+    dashboard: true, // todos vêem
+    viaturas: isAdmin || isGestor || isEncarregado || isViewer,
+    requisicoes: true, // todos podem fazer requisições
+    ots: isAdmin || isGestor || isViewer,
+    pecas: isAdmin || isGestor || isViewer,
+    'historico-condutor': isAdmin || isGestor || isApontador || isEncarregado || isViewer,
+    historico: isAdmin || isGestor || isEncarregado || isViewer
+  };
+
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const onclick = el.getAttribute('onclick') || '';
+    const match = onclick.match(/navigate\('([^']+)'\)/);
+    if (match) {
+      const page = match[1];
+      el.style.display = navRules[page] !== false ? '' : 'none';
+    }
+  });
+
+  // Botão adicionar peças - gestor pode
+  document.querySelectorAll('.gestor-only').forEach(el => el.style.display = (isAdmin || isGestor) ? '' : 'none');
 
   await loadAll();
   renderDashboard();
@@ -864,6 +903,18 @@ async function loadAll() {
 
 // ═══════════════════ NAVIGATE ═══════════════════
 function navigate(page) {
+  const role = currentProfile?.role;
+  const navRules = {
+    dashboard: true,
+    viaturas: ['admin','gestor_oficina','encarregado','viewer'].includes(role),
+    requisicoes: true,
+    ots: ['admin','gestor_oficina','viewer'].includes(role),
+    pecas: ['admin','gestor_oficina','viewer'].includes(role),
+    'historico-condutor': ['admin','gestor_oficina','apontador','encarregado','viewer'].includes(role),
+    historico: ['admin','gestor_oficina','encarregado','viewer'].includes(role)
+  };
+  if (!navRules[page]) return;
+
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelector(`[onclick="navigate('${page}')"]`)?.classList.add('active');
@@ -997,16 +1048,13 @@ function renderDashboard() {
     dashReq.innerHTML = '<div class="empty-state" style="padding:20px;"><div class="empty-icon">✅</div>Sem requisições pendentes</div>';
   } else {
     const urgClasses = { normal: 'info', urgente: 'warn', critico: 'danger' };
-    dashReq.innerHTML = pendentes.map(r => `
-      <div class="alert-card ${urgClasses[r.urgencia] || 'info'}">
-        <div class="alert-card-icon">${r.urgencia === 'critico' ? '🔴' : r.urgencia === 'urgente' ? '🟡' : '🔵'}</div>
-        <div class="alert-card-text">
-          <strong>${r.viaturas?.codigo || '?'} — ${r.descricao?.substring(0,40)}...</strong>
-          <span>${r.created_at?.slice(0,10)} · ${r.urgencia}</span>
-        </div>
-        <button class="btn btn-outline btn-sm" onclick="navigate('requisicoes')">Ver</button>
-      </div>`).join('');
-  }
+    dashReq.innerHTML = pendentes.map(r => {
+      const viat = allViaturas.find(v => v.id === r.viatura_id);
+      const lbl = (viat?.codigo || '?') + (viat?.matricula ? ' — ' + viat.matricula : '');
+      const uc = urgClasses[r.urgencia] || 'info';
+      const ui = r.urgencia === 'critico' ? '🔴' : r.urgencia === 'urgente' ? '🟡' : '🔵';
+      return '<div class="alert-card ' + uc + '"><div class="alert-card-icon">' + ui + '</div><div class="alert-card-text"><strong>' + lbl + '</strong><span>' + (r.created_at||'').slice(0,10) + ' · ' + r.urgencia + '</span></div><button class="btn btn-outline btn-sm" onclick="navigate(\'requisicoes\')">Ver</button></div>';
+    }).join('');
 
   // Top condutores avarias
   const dashCond = document.getElementById('dash-condutores');

@@ -574,9 +574,16 @@ async function loadProfile() {
     const roleEl = document.getElementById('topbar-user-role');
     if (roleEl) roleEl.textContent = roleLabels[data.role] || data.role;
     const isAdmin = data.role === 'admin';
+    const isTQS = data.role === 'tqs';
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? 'inline-flex' : 'none');
     document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
     document.getElementById('btn-novo-colab').style.display = isAdmin ? 'inline-flex' : 'none';
+    // TQS não pode aceder ao portal de oficina
+    if (isTQS) {
+      document.getElementById('nav-oficina').style.display = 'none';
+      const oficinaCard = document.querySelector('.module-card[href="oficina.html"]');
+      if (oficinaCard) oficinaCard.style.display = 'none';
+    }
     await loadColabs();
     if (isAdmin) await renderUtilizadores();
   } catch(e) {
