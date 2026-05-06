@@ -810,18 +810,15 @@ async function loadProfile() {
   if (!p || !p.ativo) { await sb.auth.signOut(); showLogin(); return; }
 
   // Verificar permissões: só roles permitidos
-  const allowed = ['admin', 'gestor_oficina', 'mecanico', 'tqs', 'apontador', 'viewer'];
-  if (!allowed.includes(p.role)) { showLogin(); return; }
-
-  currentProfile = p;
-
-  // Verificar acesso — TQS não pode aceder
-  if (p.role === 'tqs') {
+  const allowed = ['admin', 'gestor_oficina', 'mecanico', 'apontador', 'encarregado', 'viewer'];
+  if (!allowed.includes(p.role)) {
     await sb.auth.signOut();
     document.getElementById('login-error').textContent = 'Não tem permissão de acesso. Contacte o administrador do sistema.';
     document.getElementById('login-error').style.display = 'block';
     return;
   }
+
+  currentProfile = p;
 
   document.getElementById('topbar-user').textContent = p.nome || p.email;
   document.getElementById('topbar-role').textContent = p.role;
