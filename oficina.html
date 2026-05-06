@@ -2361,9 +2361,13 @@ function openOTDetalhe(id) {
 }
 
 function pdfHistoricoViatura() {
-  const viaturaId = document.getElementById('filter-hist-viatura').value;
+  let viaturaId = document.getElementById('filter-hist-viatura').value;
   if (!viaturaId) {
-    alert('Seleccione uma viatura no filtro primeiro.');
+    // Mostrar modal de seleção de viatura
+    const sel = document.getElementById('modal-pick-viatura-sel');
+    sel.innerHTML = '<option value="">-- Seleccionar Viatura --</option>' + 
+      allViaturas.map(v => '<option value="' + v.id + '">' + v.codigo + (v.matricula ? ' (' + v.matricula + ')' : '') + (v.marca ? ' — ' + v.marca + ' ' + (v.modelo||'') : '') + '</option>').join('');
+    openModal('modal-pick-viatura');
     return;
   }
   const viatura = allViaturas.find(v => v.id === viaturaId);
@@ -2470,6 +2474,39 @@ function pdfHistoricoViatura() {
   doc.save('Historial_' + viatura.codigo.replace(/\//g,'-') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
 }
 
+</script>
+
+<!-- Modal Pick Viatura para PDF -->
+<div class="modal-overlay" id="modal-pick-viatura">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title">📄 Historial por Viatura</span>
+      <button class="modal-close" onclick="closeModal('modal-pick-viatura')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Seleccione a Viatura</label>
+        <select id="modal-pick-viatura-sel" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;">
+          <option value="">-- Seleccionar --</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-pick-viatura')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarPickViatura()">Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function confirmarPickViatura() {
+  const viaturaId = document.getElementById('modal-pick-viatura-sel').value;
+  if (!viaturaId) return alert('Seleccione uma viatura.');
+  closeModal('modal-pick-viatura');
+  document.getElementById('filter-hist-viatura').value = viaturaId;
+  renderHistorico();
+  pdfHistoricoViatura();
+}
 </script>
 </body>
 </html>
