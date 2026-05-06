@@ -1562,7 +1562,7 @@ function renderOTs() {
   body.innerHTML = lista.map(o => {
     const segOk = o.vr_chave_rodas && o.vr_macaco && o.vr_triangulo && o.vr_extintor;
     const segIcon = segOk ? '✅' : '⚠️';
-    return `<tr>
+    return `<tr style="cursor:pointer;" onclick="openOTDetalhe('${o.id}')">
       <td><strong>#${o.numero}</strong></td>
       <td>${o.data_abertura || '—'}</td>
       <td>${o.viaturas?.codigo || '—'}</td>
@@ -1571,7 +1571,7 @@ function renderOTs() {
       <td>${o.mecanico?.nome || '—'}</td>
       <td><span class="badge ${estadoOTBadge[o.estado] || 'badge-gray'}">${o.estado}</span></td>
       <td style="text-align:center;">${segIcon}</td>
-      <td style="display:flex;gap:4px;">
+      <td style="display:flex;gap:4px;" onclick="event.stopPropagation()">
         ${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditOTModal('${o.id}')">✏️</button>` : ''}
         <button class="btn btn-outline btn-sm" onclick="pdfOT('${o.id}')">📄</button>
       </td>
@@ -1822,9 +1822,21 @@ async function saveOT() {
 async function deleteOT() {
   const id = document.getElementById('ot-id').value;
   if (!confirm('Apagar esta OT?')) return;
+  const ot = allOTs.find(o => o.id === id);
+  // Se a OT estava concluída, devolver stock das peças
+  if (ot?.estado === 'concluida') {
+    const pecasAnteriores = allOTPecas.filter(p => p.ot_id === id);
+    for (const op of pecasAnteriores) {
+      const peca = allPecas.find(p => p.id === op.peca_id);
+      if (peca) {
+        await sb.from('pecas').update({ stock_atual: (peca.stock_atual || 0) + op.quantidade }).eq('id', op.peca_id);
+      }
+    }
+  }
   await sb.from('ot_pecas').delete().eq('ot_id', id);
   await sb.from('ordens_trabalho').delete().eq('id', id);
   closeModal('modal-ot');
+  closeModal('modal-ot-detalhe');
   await loadAll();
   renderOTs();
   renderDashboard();
@@ -2243,5 +2255,97 @@ async function concluirReqFromDetalhe() {
   </div>
 </div>
 
+
+<!-- Modal Detalhe OT -->
+<div class="modal-overlay" id="modal-ot-detalhe">
+  <div class="modal" style="max-width:760px;">
+    <div class="modal-header">
+      <h3 id="modal-otd-title">🔧 Ordem de Trabalho</h3>
+      <button class="modal-close" onclick="closeModal('modal-ot-detalhe')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="otd-info" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px;padding:12px;background:var(--gray-50);border-radius:8px;font-size:14px;"></div>
+      <div class="section-divider">Descrição</div>
+      <div id="otd-descricao" style="padding:12px;background:white;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:12px;"></div>
+      <div id="otd-obs-wrap" style="display:none;">
+        <div class="section-divider">Observações</div>
+        <div id="otd-obs" style="padding:12px;background:white;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;color:var(--gray-600);line-height:1.6;white-space:pre-wrap;margin-bottom:12px;"></div>
+      </div>
+      <div class="section-divider">Verificação de Segurança</div>
+      <div id="otd-seg" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div class="section-divider">Peças Utilizadas</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Peça</th><th>Referência</th><th>Quantidade</th></tr></thead>
+        <tbody id="otd-pecas"></tbody>
+      </table></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-ot-detalhe')">Fechar</button>
+      <button class="btn btn-outline btn-sm" onclick="pdfOT(window._otdId)">📄 PDF</button>
+      <button class="btn btn-primary admin-only" onclick="function f(){closeModal('modal-ot-detalhe');openEditOTModal(window._otdId);}f()">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window._otdId = null;
+function openOTDetalhe(id) {
+  window._otdId = id;
+  const o = allOTs.find(x => x.id === id);
+  if (!o) return;
+
+  document.getElementById('modal-otd-title').textContent = '🔧 OT #' + o.numero + ' — ' + (o.viaturas?.codigo || '?');
+
+  const estadoBadge = { aberta: 'badge-blue', em_curso: 'badge-orange', concluida: 'badge-green' };
+  document.getElementById('otd-info').innerHTML = [
+    ['Nº OT', '#' + o.numero],
+    ['Data Abertura', o.data_abertura || '—'],
+    ['Data Conclusão', o.data_conclusao || '—'],
+    ['Viatura', o.viaturas?.codigo || '—'],
+    ['Condutor', o.condutor?.nome || '—'],
+    ['Tipo', tipoOTLabel[o.tipo] || o.tipo],
+    ['Mecânico', o.mecanico?.nome || '—'],
+    ['Estado', '<span class="badge ' + (estadoBadge[o.estado]||'badge-gray') + '">' + o.estado + '</span>']
+  ].map(([l,v]) => '<div><span style="font-size:11px;color:var(--gray-400);font-weight:600;text-transform:uppercase;">' + l + '</span><br><strong>' + v + '</strong></div>').join('');
+
+  document.getElementById('otd-descricao').textContent = o.descricao || '—';
+
+  const obsWrap = document.getElementById('otd-obs-wrap');
+  if (o.observacoes) {
+    obsWrap.style.display = '';
+    document.getElementById('otd-obs').textContent = o.observacoes;
+  } else {
+    obsWrap.style.display = 'none';
+  }
+
+  // Segurança
+  const segItems = [
+    ['🔧 Chave de Rodas', o.vr_chave_rodas],
+    ['🔩 Macaco', o.vr_macaco],
+    ['⚠️ Triângulo', o.vr_triangulo],
+    ['🧯 Extintor', o.vr_extintor]
+  ];
+  document.getElementById('otd-seg').innerHTML = segItems.map(([label, ok]) =>
+    '<div class="doc-item ' + (ok ? 'ok' : 'exp') + '" style="min-width:140px;"><label>' + label + '</label><span class="doc-status">' + (ok ? '✅' : '❌') + '</span></div>'
+  ).join('');
+
+  // Peças
+  const pecasDaOT = allOTPecas.filter(p => p.ot_id === id);
+  const pecasBody = document.getElementById('otd-pecas');
+  if (!pecasDaOT.length) {
+    pecasBody.innerHTML = '<tr><td colspan="3" class="empty-state">Sem peças registadas</td></tr>';
+  } else {
+    pecasBody.innerHTML = pecasDaOT.map(p =>
+      '<tr><td><strong>' + (p.pecas?.nome || '—') + '</strong></td><td>' + (p.pecas?.referencia || '—') + '</td><td>' + p.quantidade + '</td></tr>'
+    ).join('');
+  }
+
+  // Show/hide admin buttons
+  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'gestor_oficina';
+  document.querySelectorAll('#modal-ot-detalhe .admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+
+  openModal('modal-ot-detalhe');
+}
+</script>
 </body>
 </html>
