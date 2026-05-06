@@ -1976,66 +1976,7 @@ function pdfViaturaDetalhe() {
 
 })();
 
-</script>
-<!-- Modal Detalhe Requisição -->
-<div class="modal-overlay" id="modal-req-detalhe">
-  <div class="modal" style="max-width:580px;">
-    <div class="modal-header">
-      <h3 id="modal-rd-title">📋 Requisição</h3>
-      <button class="modal-close" onclick="closeModal('modal-req-detalhe')">×</button>
-    </div>
-    <div class="modal-body">
-      <div id="rd-alert"></div>
-      <!-- Vista leitura -->
-      <div id="rd-view">
-        <div id="rd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
-        <div class="section-divider">Descrição / Avaria</div>
-        <div id="rd-descricao" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;"></div>
-      </div>
-      <!-- Vista edição admin -->
-      <div id="rd-edit-admin" style="display:none;">
-        <div class="form-group"><label>Viatura</label><select id="rd-viatura"></select></div>
-        <div class="form-group"><label>Condutor</label><select id="rd-condutor"></select></div>
-        <div class="form-row">
-          <div class="form-group"><label>Urgência</label>
-            <select id="rd-urgencia">
-              <option value="normal">Normal</option>
-              <option value="urgente">Urgente</option>
-              <option value="critico">Crítico</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Estado</label>
-            <select id="rd-estado">
-              <option value="pendente">Pendente</option>
-              <option value="em_curso">Em Curso</option>
-              <option value="concluida">Concluída</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group"><label>Descrição / Avaria</label><textarea id="rd-descricao-edit" rows="4"></textarea></div>
-      </div>
-      <!-- Vista edição gestor (só urgência) -->
-      <div id="rd-edit-gestor" style="display:none;">
-        <div id="rd-info-gestor" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
-        <div class="section-divider">Descrição / Avaria</div>
-        <div id="rd-descricao-gestor" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:16px;"></div>
-        <div class="form-group"><label>Urgência</label>
-          <select id="rd-urgencia-gestor">
-            <option value="normal">Normal</option>
-            <option value="urgente">Urgente</option>
-            <option value="critico">Crítico</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-req-detalhe')">Fechar</button>
-      <button class="btn btn-success" id="btn-rd-concluir" onclick="concluirReqFromDetalhe()" style="display:none;">✓ Concluir</button>
-      <button class="btn btn-primary" id="btn-rd-guardar" onclick="guardarReqDetalhe()" style="display:none;">💾 Guardar</button>
-    </div>
-  </div>
-</div>
-<script>
+
 
 let _rdId = null;
 function openReqDetalhe(id) {
@@ -2133,6 +2074,66 @@ async function concluirReqFromDetalhe() {
   renderDashboard();
 }
 
+
 </script>
+<!-- Modal Detalhe Requisição -->
+<div class="modal-overlay" id="modal-req-detalhe">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h3 id="modal-rd-title">📋 Requisição</h3>
+      <button class="modal-close" onclick="closeModal('modal-req-detalhe')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="rd-alert"></div>
+      <!-- Vista leitura -->
+      <div id="rd-view">
+        <div id="rd-info" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
+        <div class="section-divider">Descrição / Avaria</div>
+        <div id="rd-descricao" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;"></div>
+      </div>
+      <!-- Vista edição admin -->
+      <div id="rd-edit-admin" style="display:none;">
+        <div class="form-group"><label>Viatura</label><select id="rd-viatura"></select></div>
+        <div class="form-group"><label>Condutor</label><select id="rd-condutor"></select></div>
+        <div class="form-row">
+          <div class="form-group"><label>Urgência</label>
+            <select id="rd-urgencia">
+              <option value="normal">Normal</option>
+              <option value="urgente">Urgente</option>
+              <option value="critico">Crítico</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Estado</label>
+            <select id="rd-estado">
+              <option value="pendente">Pendente</option>
+              <option value="em_curso">Em Curso</option>
+              <option value="concluida">Concluída</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Descrição / Avaria</label><textarea id="rd-descricao-edit" rows="4"></textarea></div>
+      </div>
+      <!-- Vista edição gestor (só urgência) -->
+      <div id="rd-edit-gestor" style="display:none;">
+        <div id="rd-info-gestor" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;padding:14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:14px;"></div>
+        <div class="section-divider">Descrição / Avaria</div>
+        <div id="rd-descricao-gestor" style="padding:14px;background:white;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;line-height:1.6;white-space:pre-wrap;margin-bottom:16px;"></div>
+        <div class="form-group"><label>Urgência</label>
+          <select id="rd-urgencia-gestor">
+            <option value="normal">Normal</option>
+            <option value="urgente">Urgente</option>
+            <option value="critico">Crítico</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-req-detalhe')">Fechar</button>
+      <button class="btn btn-success" id="btn-rd-concluir" onclick="concluirReqFromDetalhe()" style="display:none;">✓ Concluir</button>
+      <button class="btn btn-primary" id="btn-rd-guardar" onclick="guardarReqDetalhe()" style="display:none;">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
