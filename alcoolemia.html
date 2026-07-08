@@ -686,6 +686,7 @@ async function deleteRegisto(id) {
   await sb.from('alcoolemia').delete().eq('id', id);
   allRegistos = allRegistos.filter(r => r.id !== id);
   renderHistorico();
+  if (_dashChart && _dashChart.length) renderDashboard();
 }
 
 function renderPorCentro() {
@@ -971,6 +972,12 @@ async function renderDashboard() {
 
   renderTop5(posMap, 'dash-top-positivos', '#ea580c', 'badge-orange');
   renderTop5(critMap, 'dash-top-criticos', '#dc2626', 'badge-red');
+
+  // Destruir gráficos anteriores sempre
+  if (_dashChart && _dashChart.length) {
+    _dashChart.forEach(c => { try { c.destroy(); } catch(e) {} });
+    _dashChart = [];
+  }
 
   // Gráficos por centro de custo
   const ccTotal = {}, ccPos = {}, ccCrit = {};
