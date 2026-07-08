@@ -205,7 +205,7 @@
           <div class="table-wrap"><table>
             <thead><tr>
               <th>Data</th><th>Colaborador</th><th>Nº Mec.</th><th>Centro de Custo</th>
-              <th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Teste realizado por</th><th></th>
+              <th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Teste realizado por</th><th>Guia</th><th></th>
             </tr></thead>
             <tbody id="hist-body"></tbody>
           </table></div>
@@ -225,6 +225,12 @@
             </select>
           </div>
         </div>
+        <div style="display:flex;gap:12px;align-items:center;margin:12px 0;flex-wrap:wrap;">
+            <label style="font-size:13px;color:var(--gray-600);">De:</label>
+            <input type="date" id="filter-centro-data-de" onchange="renderPorCentro()" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:13px;">
+            <label style="font-size:13px;color:var(--gray-600);">Até:</label>
+            <input type="date" id="filter-centro-data-ate" onchange="renderPorCentro()" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:13px;">
+          </div>
         <div id="centro-stats" style="display:none;">
           <div class="stats-grid" id="centro-stats-grid"></div>
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
@@ -623,6 +629,7 @@ function renderHistorico() {
     <td>${r.valor_teste2?.toFixed(3)}</td>
     <td><span class="badge ${resBadge[r.resultado] || 'badge-gray'}">${resLabel[r.resultado] || r.resultado}</span></td>
     <td style="font-size:12px;">${r.profiles?.nome || '-'}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="reimprirGuia('${r.id}')">🖨️ ${r.numero_via ? r.numero_via + 'ª via' : '2ª via'}</button></td>
     <td>${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteRegisto('${r.id}')">🗑️</button>` : ''}</td>
   </tr>`).join('');
 }
@@ -638,8 +645,9 @@ function renderPorCentro() {
   const centroId = document.getElementById('filter-centro').value;
   const statsDiv = document.getElementById('centro-stats');
   if (!centroId) { statsDiv.style.display = 'none'; return; }
-  const de = document.getElementById('filter-centro-data-de').value;
-  const ate = document.getElementById('filter-centro-data-ate').value;
+  const de = document.getElementById('filter-centro-data-de')?.value || '';
+  const ate = document.getElementById('filter-centro-data-ate')?.value || '';
+
   let lista = allRegistos.filter(r => r.centro_custo_id === centroId || r.centros_custo?.id === centroId);
   if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
   if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
@@ -800,6 +808,77 @@ function pdfPorCentro() {
     el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
   });
 })();
+
+async function reimprirGuia(registoId) {
+  // Load full registo from DB
+  const { data: r, error } = await sb.from('alcoolemia')
+    .select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)')
+    .eq('id', registoId).single();
+  if (error || !r) return alert('Erro ao carregar registo.');
+
+  // Increment numero_via
+  const novaVia = (r.numero_via || 1) + 1;
+  await sb.from('alcoolemia').update({ numero_via: novaVia }).eq('id', registoId);
+
+  // Generate PDF (same as imprimirGuia but with via number)
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const pageW = doc.internal.pageSize.width;
+  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 40, 10); } catch(e) {}
+  doc.setFontSize(16); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
+  doc.text('Guia de Controlo de Alcoolemia', pageW/2, 26, { align: 'center' });
+  doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120);
+  doc.text('EIP Angola - Portal QSA  |  ' + novaVia + 'ª via', pageW/2, 32, { align: 'center' });
+  doc.setDrawColor(27,42,74); doc.line(14, 36, pageW-14, 36);
+  let y = 44;
+  const line = (l, v) => {
+    doc.setFontSize(10); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
+    doc.text(l + ':', 14, y);
+    doc.setFont(undefined,'normal'); doc.setTextColor(60);
+    doc.text(v || '-', 75, y); y += 8;
+  };
+  const dataStr = r.data ? new Date(r.data).toLocaleString('pt-PT') : '-';
+  line('Colaborador', r.colaboradores?.nome);
+  line('N Mecanografico', r.colaboradores?.numero_mecanografico);
+  line('Centro de Custo', r.centros_custo?.nome + (r.centros_custo?.codigo ? ' [' + r.centros_custo.codigo + ']' : ''));
+  line('Data / Hora', dataStr);
+  line('Teste realizado por', r.profiles?.nome);
+  y += 4;
+  doc.setDrawColor(200); doc.line(14, y, pageW-14, y); y += 10;
+  const res = r.resultado;
+  const resColors = { negativo: [22,163,74], positivo: [234,88,12], critico: [220,38,38] };
+  const resTexts = { negativo: 'NEGATIVO', positivo: 'POSITIVO', critico: 'CRITICO' };
+  const col = resColors[res] || [100,100,100];
+  doc.setFillColor(...col);
+  doc.roundedRect(14, y, pageW-28, 22, 4, 4, 'F');
+  doc.setTextColor(255); doc.setFontSize(16); doc.setFont(undefined,'bold');
+  doc.text('RESULTADO: ' + resTexts[res], pageW/2, y+14, { align: 'center' });
+  y += 30;
+  doc.setTextColor(60); doc.setFontSize(12); doc.setFont(undefined,'normal');
+  doc.text('Valor do 2 Teste: ' + r.valor_teste2?.toFixed(3) + ' g/l', pageW/2, y, { align: 'center' });
+  y += 24;
+  doc.setFontSize(9); doc.setTextColor(100);
+  const nota = 'O colaborador declara ter sido informado do resultado e aceita este documento como registo oficial do controlo de alcoolemia realizado.';
+  const notaLines = doc.splitTextToSize(nota, pageW-28);
+  doc.text(notaLines, 14, y); y += notaLines.length * 5 + 12;
+  doc.setDrawColor(27,42,74);
+  doc.line(30, y, pageW/2-15, y);
+  doc.line(pageW/2+15, y, pageW-30, y);
+  y += 5;
+  doc.setFontSize(9); doc.setTextColor(80);
+  doc.text('Assinatura do Colaborador', 30, y);
+  doc.text('Assinatura do Testador/Responsavel', pageW/2+15, y);
+  y += 20;
+  doc.setFontSize(8); doc.setTextColor(150);
+  doc.setDrawColor(200); doc.line(14, y, pageW-14, y);
+  doc.text('EIP Angola | Controlo de Alcoolemia | ' + new Date().toLocaleDateString('pt-PT'), pageW/2, y+5, { align: 'center' });
+  doc.save('Guia_Alcoolemia_' + novaVia + 'via_' + (r.colaboradores?.nome||'colab').replace(/ /g,'_') + '.pdf');
+
+  // Reload to update via number in table
+  await loadAll();
+  renderHistorico();
+}
+
 </script>
 </body>
 </html>
