@@ -197,11 +197,15 @@
               <option value="positivo">Positivo</option>
               <option value="critico">Crítico</option>
             </select>
+            <label style="font-size:13px;color:var(--gray-600);">De:</label>
+            <input type="date" id="filter-data-de" onchange="renderHistorico()" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:13px;">
+            <label style="font-size:13px;color:var(--gray-600);">Até:</label>
+            <input type="date" id="filter-data-ate" onchange="renderHistorico()" style="padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:13px;">
           </div>
           <div class="table-wrap"><table>
             <thead><tr>
               <th>Data</th><th>Colaborador</th><th>Nº Mec.</th><th>Centro de Custo</th>
-              <th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Testador</th><th></th>
+              <th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Teste realizado por</th><th></th>
             </tr></thead>
             <tbody id="hist-body"></tbody>
           </table></div>
@@ -227,7 +231,7 @@
             <button class="btn btn-outline btn-sm" onclick="pdfPorColab()">📄 PDF</button>
           </div>
           <div class="table-card"><div class="table-wrap"><table>
-            <thead><tr><th>Data</th><th>Centro de Custo</th><th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Testador</th></tr></thead>
+            <thead><tr><th>Data</th><th>Centro de Custo</th><th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Teste realizado por</th></tr></thead>
             <tbody id="colab-hist-body"></tbody>
           </table></div></div>
         </div>
@@ -252,7 +256,7 @@
             <button class="btn btn-outline btn-sm" onclick="pdfPorCentro()">📄 PDF</button>
           </div>
           <div class="table-card"><div class="table-wrap"><table>
-            <thead><tr><th>Data</th><th>Colaborador</th><th>Nº Mec.</th><th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Testador</th></tr></thead>
+            <thead><tr><th>Data</th><th>Colaborador</th><th>Nº Mec.</th><th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Teste realizado por</th></tr></thead>
             <tbody id="centro-hist-body"></tbody>
           </table></div></div>
         </div>
@@ -499,7 +503,7 @@ function getResultado(val) {
 function calcResultado() {
   const t1 = parseFloat(document.getElementById('reg-teste1').value) || 0;
   const t2 = parseFloat(document.getElementById('reg-teste2').value) || 0;
-  const val = Math.max(t1, t2);
+  const val = t2 > 0 ? t2 : t1;
   const box = document.getElementById('resultado-box');
   if (!t1 && !t2) { box.style.display = 'none'; return; }
   const res = getResultado(val);
@@ -538,7 +542,7 @@ async function guardarTeste() {
   if (!centroId) return showAlert('reg-alert', 'Seleccione um centro de custo.', 'error');
   if (isNaN(t1) || isNaN(t2)) return showAlert('reg-alert', 'Introduza os valores dos dois testes.', 'error');
   if (!data) return showAlert('reg-alert', 'Seleccione a data e hora.', 'error');
-  const resultado = getResultado(Math.max(t1, t2));
+  const resultado = getResultado(t2);
   const payload = {
     colaborador_id: colabId,
     centro_custo_id: centroId,
@@ -627,7 +631,11 @@ const resLabel = { negativo: 'Negativo', positivo: 'Positivo', critico: 'Critico
 function renderHistorico() {
   const body = document.getElementById('hist-body');
   const filtro = document.getElementById('filter-resultado').value;
+  const de = document.getElementById('filter-data-de').value;
+  const ate = document.getElementById('filter-data-ate').value;
   let lista = filtro ? allRegistos.filter(r => r.resultado === filtro) : allRegistos;
+  if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
+  if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
   const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'tqs';
   if (!lista.length) { body.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-icon">🧪</div>Sem registos</td></tr>'; return; }
   body.innerHTML = lista.map(r => `<tr>
@@ -654,7 +662,11 @@ function renderPorColab() {
   const colabId = document.getElementById('filter-colab').value;
   const statsDiv = document.getElementById('colab-stats');
   if (!colabId) { statsDiv.style.display = 'none'; return; }
-  const lista = allRegistos.filter(r => r.colaborador_id === colabId);
+  const de = document.getElementById('filter-colab-data-de').value;
+  const ate = document.getElementById('filter-colab-data-ate').value;
+  let lista = allRegistos.filter(r => r.colaborador_id === colabId);
+  if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
+  if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
   statsDiv.style.display = '';
   const neg = lista.filter(r => r.resultado === 'negativo').length;
   const pos = lista.filter(r => r.resultado === 'positivo').length;
@@ -679,7 +691,11 @@ function renderPorCentro() {
   const centroId = document.getElementById('filter-centro').value;
   const statsDiv = document.getElementById('centro-stats');
   if (!centroId) { statsDiv.style.display = 'none'; return; }
-  const lista = allRegistos.filter(r => r.centro_custo_id === centroId);
+  const de = document.getElementById('filter-centro-data-de').value;
+  const ate = document.getElementById('filter-centro-data-ate').value;
+  let lista = allRegistos.filter(r => r.centro_custo_id === centroId);
+  if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
+  if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
   statsDiv.style.display = '';
   const neg = lista.filter(r => r.resultado === 'negativo').length;
   const pos = lista.filter(r => r.resultado === 'positivo').length;
