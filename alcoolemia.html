@@ -127,7 +127,7 @@
       <div class="nav-section">Alcoolemia</div>
       <div class="nav-item active" onclick="navigate('registar')"><span class="nav-icon">📝</span> Registar Teste</div>
       <div class="nav-item" onclick="navigate('historico')"><span class="nav-icon">📋</span> Histórico Geral</div>
-      <div class="nav-item" onclick="navigate('por-colaborador')"><span class="nav-icon">👤</span> Por Colaborador</div>
+
       <div class="nav-item" onclick="navigate('por-centro-custo')"><span class="nav-icon">🏗️</span> Por Centro de Custo</div>
       <div class="nav-item admin-only" onclick="navigate('centros-custo')" style="display:none;"><span class="nav-icon">⚙️</span> Centros de Custo</div>
     </div>
@@ -209,31 +209,6 @@
             </tr></thead>
             <tbody id="hist-body"></tbody>
           </table></div>
-        </div>
-      </div>
-
-      <!-- POR COLABORADOR -->
-      <div class="page" id="page-por-colaborador">
-        <div class="page-header">
-          <div><div class="page-title">Por Colaborador</div><div class="page-subtitle">Histórico individual</div></div>
-        </div>
-        <div class="table-card" style="padding:20px;margin-bottom:20px;">
-          <div class="form-group" style="max-width:400px;margin-bottom:0;">
-            <label>Seleccionar Colaborador</label>
-            <select id="filter-colab" onchange="renderPorColab()" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:'Barlow',sans-serif;">
-              <option value="">-- Seleccionar --</option>
-            </select>
-          </div>
-        </div>
-        <div id="colab-stats" style="display:none;">
-          <div class="stats-grid" id="colab-stats-grid"></div>
-          <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
-            <button class="btn btn-outline btn-sm" onclick="pdfPorColab()">📄 PDF</button>
-          </div>
-          <div class="table-card"><div class="table-wrap"><table>
-            <thead><tr><th>Data</th><th>Centro de Custo</th><th>1º Teste</th><th>2º Teste</th><th>Resultado</th><th>Teste realizado por</th></tr></thead>
-            <tbody id="colab-hist-body"></tbody>
-          </table></div></div>
         </div>
       </div>
 
@@ -435,8 +410,9 @@ async function loadAll() {
 }
 
 function populateDropdowns() {
-  ['reg-colab','filter-colab'].forEach(id => {
+  ['reg-colab'].forEach(id => {
     const sel = document.getElementById(id);
+    if (!sel) return;
     const cur = sel.value;
     sel.innerHTML = '<option value="">-- Seleccionar --</option>' + allColabs.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
     if (cur) sel.value = cur;
@@ -457,7 +433,6 @@ function navigate(page) {
   document.getElementById(`page-${page}`)?.classList.add('active');
   currentPage = page;
   if (page === 'historico') renderHistorico();
-  if (page === 'por-colaborador') renderPorColab();
   if (page === 'por-centro-custo') renderPorCentro();
   if (page === 'centros-custo') renderCentros();
   if (page === 'registar') resetRegisto();
@@ -465,7 +440,6 @@ function navigate(page) {
 
 function renderCurrentPage() {
   if (currentPage === 'historico') renderHistorico();
-  else if (currentPage === 'por-colaborador') renderPorColab();
   else if (currentPage === 'por-centro-custo') renderPorCentro();
   else if (currentPage === 'centros-custo') renderCentros();
 }
@@ -572,13 +546,15 @@ function imprimirGuia() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.width;
-  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 10, 55, 14); } catch(e) {}
-  doc.setFontSize(18); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
-  doc.text('Guia de Controlo de Alcoolemia', 75, 14);
+  // Logo no canto superior esquerdo
+  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 40, 10); } catch(e) {}
+  // Título centrado abaixo do logo
+  doc.setFontSize(16); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
+  doc.text('Guia de Controlo de Alcoolemia', pageW/2, 26, { align: 'center' });
   doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120);
-  doc.text('EIP Angola - Portal QSA', 75, 21);
-  doc.setDrawColor(27,42,74); doc.line(14, 28, pageW-14, 28);
-  let y = 38;
+  doc.text('EIP Angola - Portal QSA', pageW/2, 32, { align: 'center' });
+  doc.setDrawColor(27,42,74); doc.line(14, 36, pageW-14, 36);
+  let y = 44;
   const line = (l, v) => {
     doc.setFontSize(10); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
     doc.text(l + ':', 14, y);
@@ -656,35 +632,6 @@ async function deleteRegisto(id) {
   await sb.from('alcoolemia').delete().eq('id', id);
   allRegistos = allRegistos.filter(r => r.id !== id);
   renderHistorico();
-}
-
-function renderPorColab() {
-  const colabId = document.getElementById('filter-colab').value;
-  const statsDiv = document.getElementById('colab-stats');
-  if (!colabId) { statsDiv.style.display = 'none'; return; }
-  const de = document.getElementById('filter-colab-data-de').value;
-  const ate = document.getElementById('filter-colab-data-ate').value;
-  let lista = allRegistos.filter(r => r.colaborador_id === colabId);
-  if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
-  if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
-  statsDiv.style.display = '';
-  const neg = lista.filter(r => r.resultado === 'negativo').length;
-  const pos = lista.filter(r => r.resultado === 'positivo').length;
-  const crit = lista.filter(r => r.resultado === 'critico').length;
-  document.getElementById('colab-stats-grid').innerHTML = [
-    ['Total', lista.length, 'var(--navy)'],['Negativos', neg, 'var(--success)'],
-    ['Positivos', pos, 'var(--orange)'],['Criticos', crit, 'var(--danger)']
-  ].map(([l,v,c]) => `<div class="stat-card"><div class="stat-value" style="color:${c}">${v}</div><div class="stat-label">${l}</div></div>`).join('');
-  const body = document.getElementById('colab-hist-body');
-  if (!lista.length) { body.innerHTML = '<tr><td colspan="6" class="empty-state">Sem registos</td></tr>'; return; }
-  body.innerHTML = lista.map(r => `<tr>
-    <td>${r.data ? new Date(r.data).toLocaleString('pt-PT') : '-'}</td>
-    <td>${r.centros_custo?.nome || '-'}</td>
-    <td>${r.valor_teste1?.toFixed(3)}</td>
-    <td>${r.valor_teste2?.toFixed(3)}</td>
-    <td><span class="badge ${resBadge[r.resultado] || 'badge-gray'}">${resLabel[r.resultado] || r.resultado}</span></td>
-    <td style="font-size:12px;">${r.profiles?.nome || '-'}</td>
-  </tr>`).join('');
 }
 
 function renderPorCentro() {
@@ -809,41 +756,6 @@ function pdfHistoricoGeral() {
     doc.text('Pagina ' + i + ' de ' + pc, pW-14, pH-6, { align: 'right' });
   }
   doc.save('Alcoolemia_Historico_' + dataHoje.replace(/\//g,'-') + '.pdf');
-}
-
-function pdfPorColab() {
-  const colabId = document.getElementById('filter-colab').value;
-  if (!colabId) return;
-  const colab = allColabs.find(c => c.id === colabId);
-  const lista = allRegistos.filter(r => r.colaborador_id === colabId);
-  if (!lista.length) return alert('Sem registos para este colaborador.');
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'landscape' });
-  const dataHoje = new Date().toLocaleDateString('pt-PT');
-  try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 8, 55, 14); } catch(e) {}
-  doc.setFontSize(14); doc.setTextColor(27,42,74);
-  doc.text('Alcoolemia - ' + (colab?.nome || '-'), 75, 14);
-  doc.setFontSize(9); doc.setTextColor(80);
-  doc.text('N Mec: ' + (colab?.numero_mecanografico || '-') + ' | Data: ' + dataHoje, 75, 20);
-  doc.setDrawColor(27,42,74); doc.line(14, 25, doc.internal.pageSize.width-14, 25);
-  const neg = lista.filter(r => r.resultado === 'negativo').length;
-  const pos = lista.filter(r => r.resultado === 'positivo').length;
-  const crit = lista.filter(r => r.resultado === 'critico').length;
-  doc.setFontSize(9); doc.setTextColor(60);
-  doc.text('Total: ' + lista.length + '  Negativos: ' + neg + '  Positivos: ' + pos + '  Criticos: ' + crit, 14, 32);
-  doc.autoTable({
-    startY: 37,
-    head: [['Data','Centro de Custo','1 Teste','2 Teste','Resultado','Teste realizado por']],
-    body: lista.map(r => [
-      r.data ? new Date(r.data).toLocaleString('pt-PT') : '-',
-      r.centros_custo?.nome || '-',
-      r.valor_teste1?.toFixed(3), r.valor_teste2?.toFixed(3),
-      resLabel[r.resultado] || r.resultado, r.profiles?.nome || '-'
-    ]),
-    headStyles: { fillColor: [27,42,74], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [245,247,250] }, styles: { fontSize: 9 }
-  });
-  doc.save('Alcoolemia_' + (colab?.nome||'colab').replace(/ /g,'_') + '_' + dataHoje.replace(/\//g,'-') + '.pdf');
 }
 
 function pdfPorCentro() {
