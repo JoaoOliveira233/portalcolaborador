@@ -151,11 +151,18 @@
             <div id="dash-top-criticos"></div>
           </div>
         </div>
-        <div class="table-card" style="padding:24px;">
-          <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:20px;">🏗️ Distribuição por Centro de Custo</div>
-          <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
-            <div style="width:300px;height:300px;flex-shrink:0;"><canvas id="dash-chart-cc"></canvas></div>
-            <div id="dash-chart-legend" style="flex:1;min-width:200px;"></div>
+        <div class="table-card" style="padding:24px;margin-bottom:20px;">
+          <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:16px;">📊 Total de Testes por Centro de Custo</div>
+          <canvas id="dash-chart-total" height="120"></canvas>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="table-card" style="padding:24px;">
+            <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:16px;">⚠️ Positivos por Centro de Custo</div>
+            <canvas id="dash-chart-positivos" height="120"></canvas>
+          </div>
+          <div class="table-card" style="padding:24px;">
+            <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:16px;">🔴 Críticos por Centro de Custo</div>
+            <canvas id="dash-chart-criticos" height="120"></canvas>
           </div>
         </div>
       </div>
@@ -917,7 +924,7 @@ async function reimprirGuia(registoId) {
 }
 
 
-let _dashChart = null;
+let _dashChart = [];
 
 async function renderDashboard() {
   // Garantir que há dados
@@ -962,66 +969,41 @@ async function renderDashboard() {
   renderTop5(posMap, 'dash-top-positivos', '#ea580c', 'badge-orange');
   renderTop5(critMap, 'dash-top-criticos', '#dc2626', 'badge-red');
 
-  // Gráfico por centro de custo
-  const ccMap = {};
+  // Gráficos por centro de custo
+  const ccTotal = {}, ccPos = {}, ccCrit = {};
   allRegistos.forEach(r => {
     const nome = r.centros_custo?.nome || 'Sem Centro';
-    ccMap[nome] = (ccMap[nome] || 0) + 1;
+    ccTotal[nome] = (ccTotal[nome] || 0) + 1;
+    if (r.resultado === 'positivo') ccPos[nome] = (ccPos[nome] || 0) + 1;
+    if (r.resultado === 'critico') ccCrit[nome] = (ccCrit[nome] || 0) + 1;
   });
 
-  const labels = Object.keys(ccMap);
-  const values = Object.values(ccMap);
-  const total = values.reduce((a,b) => a+b, 0);
+  // Sort by total descending
+  const labels = Object.keys(ccTotal).sort((a,b) => ccTotal[b] - ccTotal[a]);
 
-  const colors = [
-    '#1b2a4a','#c8102e','#16a34a','#d97706','#0284c7',
-    '#7c3aed','#db2777','#059669','#dc2626','#2563eb',
-    '#92400e','#065f46','#1e40af','#9d174d','#3730a3'
-  ];
+  if (_dashChart) { _dashChart.forEach(c => c?.destroy()); }
+  _dashChart = [];
 
-  const canvas = document.getElementById('dash-chart-cc');
-  if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
-
-  if (!labels.length) {
-    canvas.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400);">Sem dados</div>';
-    return;
-  }
-
-  _dashChart = new Chart(canvas, {
-    type: 'doughnut',
+  const chartOpts = (data, color) => ({
+    type: 'bar',
     data: {
       labels,
-      datasets: [{
-        data: values,
-        backgroundColor: colors.slice(0, labels.length),
-        borderWidth: 2,
-        borderColor: '#fff'
-      }]
+      datasets: [{ data: labels.map(l => data[l] || 0), backgroundColor: color, borderRadius: 4 }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/total*100)}%)`
-          }
-        }
-      },
-      cutout: '55%'
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.raw } } },
+      scales: {
+        x: { ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,.05)' }, beginAtZero: true },
+        y: { ticks: { font: { size: 11 } }, grid: { display: false } }
+      }
     }
   });
 
-  // Custom legend
-  document.getElementById('dash-chart-legend').innerHTML = labels.map((l, i) => `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <div style="width:14px;height:14px;border-radius:3px;background:${colors[i]};flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:600;">${l}</div>
-        <div style="font-size:12px;color:var(--gray-400);">${values[i]} testes (${Math.round(values[i]/total*100)}%)</div>
-      </div>
-    </div>`).join('');
+  _dashChart.push(new Chart(document.getElementById('dash-chart-total'), chartOpts(ccTotal, 'rgba(27,42,74,0.8)')));
+  _dashChart.push(new Chart(document.getElementById('dash-chart-positivos'), chartOpts(ccPos, 'rgba(234,88,12,0.8)')));
+  _dashChart.push(new Chart(document.getElementById('dash-chart-criticos'), chartOpts(ccCrit, 'rgba(220,38,38,0.8)')));
 }
 
 </script>
