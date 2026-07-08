@@ -415,6 +415,8 @@ async function loadAll() {
   allRegistos = registos || [];
   populateDropdowns();
   renderCurrentPage();
+  // Always update dashboard data if it's visible
+  if (currentPage === 'dashboard') renderDashboard();
 }
 
 function populateDropdowns() {
@@ -440,7 +442,13 @@ function navigate(page) {
   document.querySelector(`[onclick="navigate('${page}')"]`)?.classList.add('active');
   document.getElementById(`page-${page}`)?.classList.add('active');
   currentPage = page;
-  if (page === 'dashboard') renderDashboard();
+  if (page === 'dashboard') {
+    if (allRegistos.length === 0) {
+      loadAll().then(() => renderDashboard());
+    } else {
+      renderDashboard();
+    }
+  }
   if (page === 'historico') renderHistorico();
   if (page === 'por-centro-custo') renderPorCentro();
   if (page === 'centros-custo') renderCentros();
