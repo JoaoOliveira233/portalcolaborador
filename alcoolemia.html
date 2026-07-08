@@ -160,7 +160,7 @@
               <input type="datetime-local" id="reg-data">
             </div>
             <div class="form-group">
-              <label>Testador</label>
+              <label>Teste realizado por</label>
               <input type="text" id="reg-testador" disabled style="background:var(--gray-50);color:var(--gray-400);">
             </div>
           </div>
@@ -574,9 +574,9 @@ function imprimirGuia() {
   const pageW = doc.internal.pageSize.width;
   try { doc.addImage('data:image/png;base64,' + window._logoB64, 'PNG', 14, 10, 55, 14); } catch(e) {}
   doc.setFontSize(18); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
-  doc.text('Guia de Controlo de Alcoolemia', pageW/2, 18, { align: 'center' });
+  doc.text('Guia de Controlo de Alcoolemia', 75, 14);
   doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(120);
-  doc.text('EIP Angola - Portal QSA', pageW/2, 24, { align: 'center' });
+  doc.text('EIP Angola - Portal QSA', 75, 21);
   doc.setDrawColor(27,42,74); doc.line(14, 28, pageW-14, 28);
   let y = 38;
   const line = (l, v) => {
@@ -590,7 +590,7 @@ function imprimirGuia() {
   line('N Mecanografico', r.colaboradores?.numero_mecanografico);
   line('Centro de Custo', r.centros_custo?.nome + (r.centros_custo?.codigo ? ' [' + r.centros_custo.codigo + ']' : ''));
   line('Data / Hora', dataStr);
-  line('Testador', r.profiles?.nome);
+  line('Teste realizado por', r.profiles?.nome);
   y += 4;
   doc.setDrawColor(200); doc.line(14, y, pageW-14, y); y += 10;
   const res = r.resultado;
@@ -615,7 +615,7 @@ function imprimirGuia() {
   y += 5;
   doc.setFontSize(9); doc.setTextColor(80);
   doc.text('Assinatura do Colaborador', 30, y);
-  doc.text('Assinatura do Testador', pageW/2+15, y);
+  doc.text('Assinatura do Testador/Responsável', pageW/2+15, y);
   y += 20;
   doc.setFontSize(8); doc.setTextColor(150);
   doc.setDrawColor(200); doc.line(14, y, pageW-14, y);
@@ -785,7 +785,7 @@ function pdfHistoricoGeral() {
   doc.setDrawColor(27,42,74); doc.line(14, 27, doc.internal.pageSize.width-14, 27);
   doc.autoTable({
     startY: 32,
-    head: [['Data','Colaborador','N Mec.','Centro de Custo','1 Teste','2 Teste','Resultado','Testador']],
+    head: [['Data','Colaborador','N Mec.','Centro de Custo','1 Teste','2 Teste','Resultado','Teste realizado por']],
     body: lista.map(r => [
       r.data ? new Date(r.data).toLocaleString('pt-PT') : '-',
       r.colaboradores?.nome || '-',
@@ -833,7 +833,7 @@ function pdfPorColab() {
   doc.text('Total: ' + lista.length + '  Negativos: ' + neg + '  Positivos: ' + pos + '  Criticos: ' + crit, 14, 32);
   doc.autoTable({
     startY: 37,
-    head: [['Data','Centro de Custo','1 Teste','2 Teste','Resultado','Testador']],
+    head: [['Data','Centro de Custo','1 Teste','2 Teste','Resultado','Teste realizado por']],
     body: lista.map(r => [
       r.data ? new Date(r.data).toLocaleString('pt-PT') : '-',
       r.centros_custo?.nome || '-',
@@ -868,7 +868,7 @@ function pdfPorCentro() {
   doc.text('Total: ' + lista.length + '  Negativos: ' + neg + '  Positivos: ' + pos + '  Criticos: ' + crit, 14, 32);
   doc.autoTable({
     startY: 37,
-    head: [['Data','Colaborador','N Mec.','1 Teste','2 Teste','Resultado','Testador']],
+    head: [['Data','Colaborador','N Mec.','1 Teste','2 Teste','Resultado','Teste realizado por']],
     body: lista.map(r => [
       r.data ? new Date(r.data).toLocaleString('pt-PT') : '-',
       r.colaboradores?.nome || '-', r.colaboradores?.numero_mecanografico || '-',
