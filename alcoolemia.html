@@ -135,6 +135,31 @@
     </div>
     <div class="main-content">
 
+      <!-- DASHBOARD -->
+      <div class="page" id="page-dashboard">
+        <div class="page-header">
+          <div><div class="page-title">Dashboard</div><div class="page-subtitle">Resumo de controlos de alcoolemia</div></div>
+          <button class="btn btn-outline btn-sm" onclick="renderDashboard()">↻ Actualizar</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+          <div class="table-card" style="padding:20px;">
+            <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:16px;">⚠️ Top 5 — Positivos</div>
+            <div id="dash-top-positivos"></div>
+          </div>
+          <div class="table-card" style="padding:20px;">
+            <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:16px;">🔴 Top 5 — Críticos</div>
+            <div id="dash-top-criticos"></div>
+          </div>
+        </div>
+        <div class="table-card" style="padding:24px;">
+          <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:20px;">🏗️ Distribuição por Centro de Custo</div>
+          <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
+            <div style="width:300px;height:300px;flex-shrink:0;"><canvas id="dash-chart-cc"></canvas></div>
+            <div id="dash-chart-legend" style="flex:1;min-width:200px;"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- REGISTAR -->
       <div class="page active" id="page-registar">
         <div class="page-header">
