@@ -126,8 +126,8 @@
   <div class="app-body">
     <div class="sidebar">
       <div class="nav-section">Alcoolemia</div>
-      <div class="nav-item" onclick="navigate('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
-      <div class="nav-item active" onclick="navigate('registar')"><span class="nav-icon">📝</span> Registar Teste</div>
+      <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
+      <div class="nav-item" onclick="navigate('registar')"><span class="nav-icon">📝</span> Registar Teste</div>
       <div class="nav-item" onclick="navigate('historico')"><span class="nav-icon">📋</span> Histórico Geral</div>
 
       <div class="nav-item" onclick="navigate('por-centro-custo')"><span class="nav-icon">🏗️</span> Por Centro de Custo</div>
@@ -136,7 +136,7 @@
     <div class="main-content">
 
       <!-- DASHBOARD -->
-      <div class="page" id="page-dashboard">
+      <div class="page active" id="page-dashboard">
         <div class="page-header">
           <div><div class="page-title">Dashboard</div><div class="page-subtitle">Resumo de controlos de alcoolemia</div></div>
           <button class="btn btn-outline btn-sm" onclick="renderDashboard()">↻ Actualizar</button>
@@ -171,7 +171,7 @@
       </div>
 
       <!-- REGISTAR -->
-      <div class="page active" id="page-registar">
+      <div class="page" id="page-registar">
         <div class="page-header">
           <div><div class="page-title">Registar Teste</div><div class="page-subtitle">Novo controlo de alcoolemia</div></div>
         </div>
@@ -470,7 +470,7 @@ function populateDropdowns() {
   });
 }
 
-let currentPage = 'registar';
+let currentPage = 'dashboard';
 function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
