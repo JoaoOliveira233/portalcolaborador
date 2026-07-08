@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -125,6 +126,7 @@
   <div class="app-body">
     <div class="sidebar">
       <div class="nav-section">Alcoolemia</div>
+      <div class="nav-item" onclick="navigate('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
       <div class="nav-item active" onclick="navigate('registar')"><span class="nav-icon">📝</span> Registar Teste</div>
       <div class="nav-item" onclick="navigate('historico')"><span class="nav-icon">📋</span> Histórico Geral</div>
 
@@ -405,7 +407,7 @@ async function doLogout() { await sb.auth.signOut(); showLogin(); }
 async function loadAll() {
   const [{ data: colabs }, { data: centros }, { data: registos }] = await Promise.all([
     sb.from('colaboradores').select('id,nome,numero_mecanografico').eq('ativo', true).order('nome'),
-    sb.from('centros_custo').select('*').order('nome'),
+    sb.from('centros_custo').select('*').order('codigo', { ascending: true, nullsFirst: false }),
     sb.from('alcoolemia').select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)').order('data', { ascending: false }).limit(1000)
   ]);
   allColabs = colabs || [];
@@ -438,6 +440,7 @@ function navigate(page) {
   document.querySelector(`[onclick="navigate('${page}')"]`)?.classList.add('active');
   document.getElementById(`page-${page}`)?.classList.add('active');
   currentPage = page;
+  if (page === 'dashboard') renderDashboard();
   if (page === 'historico') renderHistorico();
   if (page === 'por-centro-custo') renderPorCentro();
   if (page === 'centros-custo') renderCentros();
@@ -445,7 +448,8 @@ function navigate(page) {
 }
 
 function renderCurrentPage() {
-  if (currentPage === 'historico') renderHistorico();
+  if (currentPage === 'dashboard') renderDashboard();
+  else if (currentPage === 'historico') renderHistorico();
   else if (currentPage === 'por-centro-custo') renderPorCentro();
   else if (currentPage === 'centros-custo') renderCentros();
 }
@@ -877,6 +881,104 @@ async function reimprirGuia(registoId) {
   // Reload to update via number in table
   await loadAll();
   renderHistorico();
+}
+
+
+let _dashChart = null;
+
+function renderDashboard() {
+  // Top 5 Positivos
+  const posMap = {};
+  const critMap = {};
+  allRegistos.forEach(r => {
+    const nome = r.colaboradores?.nome || 'Desconhecido';
+    if (r.resultado === 'positivo') posMap[nome] = (posMap[nome] || 0) + 1;
+    if (r.resultado === 'critico') critMap[nome] = (critMap[nome] || 0) + 1;
+  });
+
+  function renderTop5(mapObj, containerId, cor, badgeCls) {
+    const sorted = Object.entries(mapObj).sort((a,b) => b[1]-a[1]).slice(0,5);
+    const el = document.getElementById(containerId);
+    if (!sorted.length) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);">Sem registos</div>';
+      return;
+    }
+    const max = sorted[0][1];
+    el.innerHTML = sorted.map(([nome, count], i) => `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:14px;font-weight:600;">${i+1}. ${nome}</span>
+          <span class="badge ${badgeCls}">${count} ocorrência${count>1?'s':''}</span>
+        </div>
+        <div style="background:var(--gray-100);border-radius:6px;height:8px;">
+          <div style="background:${cor};border-radius:6px;height:8px;width:${Math.round(count/max*100)}%;transition:width .3s;"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  renderTop5(posMap, 'dash-top-positivos', '#ea580c', 'badge-orange');
+  renderTop5(critMap, 'dash-top-criticos', '#dc2626', 'badge-red');
+
+  // Gráfico por centro de custo
+  const ccMap = {};
+  allRegistos.forEach(r => {
+    const nome = r.centros_custo?.nome || 'Sem Centro';
+    ccMap[nome] = (ccMap[nome] || 0) + 1;
+  });
+
+  const labels = Object.keys(ccMap);
+  const values = Object.values(ccMap);
+  const total = values.reduce((a,b) => a+b, 0);
+
+  const colors = [
+    '#1b2a4a','#c8102e','#16a34a','#d97706','#0284c7',
+    '#7c3aed','#db2777','#059669','#dc2626','#2563eb',
+    '#92400e','#065f46','#1e40af','#9d174d','#3730a3'
+  ];
+
+  const canvas = document.getElementById('dash-chart-cc');
+  if (_dashChart) { _dashChart.destroy(); _dashChart = null; }
+
+  if (!labels.length) {
+    canvas.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--gray-400);">Sem dados</div>';
+    return;
+  }
+
+  _dashChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.slice(0, labels.length),
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/total*100)}%)`
+          }
+        }
+      },
+      cutout: '55%'
+    }
+  });
+
+  // Custom legend
+  document.getElementById('dash-chart-legend').innerHTML = labels.map((l, i) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="width:14px;height:14px;border-radius:3px;background:${colors[i]};flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${l}</div>
+        <div style="font-size:12px;color:var(--gray-400);">${values[i]} testes (${Math.round(values[i]/total*100)}%)</div>
+      </div>
+    </div>`).join('');
 }
 
 </script>
