@@ -400,7 +400,7 @@ async function loadAll() {
   const [{ data: colabs }, { data: centros }, { data: registos }] = await Promise.all([
     sb.from('colaboradores').select('id,nome,numero_mecanografico').eq('ativo', true).order('nome'),
     sb.from('centros_custo').select('*').order('nome'),
-    sb.from('alcoolemia').select('*, colaboradores(nome,numero_mecanografico), centros_custo(nome,codigo), profiles(nome)').order('data', { ascending: false }).limit(1000)
+    sb.from('alcoolemia').select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)').order('data', { ascending: false }).limit(1000)
   ]);
   allColabs = colabs || [];
   allCentros = centros || [];
@@ -640,7 +640,7 @@ function renderPorCentro() {
   if (!centroId) { statsDiv.style.display = 'none'; return; }
   const de = document.getElementById('filter-centro-data-de').value;
   const ate = document.getElementById('filter-centro-data-ate').value;
-  let lista = allRegistos.filter(r => r.centro_custo_id === centroId);
+  let lista = allRegistos.filter(r => r.centro_custo_id === centroId || r.centros_custo?.id === centroId);
   if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
   if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
   statsDiv.style.display = '';
