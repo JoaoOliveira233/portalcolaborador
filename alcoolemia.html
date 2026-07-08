@@ -894,7 +894,17 @@ async function reimprirGuia(registoId) {
 
 let _dashChart = null;
 
-function renderDashboard() {
+async function renderDashboard() {
+  // Garantir que há dados
+  if (!allRegistos || allRegistos.length === 0) {
+    await loadAll();
+  }
+  // Se mesmo assim não há dados
+  if (!allRegistos || allRegistos.length === 0) {
+    document.getElementById('dash-top-positivos').innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);">Sem dados</div>';
+    document.getElementById('dash-top-criticos').innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);">Sem dados</div>';
+    return;
+  }
   // Top 5 Positivos
   const posMap = {};
   const critMap = {};
