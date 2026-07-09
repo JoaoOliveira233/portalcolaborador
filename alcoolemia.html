@@ -632,7 +632,10 @@ function imprimirGuia() {
   doc.text('RESULTADO: ' + resTexts[res], pageW/2, y+14, { align: 'center' });
   y += 30;
   doc.setTextColor(60); doc.setFontSize(12); doc.setFont(undefined,'normal');
-  doc.text('Valor do 2 Teste: ' + r.valor_teste2?.toFixed(3) + ' g/l', pageW/2, y, { align: 'center' });
+  doc.text('1º Teste: ' + r.valor_teste1?.toFixed(3) + ' g/l     |     2º Teste: ' + r.valor_teste2?.toFixed(3) + ' g/l', pageW/2, y, { align: 'center' });
+  y += 7;
+  doc.setFontSize(9); doc.setTextColor(120);
+  doc.text('(O resultado é determinado pelo valor do 2º teste)', pageW/2, y, { align: 'center' });
   y += 24;
   doc.setFontSize(9); doc.setTextColor(100);
   const nota = 'O colaborador declara ter sido informado do resultado e aceita este documento como registo oficial do controlo de alcoolemia realizado.';
@@ -903,7 +906,10 @@ async function reimprirGuia(registoId) {
   doc.text('RESULTADO: ' + resTexts[res], pageW/2, y+14, { align: 'center' });
   y += 30;
   doc.setTextColor(60); doc.setFontSize(12); doc.setFont(undefined,'normal');
-  doc.text('Valor do 2 Teste: ' + r.valor_teste2?.toFixed(3) + ' g/l', pageW/2, y, { align: 'center' });
+  doc.text('1º Teste: ' + r.valor_teste1?.toFixed(3) + ' g/l     |     2º Teste: ' + r.valor_teste2?.toFixed(3) + ' g/l', pageW/2, y, { align: 'center' });
+  y += 7;
+  doc.setFontSize(9); doc.setTextColor(120);
+  doc.text('(O resultado é determinado pelo valor do 2º teste)', pageW/2, y, { align: 'center' });
   y += 24;
   doc.setFontSize(9); doc.setTextColor(100);
   const nota = 'O colaborador declara ter sido informado do resultado e aceita este documento como registo oficial do controlo de alcoolemia realizado.';
