@@ -427,7 +427,9 @@ async function loadProfile() {
   document.getElementById('reg-testador').value = p.nome || p.email;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'flex';
-  const isAdmin = p.role === 'admin' || p.role === 'tqs';
+  const isAdmin = p.role === 'admin';
+  const isTQS = p.role === 'tqs' || p.role === 'admin';
+  document.querySelectorAll('.tqs-only').forEach(el => el.style.display = isTQS ? '' : 'none');
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
   await loadAll();
 }
@@ -668,7 +670,7 @@ function renderHistorico() {
   let lista = filtro ? allRegistos.filter(r => r.resultado === filtro) : allRegistos;
   if (de) lista = lista.filter(r => r.data && r.data.slice(0,10) >= de);
   if (ate) lista = lista.filter(r => r.data && r.data.slice(0,10) <= ate);
-  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'tqs';
+  const isAdmin = currentProfile?.role === 'admin';
   if (!lista.length) { body.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-icon">🧪</div>Sem registos</td></tr>'; return; }
   body.innerHTML = lista.map(r => `<tr>
     <td>${r.data ? new Date(r.data).toLocaleString('pt-PT') : '-'}</td>
@@ -685,6 +687,7 @@ function renderHistorico() {
 }
 
 async function deleteRegisto(id) {
+  if (currentProfile?.role !== 'admin') return;
   if (!confirm('Apagar este registo?')) return;
   await sb.from('alcoolemia').delete().eq('id', id);
   allRegistos = allRegistos.filter(r => r.id !== id);
@@ -724,7 +727,7 @@ function renderPorCentro() {
 }
 
 function renderCentros() {
-  const isAdmin = currentProfile?.role === 'admin' || currentProfile?.role === 'tqs';
+  const isAdmin = currentProfile?.role === 'admin';
   const body = document.getElementById('centros-body');
   if (!allCentros.length) { body.innerHTML = '<tr><td colspan="3" class="empty-state"><div class="empty-icon">🏗️</div>Sem centros de custo</td></tr>'; return; }
   body.innerHTML = allCentros.map(c => `<tr>
