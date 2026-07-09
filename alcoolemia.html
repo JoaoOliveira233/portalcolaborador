@@ -682,7 +682,7 @@ function renderHistorico() {
     <td><span class="badge ${resBadge[r.resultado] || 'badge-gray'}">${resLabel[r.resultado] || r.resultado}</span></td>
     <td style="font-size:12px;">${r.profiles?.nome || '-'}</td>
     <td><button class="btn btn-outline btn-sm" onclick="reimprirGuia('${r.id}')">🖨️ ${(r.numero_via || 1) + 1}ª via</button></td>
-    <td>${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteRegisto('${r.id}')">🗑️</button>` : ''}</td>
+    <td>${currentProfile?.role === 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteRegisto('${r.id}')">🗑️</button>` : ''}</td>
   </tr>`).join('');
 }
 
