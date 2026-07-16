@@ -1073,26 +1073,33 @@ function gerarPDFData(r, alcData, todosRel) {
   const tnm = nColabs>0 ? ((inc.length*1000)/nColabs).toFixed(2) : '0.00';
   lineVal('HHT este mês', r.horas_homem_trabalhadas||0);
   lineVal('HHT acumuladas', cumHHT.toFixed(1));
-  lineVal('Taxa de Frequência (TF100) — acumulada', tf100);
-  lineVal('Taxa de Gravidade (TG100) — acumulada', tg100);
-  lineVal('Taxa de Incidentes / Quase-Acidentes', tnm);
+  y+=4;
+  // Indicadores com label longo — valor em linha separada
+  const longLine = (l, v) => {
+    if(y>pH-18){doc.addPage();y=18;}
+    doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74); doc.setFontSize(10);
+    doc.text(l+':', 16, y); y+=6;
+    doc.setFont(undefined,'normal'); doc.setTextColor(60);
+    doc.text(String(v||'-'), 20, y); y+=8;
+  };
+  longLine('Taxa de Frequência (TF100) — acumulada', tf100);
+  longLine('Taxa de Gravidade (TG100) — acumulada', tg100);
+  longLine('Taxa de Incidentes / Quase-Acidentes (TNM)', tnm);
   y+=3;
 
-  // Escala TF100
+  // Escalas lado a lado — cabeçalho da tabela já identifica, sem título extra
   if(y>pH-55){doc.addPage();y=18;}
-  doc.setFont(undefined,'bold'); doc.text('Escala de Avaliação — Taxa de Frequência (TF100):',16,y); y+=4;
-  doc.autoTable({startY:y,head:[['Taxa de Frequência (TF100)','Avaliação']],
+  const startY_scales = y;
+  doc.autoTable({startY:startY_scales,head:[['Taxa de Frequência (TF100)','Avaliação']],
     body:[['0','Excelente'],['0 – 5','Muito Bom'],['5 – 10','Bom'],['10 – 20','Aceitável'],['20 – 40','Mau'],['>40','Crítico']],
-    headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:40}},margin:{left:14,right:pW/2}
+    headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:45}},margin:{left:14,right:pW/2+4}
   });
-  // Escala TG100
-  doc.setFont(undefined,'bold'); doc.text('Escala de Avaliação — Taxa de Gravidade (TG100):',pW/2+2,y); 
-  const midY = y;
-  doc.autoTable({startY:midY,head:[['Taxa de Gravidade (TG100)','Avaliação']],
+  const midY = doc.lastAutoTable.finalY;
+  doc.autoTable({startY:startY_scales,head:[['Taxa de Gravidade (TG100)','Avaliação']],
     body:[['0','Excelente'],['0 – 10','Muito Bom'],['10 – 50','Bom'],['50 – 100','Aceitável'],['100 – 200','Elevado'],['>200','Crítico']],
-    headStyles:{fillColor:[200,16,46],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:40}},margin:{left:pW/2,right:14}
+    headStyles:{fillColor:[200,16,46],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:45}},margin:{left:pW/2+4,right:14}
   });
-  y=Math.max(doc.lastAutoTable.finalY, midY+42)+5;
+  y=Math.max(midY, doc.lastAutoTable.finalY)+5;
 
   // 6. OBSERVAÇÕES
   if(r.observacoes){
