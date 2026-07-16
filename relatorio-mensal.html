@@ -257,9 +257,9 @@
             <div class="card"><div class="card-title">🚗 Meios Mecânicos</div><div class="chart-container"><canvas id="g-mec"></canvas></div></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
-            <div class="card"><div class="card-title">📈 TF100 Acumulada</div><div class="chart-container"><canvas id="g-tf"></canvas></div></div>
-            <div class="card"><div class="card-title">📉 TG100 Acumulada</div><div class="chart-container"><canvas id="g-tg"></canvas></div></div>
-            <div class="card"><div class="card-title">🔔 TNM Near Miss</div><div class="chart-container"><canvas id="g-nm"></canvas></div></div>
+            <div class="card"><div class="card-title">📈 Taxa de Frequência (TF100) Acumulada</div><div class="chart-container"><canvas id="g-tf"></canvas></div></div>
+            <div class="card"><div class="card-title">📉 Taxa de Gravidade (TG100) Acumulada</div><div class="chart-container"><canvas id="g-tg"></canvas></div></div>
+            <div class="card"><div class="card-title">🔔 Taxa de Incidentes / Quase-Acidentes</div><div class="chart-container"><canvas id="g-nm"></canvas></div></div>
           </div>
         </div>
       </div>
@@ -772,7 +772,7 @@ async function calcIndicadores() {
     </div>
     <div class="indicador-box" style="background:#0284c7;color:white;">
       <div class="indicador-value">${tnm}</div>
-      <div class="indicador-label">TNM Near Miss</div>
+      <div class="indicador-label">Taxa Incid./Quase-Acid.</div>
       <div class="indicador-sub">Este mês</div>
     </div>
     <div class="indicador-box" style="background:${diasSemAcidente==='—'||diasSemAcidente>30?'#15803d':'#ea580c'};color:white;">
@@ -883,13 +883,13 @@ async function renderGraficos() {
     {label:'Máquinas',data:lista.map(r=>r.num_maquinas||0),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
   ]));
   _grafCharts.tf = new Chart(document.getElementById('g-tf'), lineOpts(labels,[
-    {label:'TF100 Acum.',data:tf100s,borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
+    {label:'Taxa Frequência (TF100)',data:tf100s,borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
   ]));
   _grafCharts.tg = new Chart(document.getElementById('g-tg'), lineOpts(labels,[
-    {label:'TG100 Acum.',data:tg100s,borderColor:'rgba(220,38,38,1)',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true,pointRadius:4}
+    {label:'Taxa Gravidade (TG100)',data:tg100s,borderColor:'rgba(220,38,38,1)',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true,pointRadius:4}
   ]));
   _grafCharts.nm = new Chart(document.getElementById('g-nm'), lineOpts(labels,[
-    {label:'TNM',data:tnms,borderColor:'rgba(2,132,199,1)',backgroundColor:'rgba(2,132,199,.1)',tension:.3,fill:true,pointRadius:4}
+    {label:'Taxa Incid./Quase-Acid.',data:tnms,borderColor:'rgba(2,132,199,1)',backgroundColor:'rgba(2,132,199,.1)',tension:.3,fill:true,pointRadius:4}
   ]));
 }
 
@@ -910,7 +910,7 @@ async function exportGraficosPDF() {
   doc.setDrawColor(27,42,74); doc.line(10,25,pW-10,25);
 
   const chartIds = ['g-alc','g-acid','g-hum','g-mec','g-tf','g-tg','g-nm'];
-  const chartTitles = ['Alcoolemia','Acidentes e Near Miss','Meios Humanos','Meios Mecânicos','TF100 Acumulada','TG100 Acumulada','TNM Near Miss'];
+  const chartTitles = ['Alcoolemia','Acidentes e Near Miss','Meios Humanos','Meios Mecânicos','Taxa de Frequência (TF100)','Taxa de Gravidade (TG100)','Taxa de Incidentes / Quase-Acidentes'];
   let x=10, y=30, w=(pW-30)/3, h=65;
   chartIds.forEach((id,i) => {
     const canvas = document.getElementById(id);
@@ -1073,21 +1073,22 @@ function gerarPDFData(r, alcData, todosRel) {
   const tnm = nColabs>0 ? ((inc.length*1000)/nColabs).toFixed(2) : '0.00';
   lineVal('HHT este mês', r.horas_homem_trabalhadas||0);
   lineVal('HHT acumuladas', cumHHT.toFixed(1));
-  lineVal('TF100 (acumulada)', tf100);
-  lineVal('TG100 (acumulada)', tg100);
-  lineVal('TNM Near Miss', tnm);
+  lineVal('Taxa de Frequência (TF100) — acumulada', tf100);
+  lineVal('Taxa de Gravidade (TG100) — acumulada', tg100);
+  lineVal('Taxa de Incidentes / Quase-Acidentes', tnm);
   y+=3;
 
   // Escala TF100
   if(y>pH-55){doc.addPage();y=18;}
-  doc.setFont(undefined,'bold'); doc.text('Escala TF100:',16,y); y+=4;
-  doc.autoTable({startY:y,head:[['TF100','Avaliação']],
+  doc.setFont(undefined,'bold'); doc.text('Escala de Avaliação — Taxa de Frequência (TF100):',16,y); y+=4;
+  doc.autoTable({startY:y,head:[['Taxa de Frequência (TF100)','Avaliação']],
     body:[['0','Excelente'],['0 – 5','Muito Bom'],['5 – 10','Bom'],['10 – 20','Aceitável'],['20 – 40','Mau'],['>40','Crítico']],
     headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:40}},margin:{left:14,right:pW/2}
   });
   // Escala TG100
+  doc.setFont(undefined,'bold'); doc.text('Escala de Avaliação — Taxa de Gravidade (TG100):',pW/2+2,y); 
   const midY = y;
-  doc.autoTable({startY:midY,head:[['TG100','Avaliação']],
+  doc.autoTable({startY:midY,head:[['Taxa de Gravidade (TG100)','Avaliação']],
     body:[['0','Excelente'],['0 – 10','Muito Bom'],['10 – 50','Bom'],['50 – 100','Aceitável'],['100 – 200','Elevado'],['>200','Crítico']],
     headStyles:{fillColor:[200,16,46],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:40}},margin:{left:pW/2,right:14}
   });
