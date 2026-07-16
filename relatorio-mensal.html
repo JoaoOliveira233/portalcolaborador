@@ -166,6 +166,20 @@
         </div>
         <div id="edit-alert"></div>
 
+        <!-- IDENTIFICAÇÃO -->
+        <div class="card">
+          <div class="card-title">📋 Identificação do Relatório</div>
+          <div class="form-row">
+            <div class="form-group"><label>Empreitada</label><input type="text" id="e-empreitada" placeholder="Nome da empreitada / contrato"></div>
+            <div class="form-group"><label>Coordenador dos Trabalhos</label><input type="text" id="e-coordenador" placeholder="Nome do coordenador"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Técnico de Qualidade e Segurança</label><input type="text" id="e-tqs" placeholder="Nome do TQS"></div>
+            <div class="form-group"><label>Responsável do Dono de Obra</label><input type="text" id="e-resp-dono" placeholder="Nome do responsável"></div>
+          </div>
+          <div class="form-group" style="max-width:50%;"><label>Fiscalização</label><input type="text" id="e-fiscal" placeholder="Entidade / nome da fiscalização"></div>
+        </div>
+
         <!-- MEIOS -->
         <div class="card">
           <div class="card-title">👷 Meios Humanos e Mecânicos</div>
@@ -555,6 +569,11 @@ async function abrirRelatorio(id) {
   document.getElementById('e-lig').value = r.num_viaturas_ligeiras || 0;
   document.getElementById('e-pes').value = r.num_viaturas_pesadas || 0;
   document.getElementById('e-maq').value = r.num_maquinas || 0;
+  document.getElementById('e-empreitada').value = r.empreitada || '';
+  document.getElementById('e-coordenador').value = r.coordenador || '';
+  document.getElementById('e-tqs').value = r.tecnico_qsa || '';
+  document.getElementById('e-resp-dono').value = r.responsavel_dono_obra || '';
+  document.getElementById('e-fiscal').value = r.fiscalizacao || '';
   document.getElementById('e-horas').value = r.horas_homem_trabalhadas || 0;
   document.getElementById('e-obs').value = r.observacoes || '';
   trabalhos = Array.isArray(r.trabalhos_realizados) ? [...r.trabalhos_realizados] : [];
@@ -794,6 +813,11 @@ async function guardarRelatorio() {
     acidentes_com_baixa: acidBaixa,
     acidentes_sem_baixa: acidSem,
     incidentes: incidentes,
+    empreitada: document.getElementById('e-empreitada').value.trim()||null,
+    coordenador: document.getElementById('e-coordenador').value.trim()||null,
+    tecnico_qsa: document.getElementById('e-tqs').value.trim()||null,
+    responsavel_dono_obra: document.getElementById('e-resp-dono').value.trim()||null,
+    fiscalizacao: document.getElementById('e-fiscal').value.trim()||null,
     horas_homem_trabalhadas: parseFloat(document.getElementById('e-horas').value)||0,
     observacoes: document.getElementById('e-obs').value.trim()||null,
     updated_at: new Date().toISOString()
@@ -978,10 +1002,25 @@ async function gerarPDFData(r, alcData, todosRel) {
   doc.setFontSize(11); doc.setFont(undefined,'normal'); doc.setTextColor(80);
   doc.text(r.centros_custo?.nome||'-', pW/2, 39, {align:'center'});
   doc.setFontSize(9); doc.setTextColor(120);
-  doc.text('Responsável: '+(r.profiles?.nome||'-')+'   |   '+dataHoje, pW/2, 45, {align:'center'});
+  doc.text(dataHoje, pW/2, 45, {align:'center'});
   doc.setDrawColor(27,42,74); doc.setLineWidth(.5); doc.line(14,50,pW-14,50);
+  // Campos de identificação na capa
+  let cy = 58;
+  const capaLine = (l, v) => {
+    if (!v) return;
+    doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+    doc.text(l+':', 14, cy);
+    doc.setFont(undefined,'normal'); doc.setTextColor(60);
+    doc.text(v, 75, cy); cy += 6;
+  };
+  capaLine('Empreitada', r.empreitada);
+  capaLine('Coordenador dos Trabalhos', r.coordenador);
+  capaLine('Técnico de Qualidade e Segurança', r.tecnico_qsa);
+  capaLine('Responsável do Dono de Obra', r.responsavel_dono_obra);
+  capaLine('Fiscalização', r.fiscalizacao);
+  if (cy > 58) { doc.setDrawColor(200); doc.line(14, cy+2, pW-14, cy+2); cy += 8; }
 
-  let y = 58;
+  let y = cy || 74;
   const secTitle = (txt) => {
     if(y>pH-35){doc.addPage();y=24;}
     doc.setFillColor(27,42,74); doc.roundedRect(14,y-5,pW-28,10,2,2,'F');
