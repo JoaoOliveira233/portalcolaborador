@@ -1276,7 +1276,7 @@ async function gerarPDFData(r, alcData, todosRel) {
     // Footer
     doc.setFontSize(8); doc.setTextColor(150); doc.setLineWidth(0.3);
     doc.setDrawColor(200); doc.line(14,pH-12,pW-14,pH-12);
-    doc.text('EIP Angola | Relatório Mensal de Segurança | '+dataHoje, pW/2, pH-6, {align:'center'});
+    doc.text('EIP Angola | Relatório Mensal de Segurança | '+MESES[r.mes-1]+' '+r.ano, pW/2, pH-6, {align:'center'});
     doc.text('Pág '+i+' de '+pc, pW-14, pH-6, {align:'right'});
   }
   doc.save('RMS_'+(r.centros_custo?.nome||'CC').replace(/ /g,'_')+'_'+MESES[r.mes-1]+'_'+r.ano+'.pdf');
