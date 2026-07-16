@@ -996,16 +996,12 @@ async function gerarPDFData(r, alcData, todosRel) {
   const _logoCliente = r.centros_custo?.logo_cliente || allCentros.find(c=>c.id===r.centro_custo_id)?.logo_cliente || null;
   if(_logoCliente) { try{ doc.addImage('data:image/png;base64,'+_logoCliente,'PNG',pW-62,4,48,13); }catch(e){} }
   doc.setFontSize(17); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
-  // Título começa abaixo dos logos (logos têm altura ~13, começam em y=4, terminam em y=17, linha em y=22)
+  // Título começa abaixo dos logos
   doc.setDrawColor(27,42,74); doc.setLineWidth(.3); doc.line(14,20,pW-14,20);
   doc.text('Relatório Mensal de Segurança — '+MESES[r.mes-1]+' '+r.ano, pW/2, 32, {align:'center'});
-  doc.setFontSize(11); doc.setFont(undefined,'normal'); doc.setTextColor(80);
-  doc.text(r.centros_custo?.nome||'-', pW/2, 39, {align:'center'});
-  doc.setFontSize(9); doc.setTextColor(120);
-  doc.text(dataHoje, pW/2, 45, {align:'center'});
-  doc.setDrawColor(27,42,74); doc.setLineWidth(.5); doc.line(14,50,pW-14,50);
+  doc.setDrawColor(27,42,74); doc.setLineWidth(.5); doc.line(14,38,pW-14,38);
   // Campos de identificação na capa
-  let cy = 58;
+  let cy = 46;
   const capaLine = (l, v) => {
     if (!v) return;
     doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
