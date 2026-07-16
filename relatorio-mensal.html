@@ -1228,15 +1228,15 @@ async function gerarPDFData(r, alcData, todosRel) {
     doc.setPage(i);
     // Logo EIP Angola — canto superior esquerdo (excepto página 1 onde já está)
     if(i > 1) {
-      try { doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,6,40,10); } catch(e){}
+      try { doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,4,40,12); } catch(e){}
     }
-    // Logo cliente — canto superior direito em todas as páginas
-    if(logoCliente) {
-      try { doc.addImage('data:image/png;base64,'+logoCliente,'PNG',pW-54,4,40,13); } catch(e){}
+    // Logo cliente — canto superior direito (excepto página 1 onde já está)
+    if(logoCliente && i > 1) {
+      try { doc.addImage('data:image/png;base64,'+logoCliente,'PNG',pW-54,4,40,12); } catch(e){}
     }
     // Linha separadora do cabeçalho (páginas > 1)
     if(i > 1) {
-      doc.setDrawColor(27,42,74); doc.setLineWidth(0.3); doc.line(14,18,pW-14,18);
+      doc.setDrawColor(27,42,74); doc.setLineWidth(0.3); doc.line(14,19,pW-14,19);
     }
     // Footer
     doc.setFontSize(8); doc.setTextColor(150); doc.setLineWidth(0.3);
