@@ -968,18 +968,20 @@ async function gerarPDFData(r, alcData, todosRel) {
 
   // CAPA
   try{ doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,6,48,12); }catch(e){}
-  // Logo cliente na capa — canto superior direito
+  // Logo cliente na capa — canto superior direito, mesma altura do logo EIP
   const _logoCliente = r.centros_custo?.logo_cliente || allCentros.find(c=>c.id===r.centro_custo_id)?.logo_cliente || null;
-  if(_logoCliente) { try{ doc.addImage('data:image/png;base64,'+_logoCliente,'PNG',pW-62,4,48,15); }catch(e){} }
+  if(_logoCliente) { try{ doc.addImage('data:image/png;base64,'+_logoCliente,'PNG',pW-62,4,48,13); }catch(e){} }
   doc.setFontSize(17); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
-  doc.text('Relatório Mensal de Segurança — '+MESES[r.mes-1]+' '+r.ano, pW/2, 28, {align:'center'});
+  // Título começa abaixo dos logos (logos têm altura ~13, começam em y=4, terminam em y=17, linha em y=22)
+  doc.setDrawColor(27,42,74); doc.setLineWidth(.3); doc.line(14,20,pW-14,20);
+  doc.text('Relatório Mensal de Segurança — '+MESES[r.mes-1]+' '+r.ano, pW/2, 32, {align:'center'});
   doc.setFontSize(11); doc.setFont(undefined,'normal'); doc.setTextColor(80);
-  doc.text(r.centros_custo?.nome||'-', pW/2, 35, {align:'center'});
+  doc.text(r.centros_custo?.nome||'-', pW/2, 39, {align:'center'});
   doc.setFontSize(9); doc.setTextColor(120);
-  doc.text('Responsável: '+(r.profiles?.nome||'-')+'   |   '+dataHoje, pW/2, 41, {align:'center'});
-  doc.setDrawColor(27,42,74); doc.setLineWidth(.5); doc.line(14,46,pW-14,46);
+  doc.text('Responsável: '+(r.profiles?.nome||'-')+'   |   '+dataHoje, pW/2, 45, {align:'center'});
+  doc.setDrawColor(27,42,74); doc.setLineWidth(.5); doc.line(14,50,pW-14,50);
 
-  let y = 54;
+  let y = 58;
   const secTitle = (txt) => {
     if(y>pH-35){doc.addPage();y=24;}
     doc.setFillColor(27,42,74); doc.roundedRect(14,y-5,pW-28,10,2,2,'F');
@@ -1202,14 +1204,16 @@ async function gerarPDFData(r, alcData, todosRel) {
 
   if(grafDefs.length > 0) {
     doc.addPage();
-    doc.setFillColor(27,42,74); doc.rect(0,0,pW,16,'F');
-    doc.setFontSize(13); doc.setTextColor(255); doc.setFont(undefined,'bold');
-    doc.text('7. Gráficos Históricos', pW/2, 11, {align:'center'});
-    let gy = 22;
+    // O cabeçalho com logos é adicionado pelo loop do footer
+    // O título da secção fica abaixo do cabeçalho (que tem ~20px de altura)
+    let gy = 28;
+    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+    doc.text('7. Gráficos Históricos', pW/2, gy, {align:'center'});
+    gy += 10;
     const gW = pW - 28, gH = 68;
     for(const def of grafDefs) {
       const img = await renderChartToPDF(def);
-      if(gy + gH + 18 > pH - 16) { doc.addPage(); gy = 18; }
+      if(gy + gH + 18 > pH - 16) { doc.addPage(); gy = 28; }
       doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
       doc.text(def.title, 14, gy + 5);
       doc.addImage(img, 'PNG', 14, gy + 9, gW, gH);
