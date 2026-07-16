@@ -250,7 +250,7 @@
         <div id="graficos-area" style="display:none;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="card"><div class="card-title">🧪 Alcoolemia</div><div class="chart-container"><canvas id="g-alc"></canvas></div></div>
-            <div class="card"><div class="card-title">⚠️ Acidentes e Near Miss</div><div class="chart-container"><canvas id="g-acid"></canvas></div></div>
+            <div class="card"><div class="card-title">⚠️ Acidentes e Incidentes / Near Miss</div><div class="chart-container"><canvas id="g-acid"></canvas></div></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="card"><div class="card-title">👷 Meios Humanos</div><div class="chart-container"><canvas id="g-hum"></canvas></div></div>
@@ -910,7 +910,7 @@ async function exportGraficosPDF() {
   doc.setDrawColor(27,42,74); doc.line(10,25,pW-10,25);
 
   const chartIds = ['g-alc','g-acid','g-hum','g-mec','g-tf','g-tg','g-nm'];
-  const chartTitles = ['Alcoolemia','Acidentes e Near Miss','Meios Humanos','Meios Mecânicos','Taxa de Frequência (TF100)','Taxa de Gravidade (TG100)','Taxa de Incidentes / Quase-Acidentes'];
+  const chartTitles = ['Alcoolemia','Acidentes e Incidentes / Near Miss','Meios Humanos','Meios Mecânicos','Taxa de Frequência (TF100) Acumulada','Taxa de Gravidade (TG100) Acumulada','Taxa de Incidentes / Quase-Acidentes'];
   let x=10, y=30, w=(pW-30)/3, h=65;
   chartIds.forEach((id,i) => {
     const canvas = document.getElementById(id);
@@ -945,7 +945,7 @@ async function gerarPDFById(id) {
     .lte('data', new Date(r.ano,r.mes,0,23,59,59).toISOString());
   const todosRel = allRelatorios.filter(x => x.centro_custo_id === r.centro_custo_id)
     .sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
-  gerarPDFData(r, alcData||[], todosRel);
+  await gerarPDFData(r, alcData||[], todosRel);
 }
 
 async function gerarPDF() {
@@ -957,10 +957,10 @@ async function gerarPDF() {
     .lte('data', new Date(currentRel.ano,currentRel.mes,0,23,59,59).toISOString());
   const todosRel = allRelatorios.filter(x => x.centro_custo_id === currentRel.centro_custo_id)
     .sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
-  gerarPDFData(currentRel, alcData||[], todosRel);
+  await gerarPDFData(currentRel, alcData||[], todosRel);
 }
 
-function gerarPDFData(r, alcData, todosRel) {
+async function gerarPDFData(r, alcData, todosRel) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const pW = doc.internal.pageSize.width, pH = doc.internal.pageSize.height;
@@ -1108,6 +1108,110 @@ function gerarPDFData(r, alcData, todosRel) {
     if(y+obs.length*6>pH-16){doc.addPage();y=18;}
     doc.setFont(undefined,'normal'); doc.setTextColor(60); doc.setFontSize(10);
     doc.text(obs,16,y); y+=obs.length*6+4;
+  }
+
+  // 7. GRÁFICOS HISTÓRICOS — gerados programaticamente em canvas ocultos
+  const ccId_pdf = r.centro_custo_id;
+  const todosOrdenados = todosRel.filter(x => x.centro_custo_id === ccId_pdf)
+    .sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
+
+  const { data: alcAll } = await sb.from('alcoolemia').select('resultado,data')
+    .eq('centro_custo_id', ccId_pdf).order('data');
+
+  const gLabels = todosOrdenados.map(x => MESES[x.mes-1].slice(0,3)+' '+x.ano);
+
+  const alcPorMes_pdf = todosOrdenados.map(x => {
+    const s=new Date(x.ano,x.mes-1,1), e=new Date(x.ano,x.mes,0,23,59,59);
+    const regs=(alcAll||[]).filter(a=>{const d=new Date(a.data);return d>=s&&d<=e;});
+    return {total:regs.length, pos:regs.filter(a=>a.resultado==='positivo').length, crit:regs.filter(a=>a.resultado==='critico').length};
+  });
+
+  let cumA=0, cumD=0, cumH=0;
+  const tf100s_pdf=[], tg100s_pdf=[];
+  todosOrdenados.forEach(x => {
+    cumA+=(x.acidentes_com_baixa||[]).length;
+    cumD+=(x.acidentes_com_baixa||[]).reduce((s,a)=>s+(a.dias||0),0);
+    cumH+=x.horas_homem_trabalhadas||0;
+    tf100s_pdf.push(cumH>0?parseFloat(((cumA*100000)/cumH).toFixed(2)):0);
+    tg100s_pdf.push(cumH>0?parseFloat(((cumD*100000)/cumH).toFixed(2)):0);
+  });
+  const tnms_pdf = todosOrdenados.map(x => {
+    const nc=x.num_colaboradores||0;
+    return nc>0?parseFloat((((x.incidentes||[]).length*1000)/nc).toFixed(2)):0;
+  });
+
+  const grafDefs = [
+    { title:'Alcoolemia — Total / Positivos / Críticos', type:'bar', datasets:[
+      {label:'Total',data:alcPorMes_pdf.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)'},
+      {label:'Positivos',data:alcPorMes_pdf.map(a=>a.pos),backgroundColor:'rgba(234,88,12,.7)'},
+      {label:'Críticos',data:alcPorMes_pdf.map(a=>a.crit),backgroundColor:'rgba(220,38,38,.7)'}
+    ]},
+    { title:'Acidentes e Incidentes / Near Miss', type:'bar', datasets:[
+      {label:'Com Baixa',data:todosOrdenados.map(x=>(x.acidentes_com_baixa||[]).length),backgroundColor:'rgba(220,38,38,.7)'},
+      {label:'Sem Baixa',data:todosOrdenados.map(x=>(x.acidentes_sem_baixa||[]).length),backgroundColor:'rgba(234,88,12,.7)'},
+      {label:'Near Miss',data:todosOrdenados.map(x=>(x.incidentes||[]).length),backgroundColor:'rgba(217,119,6,.7)'}
+    ]},
+    { title:'Meios Humanos (Colaboradores)', type:'line', datasets:[
+      {label:'Colaboradores',data:todosOrdenados.map(x=>x.num_colaboradores||0),borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
+    ]},
+    { title:'Meios Mecânicos', type:'bar', datasets:[
+      {label:'Ligeiras',data:todosOrdenados.map(x=>x.num_viaturas_ligeiras||0),backgroundColor:'rgba(27,42,74,.7)'},
+      {label:'Pesadas',data:todosOrdenados.map(x=>x.num_viaturas_pesadas||0),backgroundColor:'rgba(200,16,46,.7)'},
+      {label:'Máquinas',data:todosOrdenados.map(x=>x.num_maquinas||0),backgroundColor:'rgba(217,119,6,.7)'}
+    ]},
+    { title:'Taxa de Frequência (TF100) — Acumulada', type:'line', datasets:[
+      {label:'TF100',data:tf100s_pdf,borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
+    ]},
+    { title:'Taxa de Gravidade (TG100) — Acumulada', type:'line', datasets:[
+      {label:'TG100',data:tg100s_pdf,borderColor:'rgba(220,38,38,1)',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true,pointRadius:4}
+    ]},
+    { title:'Taxa de Incidentes / Quase-Acidentes (TNM)', type:'line', datasets:[
+      {label:'TNM',data:tnms_pdf,borderColor:'rgba(2,132,199,1)',backgroundColor:'rgba(2,132,199,.1)',tension:.3,fill:true,pointRadius:4}
+    ]}
+  ];
+
+  // Render each chart in a hidden canvas and add to PDF
+  const renderChartToPDF = (def) => new Promise(resolve => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 900; canvas.height = 350;
+    canvas.style.position = 'absolute'; canvas.style.left = '-9999px';
+    document.body.appendChild(canvas);
+    const chart = new Chart(canvas, {
+      type: def.type,
+      data: { labels: gLabels, datasets: def.datasets },
+      options: {
+        responsive: false, animation: false,
+        plugins: { legend: { position:'bottom', labels:{ font:{size:11}, boxWidth:12 } } },
+        scales: {
+          x: { grid:{display:false}, ticks:{font:{size:10}} },
+          y: { beginAtZero:true, ticks:{font:{size:10}}, grid:{color:'rgba(0,0,0,.06)'} }
+        }
+      }
+    });
+    // Wait for chart to render
+    setTimeout(() => {
+      const img = canvas.toDataURL('image/png');
+      chart.destroy();
+      document.body.removeChild(canvas);
+      resolve(img);
+    }, 300);
+  });
+
+  if(grafDefs.length > 0) {
+    doc.addPage();
+    doc.setFillColor(27,42,74); doc.rect(0,0,pW,16,'F');
+    doc.setFontSize(13); doc.setTextColor(255); doc.setFont(undefined,'bold');
+    doc.text('7. Gráficos Históricos', pW/2, 11, {align:'center'});
+    let gy = 22;
+    const gW = pW - 28, gH = 68;
+    for(const def of grafDefs) {
+      const img = await renderChartToPDF(def);
+      if(gy + gH + 18 > pH - 16) { doc.addPage(); gy = 18; }
+      doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+      doc.text(def.title, 14, gy + 5);
+      doc.addImage(img, 'PNG', 14, gy + 9, gW, gH);
+      gy += gH + 18;
+    }
   }
 
   // FOOTER
