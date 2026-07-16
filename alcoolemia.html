@@ -316,8 +316,23 @@
     <div class="modal-body">
       <div id="centro-alert"></div>
       <input type="hidden" id="c-id">
+      <input type="hidden" id="c-logo-b64">
       <div class="form-group"><label>Nome *</label><input type="text" id="c-nome"></div>
       <div class="form-group"><label>Código</label><input type="text" id="c-codigo" placeholder="Ex: CC-001"></div>
+      <div class="form-group">
+        <label>Logotipo do Cliente</label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div id="c-logo-preview" style="width:80px;height:40px;border:1.5px dashed var(--gray-200);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);overflow:hidden;">
+            Sem logo
+          </div>
+          <div>
+            <input type="file" id="c-logo-file" accept="image/*" onchange="onLogoChange()" style="display:none;">
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('c-logo-file').click()">📁 Escolher imagem</button>
+            <button class="btn btn-outline btn-sm" onclick="clearLogo()" style="margin-left:4px;">✕ Remover</button>
+            <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">PNG, JPG — recomendado fundo transparente</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-centro')">Cancelar</button>
@@ -758,10 +773,42 @@ function renderCentros() {
   </tr>`).join('');
 }
 
+function onLogoChange() {
+  const file = document.getElementById('c-logo-file').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result.split(',')[1];
+    document.getElementById('c-logo-b64').value = b64;
+    const prev = document.getElementById('c-logo-preview');
+    prev.innerHTML = `<img src="${e.target.result}" style="max-width:76px;max-height:36px;object-fit:contain;">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearLogo() {
+  document.getElementById('c-logo-b64').value = '';
+  document.getElementById('c-logo-file').value = '';
+  document.getElementById('c-logo-preview').innerHTML = 'Sem logo';
+  document.getElementById('c-logo-preview').style.backgroundImage = '';
+}
+
+function setLogoPreview(b64) {
+  const prev = document.getElementById('c-logo-preview');
+  if (b64) {
+    prev.innerHTML = `<img src="data:image/png;base64,${b64}" style="max-width:76px;max-height:36px;object-fit:contain;">`;
+  } else {
+    prev.innerHTML = 'Sem logo';
+  }
+}
+
 function openNovoCentroModal() {
   document.getElementById('c-id').value = '';
   document.getElementById('c-nome').value = '';
   document.getElementById('c-codigo').value = '';
+  document.getElementById('c-logo-b64').value = '';
+  document.getElementById('c-logo-file').value = '';
+  document.getElementById('c-logo-preview').innerHTML = 'Sem logo';
   document.getElementById('centro-alert').innerHTML = '';
   document.getElementById('btn-del-centro').style.display = 'none';
   document.getElementById('modal-centro-title').textContent = 'Novo Centro de Custo';
@@ -774,6 +821,9 @@ function openEditCentroModal(id) {
   document.getElementById('c-id').value = c.id;
   document.getElementById('c-nome').value = c.nome || '';
   document.getElementById('c-codigo').value = c.codigo || '';
+  document.getElementById('c-logo-b64').value = c.logo_cliente || '';
+  document.getElementById('c-logo-file').value = '';
+  setLogoPreview(c.logo_cliente || '');
   document.getElementById('centro-alert').innerHTML = '';
   document.getElementById('btn-del-centro').style.display = '';
   document.getElementById('modal-centro-title').textContent = 'Editar Centro de Custo';
@@ -784,7 +834,8 @@ async function saveCentro() {
   const id = document.getElementById('c-id').value;
   const nome = document.getElementById('c-nome').value.trim();
   if (!nome) return showAlert('centro-alert', 'Nome e obrigatorio.', 'error');
-  const payload = { nome, codigo: document.getElementById('c-codigo').value.trim() || null };
+  const logo = document.getElementById('c-logo-b64').value || null;
+  const payload = { nome, codigo: document.getElementById('c-codigo').value.trim() || null, logo_cliente: logo };
   let error;
   if (id) { ({ error } = await sb.from('centros_custo').update(payload).eq('id', id)); }
   else { ({ error } = await sb.from('centros_custo').insert(payload)); }

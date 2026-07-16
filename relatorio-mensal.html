@@ -967,7 +967,10 @@ async function gerarPDFData(r, alcData, todosRel) {
   const dataHoje = new Date().toLocaleDateString('pt-PT');
 
   // CAPA
-  try{ doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,8,48,12); }catch(e){}
+  try{ doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,6,48,12); }catch(e){}
+  // Logo cliente na capa — canto superior direito
+  const _logoCliente = r.centros_custo?.logo_cliente || allCentros.find(c=>c.id===r.centro_custo_id)?.logo_cliente || null;
+  if(_logoCliente) { try{ doc.addImage('data:image/png;base64,'+_logoCliente,'PNG',pW-62,4,48,15); }catch(e){} }
   doc.setFontSize(17); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
   doc.text('Relatório Mensal de Segurança — '+MESES[r.mes-1]+' '+r.ano, pW/2, 28, {align:'center'});
   doc.setFontSize(11); doc.setFont(undefined,'normal'); doc.setTextColor(80);
@@ -978,14 +981,14 @@ async function gerarPDFData(r, alcData, todosRel) {
 
   let y = 54;
   const secTitle = (txt) => {
-    if(y>pH-35){doc.addPage();y=18;}
+    if(y>pH-35){doc.addPage();y=24;}
     doc.setFillColor(27,42,74); doc.roundedRect(14,y-5,pW-28,10,2,2,'F');
     doc.setFontSize(12); doc.setTextColor(255); doc.setFont(undefined,'bold');
     doc.text(txt,18,y+2); doc.setTextColor(60); doc.setFont(undefined,'normal'); doc.setFontSize(10);
     y+=13;
   };
   const lineVal = (l,v) => {
-    if(y>pH-16){doc.addPage();y=18;}
+    if(y>pH-16){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
     doc.text(l+':',16,y);
     doc.setFont(undefined,'normal'); doc.setTextColor(60);
@@ -1005,7 +1008,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   secTitle('2. Principais Trabalhos Realizados');
   const trab = Array.isArray(r.trabalhos_realizados)?r.trabalhos_realizados:[];
   if(!trab.length){doc.text('Sem trabalhos registados.',16,y);y+=7;}
-  else trab.forEach((t,i)=>{if(y>pH-16){doc.addPage();y=18;}doc.text((i+1)+'. '+t,16,y);y+=6;});
+  else trab.forEach((t,i)=>{if(y>pH-16){doc.addPage();y=24;}doc.text((i+1)+'. '+t,16,y);y+=6;});
   y+=3;
 
   // 3. ALCOOLEMIA
@@ -1028,7 +1031,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   lineVal('Dias Perdidos', diasPerd);
   y+=3;
   if(aB.length){
-    if(y>pH-30){doc.addPage();y=18;}
+    if(y>pH-30){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.text('Detalhe Acidentes com Baixa:',16,y); y+=5;
     doc.autoTable({startY:y,head:[['Trabalhadores','Data','Causa','Dias']],
       body:aB.map(a=>[
@@ -1041,7 +1044,7 @@ async function gerarPDFData(r, alcData, todosRel) {
     y=doc.lastAutoTable.finalY+5;
   }
   if(aS.length){
-    if(y>pH-30){doc.addPage();y=18;}
+    if(y>pH-30){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.text('Detalhe Acidentes sem Baixa:',16,y); y+=5;
     doc.autoTable({startY:y,head:[['Trabalhadores','Data','Causa']],
       body:aS.map(a=>[(a.trabalhadores||[]).join(', ')||'-',a.data?new Date(a.data).toLocaleDateString('pt-PT'):'-',a.causa||'-']),
@@ -1050,7 +1053,7 @@ async function gerarPDFData(r, alcData, todosRel) {
     y=doc.lastAutoTable.finalY+5;
   }
   if(inc.length){
-    if(y>pH-30){doc.addPage();y=18;}
+    if(y>pH-30){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.text('Detalhe Near Miss / Incidentes:',16,y); y+=5;
     doc.autoTable({startY:y,head:[['Trabalhadores','Data','Descrição']],
       body:inc.map(a=>[(a.trabalhadores||[]).join(', ')||'-',a.data?new Date(a.data).toLocaleDateString('pt-PT'):'-',a.descricao||'-']),
@@ -1076,7 +1079,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   y+=4;
   // Indicadores com label longo — valor em linha separada
   const longLine = (l, v) => {
-    if(y>pH-18){doc.addPage();y=18;}
+    if(y>pH-18){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74); doc.setFontSize(10);
     doc.text(l+':', 16, y); y+=6;
     doc.setFont(undefined,'normal'); doc.setTextColor(60);
@@ -1088,7 +1091,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   y+=3;
 
   // Escalas lado a lado — cabeçalho da tabela já identifica, sem título extra
-  if(y>pH-55){doc.addPage();y=18;}
+  if(y>pH-55){doc.addPage();y=24;}
   const startY_scales = y;
   doc.autoTable({startY:startY_scales,head:[['Taxa de Frequência (TF100)','Avaliação']],
     body:[['0','Excelente'],['0 – 5','Muito Bom'],['5 – 10','Bom'],['10 – 20','Aceitável'],['20 – 40','Mau'],['>40','Crítico']],
@@ -1105,7 +1108,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   if(r.observacoes){
     secTitle('6. Observações Gerais');
     const obs=doc.splitTextToSize(r.observacoes,pW-30);
-    if(y+obs.length*6>pH-16){doc.addPage();y=18;}
+    if(y+obs.length*6>pH-16){doc.addPage();y=24;}
     doc.setFont(undefined,'normal'); doc.setTextColor(60); doc.setFontSize(10);
     doc.text(obs,16,y); y+=obs.length*6+4;
   }
@@ -1214,10 +1217,25 @@ async function gerarPDFData(r, alcData, todosRel) {
     }
   }
 
-  // FOOTER
+  // FOOTER — logos em todas as páginas
   const pc=doc.internal.getNumberOfPages();
+  const logoCliente = r.centros_custo?.logo_cliente || allCentros.find(c=>c.id===r.centro_custo_id)?.logo_cliente || null;
   for(let i=1;i<=pc;i++){
-    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(150);
+    doc.setPage(i);
+    // Logo EIP Angola — canto superior esquerdo (excepto página 1 onde já está)
+    if(i > 1) {
+      try { doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,6,40,10); } catch(e){}
+    }
+    // Logo cliente — canto superior direito em todas as páginas
+    if(logoCliente) {
+      try { doc.addImage('data:image/png;base64,'+logoCliente,'PNG',pW-54,4,40,13); } catch(e){}
+    }
+    // Linha separadora do cabeçalho (páginas > 1)
+    if(i > 1) {
+      doc.setDrawColor(27,42,74); doc.setLineWidth(0.3); doc.line(14,18,pW-14,18);
+    }
+    // Footer
+    doc.setFontSize(8); doc.setTextColor(150); doc.setLineWidth(0.3);
     doc.setDrawColor(200); doc.line(14,pH-12,pW-14,pH-12);
     doc.text('EIP Angola | Relatório Mensal de Segurança | '+dataHoje, pW/2, pH-6, {align:'center'});
     doc.text('Pág '+i+' de '+pc, pW-14, pH-6, {align:'right'});
