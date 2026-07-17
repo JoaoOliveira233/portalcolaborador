@@ -299,7 +299,7 @@
             <input class="search-input" placeholder="🔍 Pesquisar..." oninput="filterTable('centros-body',this.value)">
           </div>
           <div class="table-wrap"><table>
-            <thead><tr><th>Nome</th><th>Código</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Código</th><th>Nome</th><th>Logo Cliente</th><th>Ações</th></tr></thead>
             <tbody id="centros-body"></tbody>
           </table></div>
         </div>
@@ -765,11 +765,12 @@ function renderPorCentro() {
 function renderCentros() {
   const isAdmin = currentProfile?.role === 'admin';
   const body = document.getElementById('centros-body');
-  if (!allCentros.length) { body.innerHTML = '<tr><td colspan="3" class="empty-state"><div class="empty-icon">🏗️</div>Sem centros de custo</td></tr>'; return; }
+  if (!allCentros.length) { body.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="empty-icon">🏗️</div>Sem centros de custo</td></tr>'; return; }
   body.innerHTML = allCentros.map(c => `<tr>
+    <td>${c.codigo || '—'}</td>
     <td><strong>${c.nome}</strong></td>
-    <td>${c.codigo || '-'}</td>
-    <td>${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditCentroModal('${c.id}')">Editar</button>` : ''}</td>
+    <td>${c.logo_cliente ? `<img src="data:image/png;base64,${c.logo_cliente}" style="height:28px;object-fit:contain;">` : '—'}</td>
+    <td>${isAdmin ? `<button class="btn btn-outline btn-sm" onclick="openEditCentroModal('${c.id}')">✏️ Editar</button>` : ''}</td>
   </tr>`).join('');
 }
 
