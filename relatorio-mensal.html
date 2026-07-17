@@ -1038,7 +1038,13 @@ async function gerarPDFData(r, alcData, todosRel) {
   lineVal('Viaturas Ligeiras', r.num_viaturas_ligeiras||0);
   lineVal('Viaturas Pesadas', r.num_viaturas_pesadas||0);
   lineVal('Máquinas', r.num_maquinas||0);
-  lineVal('Total Meios Mecânicos', (r.num_viaturas_ligeiras||0)+(r.num_viaturas_pesadas||0)+(r.num_maquinas||0));
+  // Total a bold
+  if(y>pH-16){doc.addPage();y=24;}
+  doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+  doc.text('Total Meios Mecânicos:', 16, y);
+  doc.setFont(undefined,'bold'); doc.setTextColor(60);
+  doc.text(String((r.num_viaturas_ligeiras||0)+(r.num_viaturas_pesadas||0)+(r.num_maquinas||0)), 80, y);
+  y+=7;
   y+=3;
 
   // 2. TRABALHOS
@@ -1064,7 +1070,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   const diasPerd = aB.reduce((s,a)=>s+(a.dias||0),0);
   lineVal('Acidentes com Baixa', aB.length);
   lineVal('Acidentes sem Baixa', aS.length);
-  lineVal('Near Miss / Incidentes', inc.length);
+  lineVal('Incidentes / Quase-Acidentes (Near Miss)', inc.length);
   lineVal('Dias Perdidos', diasPerd);
   y+=3;
   if(aB.length){
@@ -1091,7 +1097,7 @@ async function gerarPDFData(r, alcData, todosRel) {
   }
   if(inc.length){
     if(y>pH-30){doc.addPage();y=24;}
-    doc.setFont(undefined,'bold'); doc.text('Detalhe Near Miss / Incidentes:',16,y); y+=5;
+    doc.setFont(undefined,'bold'); doc.text('Detalhe Incidentes / Quase-Acidentes (Near Miss):',16,y); y+=5;
     doc.autoTable({startY:y,head:[['Trabalhadores','Data','Descrição']],
       body:inc.map(a=>[(a.trabalhadores||[]).join(', ')||'-',a.data?new Date(a.data).toLocaleDateString('pt-PT'):'-',a.descricao||'-']),
       headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},styles:{fontSize:8},margin:{left:14,right:14}
@@ -1115,16 +1121,34 @@ async function gerarPDFData(r, alcData, todosRel) {
   lineVal('HHT acumuladas', cumHHT.toFixed(1));
   y+=4;
   // Indicadores com label longo — valor em linha separada
-  const longLine = (l, v) => {
+  const longLine = (l, v, avaliacao, corAv) => {
     if(y>pH-18){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74); doc.setFontSize(10);
     doc.text(l+':', 16, y); y+=6;
-    doc.setFont(undefined,'normal'); doc.setTextColor(60);
-    doc.text(String(v||'-'), 20, y); y+=8;
+    doc.setFont(undefined,'bold'); doc.setTextColor(60);
+    doc.text(String(v||'-'), 20, y);
+    if(avaliacao) {
+      // Badge de avaliação
+      const badgeX = 45, badgeY = y-4, badgeW = 35, badgeH = 6;
+      const rgb = corAv || [100,100,100];
+      doc.setFillColor(...rgb); doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 1.5, 1.5, 'F');
+      doc.setFontSize(8); doc.setTextColor(255); doc.setFont(undefined,'bold');
+      doc.text(avaliacao, badgeX + badgeW/2, badgeY+4.2, {align:'center'});
+      doc.setFontSize(10); doc.setTextColor(60);
+    }
+    y+=8;
   };
-  longLine('Taxa de Frequência (TF100) — acumulada', tf100);
-  longLine('Taxa de Gravidade (TG100) — acumulada', tg100);
-  longLine('Taxa de Incidentes / Quase-Acidentes (TNM)', tnm);
+
+  const tfVal = parseFloat(tf100);
+  const tgVal = parseFloat(tg100);
+  const getTFAv = v => v===0?['Excelente',[22,163,74]]:v<=5?['Muito Bom',[22,163,74]]:v<=10?['Bom',[101,163,13]]:v<=20?['Aceitável',[217,119,6]]:v<=40?['Mau',[234,88,12]]:['Crítico',[220,38,38]];
+  const getTGAv = v => v===0?['Excelente',[22,163,74]]:v<=10?['Muito Bom',[22,163,74]]:v<=50?['Bom',[101,163,13]]:v<=100?['Aceitável',[217,119,6]]:v<=200?['Elevado',[234,88,12]]:['Crítico',[220,38,38]];
+  const [tfAvLabel, tfAvCor] = getTFAv(tfVal);
+  const [tgAvLabel, tgAvCor] = getTGAv(tgVal);
+
+  longLine('Taxa de Frequência (TF100) — acumulada', tf100, tfAvLabel, tfAvCor);
+  longLine('Taxa de Gravidade (TG100) — acumulada', tg100, tgAvLabel, tgAvCor);
+  longLine('Taxa de Incidentes / Quase-Acidentes (TNM)', tnm, null, null);
   y+=3;
 
   // Escalas lado a lado — cabeçalho da tabela já identifica, sem título extra
