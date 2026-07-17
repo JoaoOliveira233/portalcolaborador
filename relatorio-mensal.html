@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -99,6 +100,15 @@
     .rel-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--gray-100);transition:background .15s;}
     .rel-item:hover{background:var(--gray-50);}
     .rel-item:last-child{border-bottom:none;}
+    .foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:12px;}
+    .foto-item{position:relative;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--gray-200);}
+    .foto-item img{width:100%;height:140px;object-fit:cover;display:block;}
+    .foto-item-actions{position:absolute;top:6px;right:6px;display:flex;gap:4px;}
+    .foto-item-legenda{padding:6px 8px;background:white;font-size:11px;}
+    .foto-item-legenda input{width:100%;border:none;outline:none;font-size:11px;font-family:'Barlow',sans-serif;color:var(--gray-600);}
+    .foto-upload-btn{border:2px dashed var(--gray-200);border-radius:var(--radius-sm);padding:32px;text-align:center;cursor:pointer;transition:border-color .2s;color:var(--gray-400);}
+    .foto-upload-btn:hover{border-color:var(--navy);color:var(--navy);}
+    .foto-upload-progress{font-size:12px;color:var(--gray-400);margin-top:8px;}
   </style>
 </head>
 <body>
@@ -243,6 +253,22 @@
           <div class="card-title">📝 Observações Gerais</div>
           <div class="form-group" style="margin-bottom:0;">
             <textarea id="e-obs" rows="3" placeholder="Observações gerais sobre o mês..."></textarea>
+          </div>
+        </div>
+
+        <!-- REGISTO FOTOGRÁFICO -->
+        <div class="card">
+          <div class="card-title">📷 Registo Fotográfico</div>
+          <div id="foto-alert"></div>
+          <div id="foto-grid" class="foto-grid"></div>
+          <div id="foto-upload-area" style="margin-top:12px;">
+            <input type="file" id="foto-input" accept="image/*" multiple style="display:none;" onchange="handleFotoUpload(this.files)">
+            <div class="foto-upload-btn" onclick="document.getElementById('foto-input').click()">
+              <div style="font-size:28px;margin-bottom:6px;">📷</div>
+              <div style="font-size:13px;font-weight:600;">Clique para adicionar fotos</div>
+              <div style="font-size:11px;margin-top:4px;">Máximo 10 fotos · Compressão automática para ≤0.5MB · JPG, PNG</div>
+            </div>
+            <div class="foto-upload-progress" id="foto-progress" style="display:none;"></div>
           </div>
         </div>
       </div>
@@ -587,6 +613,7 @@ async function abrirRelatorio(id) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.getElementById('page-editar').classList.add('active');
   document.getElementById('edit-alert').innerHTML = '';
+  await loadFotos(r.id);
 }
 
 async function loadAlcoolemiaMes(ccId, mes, ano) {
@@ -1193,6 +1220,73 @@ async function gerarPDFData(r, alcData, todosRel) {
     doc.text(obs,16,y); y+=obs.length*6+4;
   }
 
+  // 8. REGISTO FOTOGRÁFICO
+  const fotos = Array.isArray(r.fotos) ? r.fotos : [];
+  if(fotos.length > 0) {
+    secTitle('8. Registo Fotográfico');
+    // Get signed URLs for all photos
+    const fotoUrls = await Promise.all(fotos.map(async f => {
+      try {
+        const { data } = await sb.storage.from('relatorios-fotos').createSignedUrl(f.path, 300);
+        return { url: data?.signedUrl || '', legenda: f.legenda || '', w: f.width || 1, h: f.height || 1 };
+      } catch(e) { return null; }
+    }));
+    const validFotos = fotoUrls.filter(f => f && f.url);
+
+    // Load all images as base64
+    const loadImg = (url) => new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve({ b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], w: img.naturalWidth, h: img.naturalHeight });
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+
+    const colW = (pW - 42) / 2;  // 2 fotos por linha
+    let fx = 14, fy = y;
+
+    for(let i = 0; i < validFotos.length; i++) {
+      const f = validFotos[i];
+      const imgData = await loadImg(f.url);
+      if (!imgData) continue;
+
+      const isPortrait = imgData.h > imgData.w;
+      const fH = isPortrait ? 70 : 50;  // portrait mais alto
+
+      if(fy + fH + 20 > pH - 16) { doc.addPage(); fy = 24; fx = 14; }
+
+      // Draw image
+      doc.addImage('data:image/jpeg;base64,' + imgData.b64, 'JPEG', fx, fy, colW, fH);
+
+      // Border
+      doc.setDrawColor(200); doc.rect(fx, fy, colW, fH);
+
+      // Legenda
+      if(f.legenda) {
+        doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(100);
+        doc.text(f.legenda, fx + colW/2, fy + fH + 4, { align: 'center', maxWidth: colW });
+      }
+
+      // Move to next position
+      if(i % 2 === 0) {
+        fx = 14 + colW + 14;  // move to right column
+      } else {
+        fx = 14;  // back to left column
+        fy += fH + (f.legenda ? 12 : 8);
+      }
+    }
+    // If last foto was in left column, advance y
+    if(validFotos.length % 2 !== 0) {
+      fy += (validFotos[validFotos.length-1]?.h > validFotos[validFotos.length-1]?.w ? 70 : 50) + 8;
+    }
+    y = fy + 4;
+  }
+
   // 7. GRÁFICOS HISTÓRICOS — gerados programaticamente em canvas ocultos
   const ccId_pdf = r.centro_custo_id;
   const todosOrdenados = todosRel.filter(x => x.centro_custo_id === ccId_pdf)
@@ -1346,6 +1440,130 @@ async function gerarPDFData(r, alcData, todosRel) {
     el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
   });
 })();
+
+// === REGISTO FOTOGRÁFICO ===
+let fotosAtuais = []; // [{url, path, legenda, width, height}]
+
+async function loadFotos(relId) {
+  const r = allRelatorios.find(x => x.id === relId);
+  fotosAtuais = Array.isArray(r?.fotos) ? [...r.fotos] : [];
+  await renderFotoGrid();
+}
+
+async function renderFotoGrid() {
+  const grid = document.getElementById('foto-grid');
+  const uploadArea = document.getElementById('foto-upload-area');
+  if (!grid) return;
+
+  if (!fotosAtuais.length) {
+    grid.innerHTML = '';
+    uploadArea.style.display = '';
+    return;
+  }
+
+  // Get signed URLs for all photos
+  const items = await Promise.all(fotosAtuais.map(async (f, i) => {
+    let src = '';
+    try {
+      const { data } = await sb.storage.from('relatorios-fotos').createSignedUrl(f.path, 3600);
+      src = data?.signedUrl || '';
+    } catch(e) {}
+    return { ...f, src, i };
+  }));
+
+  grid.innerHTML = items.map(f => `
+    <div class="foto-item" id="foto-item-${f.i}">
+      <img src="${f.src}" alt="Foto ${f.i+1}" onerror="this.src=''">
+      <div class="foto-item-actions">
+        <button class="btn btn-danger btn-sm" onclick="deleteFoto(${f.i})" title="Apagar">🗑️</button>
+      </div>
+      <div class="foto-item-legenda">
+        <input type="text" placeholder="Legenda..." value="${f.legenda||''}" onchange="updateLegenda(${f.i}, this.value)">
+      </div>
+    </div>`).join('');
+
+  // Show/hide upload button based on count
+  uploadArea.style.display = fotosAtuais.length >= 10 ? 'none' : '';
+}
+
+function updateLegenda(i, val) {
+  fotosAtuais[i].legenda = val;
+}
+
+async function handleFotoUpload(files) {
+  if (!currentRel) return;
+  const remaining = 10 - fotosAtuais.length;
+  if (remaining <= 0) {
+    showAlert('foto-alert', 'Máximo de 10 fotos atingido.', 'error');
+    return;
+  }
+
+  const filesToUpload = Array.from(files).slice(0, remaining);
+  const progress = document.getElementById('foto-progress');
+  progress.style.display = '';
+
+  for (let i = 0; i < filesToUpload.length; i++) {
+    const file = filesToUpload[i];
+    progress.textContent = `A processar foto ${i+1} de ${filesToUpload.length}...`;
+
+    try {
+      // Compress
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: 'image/jpeg'
+      });
+
+      // Get dimensions
+      const dims = await getImageDimensions(compressed);
+
+      // Upload to Supabase Storage
+      const path = `${currentRel.id}/${Date.now()}_${i}.jpg`;
+      const { error } = await sb.storage.from('relatorios-fotos').upload(path, compressed, {
+        contentType: 'image/jpeg', upsert: false
+      });
+      if (error) { console.error(error); continue; }
+
+      fotosAtuais.push({ path, legenda: '', width: dims.w, height: dims.h });
+    } catch(e) {
+      console.error('Erro ao processar foto:', e);
+    }
+  }
+
+  // Save to DB
+  await saveFotos();
+  progress.style.display = 'none';
+  document.getElementById('foto-input').value = '';
+  await renderFotoGrid();
+}
+
+function getImageDimensions(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { resolve({ w: img.naturalWidth, h: img.naturalHeight }); URL.revokeObjectURL(url); };
+    img.src = url;
+  });
+}
+
+async function deleteFoto(i) {
+  if (!confirm('Apagar esta foto?')) return;
+  const foto = fotosAtuais[i];
+  try { await sb.storage.from('relatorios-fotos').remove([foto.path]); } catch(e) {}
+  fotosAtuais.splice(i, 1);
+  await saveFotos();
+  await renderFotoGrid();
+}
+
+async function saveFotos() {
+  if (!currentRel) return;
+  await sb.from('relatorios_mensais').update({ fotos: fotosAtuais }).eq('id', currentRel.id);
+  const idx = allRelatorios.findIndex(r => r.id === currentRel.id);
+  if (idx >= 0) allRelatorios[idx].fotos = fotosAtuais;
+  currentRel.fotos = fotosAtuais;
+}
+
 </script>
 </body>
 </html>
