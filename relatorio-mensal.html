@@ -1220,72 +1220,6 @@ async function gerarPDFData(r, alcData, todosRel) {
     doc.text(obs,16,y); y+=obs.length*6+4;
   }
 
-  // 8. REGISTO FOTOGRÁFICO
-  const fotos = Array.isArray(r.fotos) ? r.fotos : [];
-  if(fotos.length > 0) {
-    secTitle('8. Registo Fotográfico');
-    // Get signed URLs for all photos
-    const fotoUrls = await Promise.all(fotos.map(async f => {
-      try {
-        const { data } = await sb.storage.from('relatorios-fotos').createSignedUrl(f.path, 300);
-        return { url: data?.signedUrl || '', legenda: f.legenda || '', w: f.width || 1, h: f.height || 1 };
-      } catch(e) { return null; }
-    }));
-    const validFotos = fotoUrls.filter(f => f && f.url);
-
-    // Load all images as base64
-    const loadImg = (url) => new Promise(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.naturalWidth; c.height = img.naturalHeight;
-        c.getContext('2d').drawImage(img, 0, 0);
-        resolve({ b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], w: img.naturalWidth, h: img.naturalHeight });
-      };
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-
-    const colW = (pW - 42) / 2;  // 2 fotos por linha
-    let fx = 14, fy = y;
-
-    for(let i = 0; i < validFotos.length; i++) {
-      const f = validFotos[i];
-      const imgData = await loadImg(f.url);
-      if (!imgData) continue;
-
-      const isPortrait = imgData.h > imgData.w;
-      const fH = isPortrait ? 70 : 50;  // portrait mais alto
-
-      if(fy + fH + 20 > pH - 16) { doc.addPage(); fy = 24; fx = 14; }
-
-      // Draw image
-      doc.addImage('data:image/jpeg;base64,' + imgData.b64, 'JPEG', fx, fy, colW, fH);
-
-      // Border
-      doc.setDrawColor(200); doc.rect(fx, fy, colW, fH);
-
-      // Legenda
-      if(f.legenda) {
-        doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(100);
-        doc.text(f.legenda, fx + colW/2, fy + fH + 4, { align: 'center', maxWidth: colW });
-      }
-
-      // Move to next position
-      if(i % 2 === 0) {
-        fx = 14 + colW + 14;  // move to right column
-      } else {
-        fx = 14;  // back to left column
-        fy += fH + (f.legenda ? 12 : 8);
-      }
-    }
-    // If last foto was in left column, advance y
-    if(validFotos.length % 2 !== 0) {
-      fy += (validFotos[validFotos.length-1]?.h > validFotos[validFotos.length-1]?.w ? 70 : 50) + 8;
-    }
-    y = fy + 4;
-  }
 
   // 7. GRÁFICOS HISTÓRICOS — gerados programaticamente em canvas ocultos
   const ccId_pdf = r.centro_custo_id;
@@ -1403,6 +1337,52 @@ async function gerarPDFData(r, alcData, todosRel) {
       }
 
       gy += gH2 + 18;
+    }
+  }
+
+  // 8. REGISTO FOTOGRÁFICO
+  const fotos = Array.isArray(r.fotos) ? r.fotos : [];
+  if(fotos.length > 0) {
+    secTitle('8. Registo Fotográfico');
+    const fotoUrls = await Promise.all(fotos.map(async f => {
+      try {
+        const { data } = await sb.storage.from('relatorios-fotos').createSignedUrl(f.path, 300);
+        return { url: data?.signedUrl || '', legenda: f.legenda || '', w: f.width || 1, h: f.height || 1 };
+      } catch(e) { return null; }
+    }));
+    const validFotos = fotoUrls.filter(f => f && f.url);
+    const loadImg = (url) => new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve({ b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], w: img.naturalWidth, h: img.naturalHeight });
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+    const colW = (pW - 42) / 2;
+    let fx = 14, fy = y;
+    for(let i = 0; i < validFotos.length; i++) {
+      const f = validFotos[i];
+      const imgData = await loadImg(f.url);
+      if (!imgData) continue;
+      const isPortrait = imgData.h > imgData.w;
+      const fH = isPortrait ? 70 : 50;
+      if(fy + fH + 20 > pH - 16) { doc.addPage(); fy = 24; fx = 14; }
+      doc.addImage('data:image/jpeg;base64,' + imgData.b64, 'JPEG', fx, fy, colW, fH);
+      doc.setDrawColor(200); doc.rect(fx, fy, colW, fH);
+      if(f.legenda) {
+        doc.setFontSize(8); doc.setFont(undefined,'italic'); doc.setTextColor(100);
+        doc.text(f.legenda, fx + colW/2, fy + fH + 4, { align: 'center', maxWidth: colW });
+      }
+      if(i % 2 === 0) { fx = 14 + colW + 14; }
+      else { fx = 14; fy += fH + (f.legenda ? 12 : 8); }
+    }
+    if(validFotos.length % 2 !== 0) {
+      fy += (validFotos[validFotos.length-1]?.h > validFotos[validFotos.length-1]?.w ? 70 : 50) + 8;
     }
   }
 
