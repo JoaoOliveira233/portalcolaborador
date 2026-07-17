@@ -1029,7 +1029,7 @@ async function gerarPDFData(r, alcData, todosRel) {
     doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
     doc.text(l+':',16,y);
     doc.setFont(undefined,'normal'); doc.setTextColor(60);
-    doc.text(String(v||'-'),80,y); y+=7;
+    doc.text(String(v||'-'),120,y); y+=7;
   };
 
   // 1. MEIOS
@@ -1070,8 +1070,18 @@ async function gerarPDFData(r, alcData, todosRel) {
   const diasPerd = aB.reduce((s,a)=>s+(a.dias||0),0);
   lineVal('Acidentes com Baixa', aB.length);
   lineVal('Acidentes sem Baixa', aS.length);
-  lineVal('Incidentes / Quase-Acidentes (Near Miss)', inc.length);
-  lineVal('Dias Perdidos', diasPerd);
+  // Label longo — usar posição x mais à direita para o valor
+  if(y>pH-16){doc.addPage();y=24;}
+  doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+  doc.text('Incidentes / Quase-Acidentes (Near Miss):', 16, y);
+  doc.setFont(undefined,'normal'); doc.setTextColor(60);
+  doc.text(String(inc.length), 130, y); y+=7;
+  // Dias perdidos também
+  if(y>pH-16){doc.addPage();y=24;}
+  doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+  doc.text('Dias Perdidos:', 16, y);
+  doc.setFont(undefined,'normal'); doc.setTextColor(60);
+  doc.text(String(diasPerd), 130, y); y+=7;
   y+=3;
   if(aB.length){
     if(y>pH-30){doc.addPage();y=24;}
