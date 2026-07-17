@@ -1338,6 +1338,9 @@ async function gerarPDFData(r, alcData, todosRel) {
 
       gy += gH2 + 18;
     }
+    // Após gráficos, forçar nova página para secção 8
+    doc.addPage();
+    y = 24;
   }
 
   // 8. REGISTO FOTOGRÁFICO
