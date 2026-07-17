@@ -1127,8 +1127,17 @@ async function gerarPDFData(r, alcData, todosRel) {
   const tg100 = cumHHT>0 ? ((cumDias*100000)/cumHHT).toFixed(2) : '0.00';
   const nColabs = r.num_colaboradores||0;
   const tnm = nColabs>0 ? ((inc.length*1000)/nColabs).toFixed(2) : '0.00';
-  lineVal('Horas Homem este Mês', r.horas_homem_trabalhadas||0);
-  lineVal('Horas Homem Acumuladas', cumHHT.toFixed(1));
+  // Horas Homem — x=70 para ficar mais próximo do label
+  if(y>pH-16){doc.addPage();y=24;}
+  doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+  doc.text('Horas Homem este Mês:',16,y);
+  doc.setFont(undefined,'normal'); doc.setTextColor(60);
+  doc.text(String(r.horas_homem_trabalhadas||0),70,y); y+=7;
+  if(y>pH-16){doc.addPage();y=24;}
+  doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+  doc.text('Horas Homem Acumuladas:',16,y);
+  doc.setFont(undefined,'normal'); doc.setTextColor(60);
+  doc.text(String(cumHHT.toFixed(1)),70,y); y+=7;
   y+=4;
   // Indicadores com label longo — valor em linha separada
   const longLine = (l, v, avaliacao, corAv) => {
