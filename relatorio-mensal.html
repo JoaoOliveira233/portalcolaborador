@@ -1127,8 +1127,8 @@ async function gerarPDFData(r, alcData, todosRel) {
   const tg100 = cumHHT>0 ? ((cumDias*100000)/cumHHT).toFixed(2) : '0.00';
   const nColabs = r.num_colaboradores||0;
   const tnm = nColabs>0 ? ((inc.length*1000)/nColabs).toFixed(2) : '0.00';
-  lineVal('HHT este mês', r.horas_homem_trabalhadas||0);
-  lineVal('HHT acumuladas', cumHHT.toFixed(1));
+  lineVal('Horas Homem este Mês', r.horas_homem_trabalhadas||0);
+  lineVal('Horas Homem Acumuladas', cumHHT.toFixed(1));
   y+=4;
   // Indicadores com label longo — valor em linha separada
   const longLine = (l, v, avaliacao, corAv) => {
