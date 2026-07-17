@@ -1282,20 +1282,37 @@ async function gerarPDFData(r, alcData, todosRel) {
 
   if(grafDefs.length > 0) {
     doc.addPage();
-    // O cabeçalho com logos é adicionado pelo loop do footer
-    // O título da secção fica abaixo do cabeçalho (que tem ~20px de altura)
     let gy = 28;
     doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
     doc.text('7. Gráficos Históricos', pW/2, gy, {align:'center'});
     gy += 10;
-    const gW = pW - 28, gH = 68;
-    for(const def of grafDefs) {
-      const img = await renderChartToPDF(def);
-      if(gy + gH + 18 > pH - 16) { doc.addPage(); gy = 28; }
-      doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
-      doc.text(def.title, 14, gy + 5);
-      doc.addImage(img, 'PNG', 14, gy + 9, gW, gH);
-      gy += gH + 18;
+
+    const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
+    const gH2 = 55;               // altura de cada gráfico
+    const gGap = 8;               // espaço entre gráficos
+
+    for(let i = 0; i < grafDefs.length; i += 2) {
+      const def1 = grafDefs[i];
+      const def2 = grafDefs[i+1] || null;
+
+      // Se não cabe mais nesta página, nova página
+      if(gy + gH2 + 14 > pH - 16) { doc.addPage(); gy = 28; }
+
+      const img1 = await renderChartToPDF(def1);
+      const img2 = def2 ? await renderChartToPDF(def2) : null;
+
+      // Título e gráfico 1 (esquerda)
+      doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+      doc.text(def1.title, 14, gy + 4);
+      doc.addImage(img1, 'PNG', 14, gy + 7, gW2, gH2);
+
+      // Título e gráfico 2 (direita)
+      if(img2) {
+        doc.text(def2.title, 14 + gW2 + gGap, gy + 4);
+        doc.addImage(img2, 'PNG', 14 + gW2 + gGap, gy + 7, gW2, gH2);
+      }
+
+      gy += gH2 + 18;
     }
   }
 
