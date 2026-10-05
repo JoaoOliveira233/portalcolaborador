@@ -913,19 +913,16 @@ function renderAllAcid() {
 }
 function renderAcidLista(elId, lista, tipo) {
   const el = document.getElementById(elId);
-  if (!lista.length) { el.innerHTML = ''; return; }
+  if (!lista.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--gray-400);padding:6px 0;">Não existem registos para este período.</div>';
+    return;
+  }
   el.innerHTML = lista.map((a,i) => `<div class="acid-card">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:13px;">${(a.trabalhadores||[]).join(', ') || 'Sem trabalhadores'}</div>
-        ${a.data ? `<div style="font-size:11px;color:var(--gray-400);">${new Date(a.data).toLocaleDateString('pt-PT')}</div>` : ''}
-        ${a.causa ? `<div style="font-size:12px;color:var(--gray-600);margin-top:3px;">${a.causa}</div>` : ''}
-        ${tipo==='baixa' && a.dias ? `<span class="badge badge-blue">${a.dias} dia${a.dias>1?'s':''}</span>` : ''}
-      </div>
-      <div style="display:flex;gap:4px;">
-        <button class="btn btn-outline btn-sm" onclick="openAcidModal('${tipo}',${i})">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="removeAcid('${tipo}',${i})">✕</button>
-      </div>
+    <div style="flex:1;">
+      <div style="font-weight:600;font-size:13px;">${(a.trabalhadores||[]).join(', ') || 'Sem trabalhadores'}</div>
+      ${a.data ? `<div style="font-size:11px;color:var(--gray-400);">${new Date(a.data+'T00:00:00').toLocaleDateString('pt-PT')}</div>` : ''}
+      ${a.causa ? `<div style="font-size:12px;color:var(--gray-600);margin-top:3px;">${a.causa}</div>` : ''}
+      ${tipo==='baixa' && a.dias ? `<span class="badge badge-blue">${a.dias} dia${a.dias>1?'s':''}</span>` : ''}
     </div>
   </div>`).join('');
 }
