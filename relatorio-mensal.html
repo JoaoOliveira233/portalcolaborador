@@ -328,7 +328,7 @@
       <div class="page" id="page-acid-baixa">
         <div class="page-header">
           <div><div class="page-title">Acidentes com Baixa</div><div class="page-subtitle">Registo de acidentes com dias perdidos</div></div>
-          <button class="btn btn-primary" onclick="openRegistoModal('baixa',-1)">+ Novo Registo</button>
+          <button class="btn btn-primary" onclick="openRegistoModal('baixa',null)">+ Novo Registo</button>
         </div>
         <div class="card" style="padding:14px 16px;margin-bottom:16px;">
           <div class="form-group" style="max-width:380px;margin-bottom:0;">
@@ -348,7 +348,7 @@
       <div class="page" id="page-acid-sem">
         <div class="page-header">
           <div><div class="page-title">Acidentes sem Baixa</div><div class="page-subtitle">Registo de acidentes sem dias perdidos</div></div>
-          <button class="btn btn-primary" onclick="openRegistoModal('sem',-1)">+ Novo Registo</button>
+          <button class="btn btn-primary" onclick="openRegistoModal('sem',null)">+ Novo Registo</button>
         </div>
         <div class="card" style="padding:14px 16px;margin-bottom:16px;">
           <div class="form-group" style="max-width:380px;margin-bottom:0;">
@@ -368,7 +368,7 @@
       <div class="page" id="page-near-miss">
         <div class="page-header">
           <div><div class="page-title">Near Miss / Incidentes</div><div class="page-subtitle">Registo de incidentes e quase-acidentes</div></div>
-          <button class="btn btn-primary" onclick="openRegistoModal('nm',-1)">+ Novo Registo</button>
+          <button class="btn btn-primary" onclick="openRegistoModal('nm',null)">+ Novo Registo</button>
         </div>
         <div class="card" style="padding:14px 16px;margin-bottom:16px;">
           <div class="form-group" style="max-width:380px;margin-bottom:0;">
@@ -388,7 +388,7 @@
       <div class="page" id="page-tst">
         <div class="page-header">
           <div><div class="page-title">TST — Treinamento Semanal</div><div class="page-subtitle">Registo de treinamentos semanais de trabalho</div></div>
-          <button class="btn btn-primary" onclick="openTSTModal(-1)">+ Novo TST</button>
+          <button class="btn btn-primary" onclick="openTSTModal(null)">+ Novo TST</button>
         </div>
         <div class="card" style="padding:14px 16px;margin-bottom:16px;">
           <div class="form-group" style="max-width:380px;margin-bottom:0;">
@@ -1920,7 +1920,7 @@ function openRegistoModal(tipo, id) {
 
   // Find existing record
   const lista = tipo==='baixa' ? allAcidBaixa : tipo==='sem' ? allAcidSem : allNearMiss;
-  const r = id ? lista.find(x => x.id === id) : null;
+  const r = (id && id !== '-1') ? lista.find(x => x.id === id) : null;
 
   document.getElementById('reg-data').value = r?.data || '';
   ccSel.value = r?.centro_custo_id || '';
@@ -2005,7 +2005,7 @@ function openTSTModal(id) {
   document.getElementById('tst-alert').innerHTML = '';
   const ccSel = document.getElementById('tst-cc');
   ccSel.innerHTML = '<option value="">-- Seleccionar --</option>' + allCentros.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-  const r = id ? allTST.find(x => x.id === id) : null;
+  const r = (id && id !== '-1') ? allTST.find(x => x.id === id) : null;
   document.getElementById('tst-data').value = r?.data || '';
   ccSel.value = r?.centro_custo_id || '';
   document.getElementById('tst-formador').value = r?.formador || '';
