@@ -999,7 +999,7 @@ function renderEpis() {
 
 // ═══════════════════════════════ ENTRADAS ═══════════════════════════════
 async function renderEntradas() {
-  const { data } = await sb.from('entradas').select('*, epis(nome,tamanho,nsap)').order('data', { ascending: false }).limit(200);
+  const { data } = await (async () => { let all=[], from=0, chunk; do { const {data} = await sb.from('entradas').select('*, epis(nome,tamanho,nsap)').order('data', { ascending: false }).range(from, from+999); chunk=data||[]; all=all.concat(chunk); from+=1000; } while(chunk.length===1000); return {data:all}; })();
   window._entradasData = data || [];
   const body = document.getElementById('entradas-body');
   if (!data?.length) { body.innerHTML = '<tr><td colspan="8" class="empty-state"><div class="empty-icon">📦</div>Sem entradas registadas</td></tr>'; return; }
@@ -1076,7 +1076,7 @@ async function saveEntrada() {
 
 // ═══════════════════════════════ SAÍDAS ═══════════════════════════════
 async function renderSaidas() {
-  const { data } = await sb.from('saidas').select('*, epis(nome,tamanho,nsap), colaboradores(nome)').order('data', { ascending: false }).limit(200);
+  const { data } = await (async () => { let all=[], from=0, chunk; do { const {data} = await sb.from('saidas').select('*, epis(nome,tamanho,nsap), colaboradores(nome)').order('data', { ascending: false }).range(from, from+999); chunk=data||[]; all=all.concat(chunk); from+=1000; } while(chunk.length===1000); return {data:all}; })();
   window._saidasData = data || [];
   const body = document.getElementById('saidas-body');
   if (!data?.length) { body.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-icon">🔄</div>Sem saídas registadas</td></tr>'; return; }

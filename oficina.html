@@ -941,8 +941,8 @@ async function loadAll() {
   ] = await Promise.all([
     sb.from('viaturas').select('*, colaboradores(id,nome)').order('codigo'),
     sb.from('colaboradores').select('*').eq('ativo', true).order('nome'),
-    sb.from('requisicoes_oficina').select('*, viaturas(codigo,tipo), colaboradores(nome), profiles(nome)').order('created_at', { ascending: false }).limit(500),
-    sb.from('ordens_trabalho').select('*, viaturas(codigo,tipo,matricula), condutor:colaboradores!ordens_trabalho_condutor_id_fkey(nome), mecanico:colaboradores!ordens_trabalho_mecanico_id_fkey(nome)').order('numero', { ascending: false }).limit(500),
+    (async () => { let all=[], from=0, chunk; do { const {data} = await sb.from('requisicoes_oficina').select('*, viaturas(codigo,tipo), colaboradores(nome), profiles(nome)').order('created_at', { ascending: false }).range(from, from+999); chunk=data||[]; all=all.concat(chunk); from+=1000; } while(chunk.length===1000); return {data:all}; })(),
+    (async () => { let all=[], from=0, chunk; do { const {data} = await sb.from('ordens_trabalho').select('*, viaturas(codigo,tipo,matricula), condutor:colaboradores!ordens_trabalho_condutor_id_fkey(nome), mecanico:colaboradores!ordens_trabalho_mecanico_id_fkey(nome)').order('numero', { ascending: false }).range(from, from+999); chunk=data||[]; all=all.concat(chunk); from+=1000; } while(chunk.length===1000); return {data:all}; })(),
     sb.from('pecas').select('*').order('nome'),
     sb.from('ot_pecas').select('*, pecas(nome,referencia)').limit(2000),
     sb.from('instalacoes').select('*, epcs(nome), locais(nome)').eq('estado', 'activo').order('codigo')

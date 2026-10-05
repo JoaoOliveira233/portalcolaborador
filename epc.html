@@ -743,7 +743,7 @@ async function loadAll() {
     sb.from('epcs').select('*').order('nome'),
     sb.from('locais').select('*').order('nome'),
     sb.from('instalacoes').select('*, epcs(nome), locais(nome,tipo)').order('created_at', { ascending: false }),
-    sb.from('inspecoes').select('*, instalacoes(id, codigo, epcs(nome), locais(nome,tipo))').order('data', { ascending: false }).limit(200),
+    (async () => { let all=[], from=0, chunk; do { const {data} = await sb.from('inspecoes').select('*, instalacoes(id, codigo, epcs(nome), locais(nome,tipo))').order('data', { ascending: false }).range(from, from+999); chunk=data||[]; all=all.concat(chunk); from+=1000; } while(chunk.length===1000); return {data:all}; })(),
     sb.from('colaboradores').select('*').order('nome')
   ]);
   allEpcs = epcs || [];
