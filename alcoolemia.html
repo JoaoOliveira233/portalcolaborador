@@ -154,7 +154,8 @@
           </div>
         </div>
         <div class="table-card" style="padding:24px;margin-bottom:20px;">
-          <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:20px;">📊 Total de Testes por Centro de Custo</div>
+          <div style="font-weight:700;color:var(--navy);font-size:15px;margin-bottom:4px;">📊 Total de Testes por Centro de Custo</div>
+          <div id="dash-total-label" style="font-size:13px;color:var(--gray-400);margin-bottom:16px;"></div>
           <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;">
             <div style="width:280px;height:280px;flex-shrink:0;"><canvas id="dash-chart-total"></canvas></div>
             <div id="dash-chart-legend" style="flex:1;min-width:200px;"></div>
@@ -1116,6 +1117,7 @@ async function renderDashboard() {
 
   const totalValues = labels.map(l => ccTotal[l] || 0);
   const totalSum = totalValues.reduce((a,b) => a+b, 0);
+  document.getElementById('dash-total-label').textContent = 'Total de testes realizados: ' + totalSum;
   const doughnutColors = ['#1b2a4a','#c8102e','#16a34a','#d97706','#0284c7','#7c3aed','#db2777','#059669','#2563eb','#92400e','#065f46','#1e40af','#9d174d','#3730a3','#b45309'];
   _dashChart.push(new Chart(document.getElementById('dash-chart-total'), {
     type: 'doughnut',
