@@ -1370,7 +1370,7 @@ async function gerarPDFData(r, dados) {
   doc.text('Dias Perdidos:', 16, y);
   doc.setFont(undefined,'normal'); doc.setTextColor(60);
   doc.text(diasPerd === 0 ? 'Não existem registos neste período' : String(diasPerd), 100, y); y+=7;
-  y+=3;
+  y+=10;
   if(aB.length){
     if(y>pH-30){doc.addPage();y=24;}
     doc.setFont(undefined,'bold'); doc.text('Detalhe Acidentes com Baixa:',16,y); y+=5;
@@ -1402,7 +1402,7 @@ async function gerarPDFData(r, dados) {
     });
     y=doc.lastAutoTable.finalY+5;
   }
-  y+=3;
+  y+=10;
 
   // 5. INDICADORES
   doc.addPage(); y = 24;
@@ -1464,7 +1464,7 @@ async function gerarPDFData(r, dados) {
   longLine('Taxa de Frequência (TF100) — acumulada', tf100, tfAvLabel, tfAvCor);
   longLine('Taxa de Gravidade (TG100) — acumulada', tg100, tgAvLabel, tgAvCor);
   longLine('Taxa de Incidentes / Quase-Acidentes (TNM)', tnm, null, null);
-  y+=3;
+  y+=10;
 
   // Escalas lado a lado — cabeçalho da tabela já identifica, sem título extra
   if(y>pH-55){doc.addPage();y=24;}
@@ -1534,8 +1534,9 @@ async function gerarPDFData(r, dados) {
   } else {
     secTitle('8. TST — Treinamentos Semanais de Trabalho');
     doc.setFont(undefined,'normal'); doc.setTextColor(100); doc.setFontSize(10);
-    doc.text('Não existem TST registados para este período.',16,y); y+=8;
+    doc.text('Não existem TST registados para este período.',16,y); y+=10;
   }
+  y+=6;
 
 
   // 7. GRÁFICOS HISTÓRICOS — gerados programaticamente em canvas ocultos
@@ -1625,7 +1626,8 @@ async function gerarPDFData(r, dados) {
     doc.addPage();
     let gy = 28;
     // Title styled like other sections
-    doc.setFillColor(27,42,74); doc.roundedRect(14,gy-5,pW-28,10,2,2,'F');
+    doc.setDrawColor(27,42,74); doc.setLineWidth(0);
+    doc.setFillColor(27,42,74); doc.rect(14,gy-5,pW-28,10,'F');
     doc.setFontSize(12); doc.setTextColor(255); doc.setFont(undefined,'bold');
     doc.text('9. Gráficos Históricos',18,gy+2);
     doc.setTextColor(60); doc.setFont(undefined,'normal'); doc.setFontSize(10);
@@ -1707,6 +1709,9 @@ async function gerarPDFData(r, dados) {
     if(validFotos.length % 2 !== 0) {
       fy += (validFotos[validFotos.length-1]?.h > validFotos[validFotos.length-1]?.w ? 70 : 50) + 8;
     }
+  } else {
+    doc.setFont(undefined,'normal'); doc.setTextColor(100); doc.setFontSize(10);
+    doc.text('Não existem fotografias registadas para este relatório.',16,y); y+=10;
   }
 
   // FOOTER — logos em todas as páginas
