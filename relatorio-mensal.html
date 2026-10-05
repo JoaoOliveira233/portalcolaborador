@@ -1240,31 +1240,41 @@ async function exportGraficosPDF() {
 }
 
 // === PDF RELATÓRIO ===
+async function loadDadosMesPDF(r) {
+  const startDate = `${r.ano}-${String(r.mes).padStart(2,'0')}-01`;
+  const endDate = `${r.ano}-${String(r.mes).padStart(2,'0')}-${new Date(r.ano,r.mes,0).getDate()}`;
+  const ccId = r.centro_custo_id;
+  const filterMesPDF = (arr) => arr.filter(x => x.centro_custo_id === ccId && x.data >= startDate && x.data <= endDate);
+  const { data: alcData } = await sb.from('alcoolemia').select('resultado')
+    .eq('centro_custo_id', ccId)
+    .gte('data', new Date(r.ano,r.mes-1,1).toISOString())
+    .lte('data', new Date(r.ano,r.mes,0,23,59,59).toISOString());
+  return {
+    alcData: alcData || [],
+    acidBaixaPDF: filterMesPDF(allAcidBaixa),
+    acidSemPDF: filterMesPDF(allAcidSem),
+    nearMissPDF: filterMesPDF(allNearMiss),
+    tstPDF: filterMesPDF(allTST),
+    todosRel: allRelatorios.filter(x => x.centro_custo_id === ccId).sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes)
+  };
+}
+
 async function gerarPDFById(id) {
   const r = allRelatorios.find(x => x.id === id);
   if (!r) return;
-  const { data: alcData } = await sb.from('alcoolemia').select('resultado')
-    .eq('centro_custo_id', r.centro_custo_id)
-    .gte('data', new Date(r.ano,r.mes-1,1).toISOString())
-    .lte('data', new Date(r.ano,r.mes,0,23,59,59).toISOString());
-  const todosRel = allRelatorios.filter(x => x.centro_custo_id === r.centro_custo_id)
-    .sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
-  await gerarPDFData(r, alcData||[], todosRel);
+  const dados = await loadDadosMesPDF(r);
+  await gerarPDFData(r, dados);
 }
 
 async function gerarPDF() {
   if (!currentRel) return;
   await guardarRelatorio();
-  const { data: alcData } = await sb.from('alcoolemia').select('resultado')
-    .eq('centro_custo_id', currentRel.centro_custo_id)
-    .gte('data', new Date(currentRel.ano,currentRel.mes-1,1).toISOString())
-    .lte('data', new Date(currentRel.ano,currentRel.mes,0,23,59,59).toISOString());
-  const todosRel = allRelatorios.filter(x => x.centro_custo_id === currentRel.centro_custo_id)
-    .sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
-  await gerarPDFData(currentRel, alcData||[], todosRel);
+  const dados = await loadDadosMesPDF(currentRel);
+  await gerarPDFData(currentRel, dados);
 }
 
-async function gerarPDFData(r, alcData, todosRel) {
+async function gerarPDFData(r, dados) {
+  const { alcData, acidBaixaPDF: aB, acidSemPDF: aS, nearMissPDF: inc, tstPDF, todosRel } = dados;
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const pW = doc.internal.pageSize.width, pH = doc.internal.pageSize.height;
@@ -1344,12 +1354,9 @@ async function gerarPDFData(r, alcData, todosRel) {
 
   // 4. ACIDENTES
   secTitle('4. Acidentes e Incidentes');
-  const aB = Array.isArray(r.acidentes_com_baixa)?r.acidentes_com_baixa:[];
-  const aS = Array.isArray(r.acidentes_sem_baixa)?r.acidentes_sem_baixa:[];
-  const inc = Array.isArray(r.incidentes)?r.incidentes:[];
-  const diasPerd = aB.reduce((s,a)=>s+(a.dias||0),0);
-  lineVal('Acidentes com Baixa', aB.length);
-  lineVal('Acidentes sem Baixa', aS.length);
+  const diasPerd = aB.reduce((s,a)=>s+(a.dias_perdidos||0),0);
+  lineVal('Acidentes com Baixa', aB.length || 'Não existem registos neste período');
+  lineVal('Acidentes sem Baixa', aS.length || 'Não existem registos neste período');
   // Label longo — usar posição x mais à direita para o valor
   if(y>pH-16){doc.addPage();y=24;}
   doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
@@ -1400,8 +1407,15 @@ async function gerarPDFData(r, alcData, todosRel) {
   secTitle('5. Indicadores de Segurança');
   const relIdx = todosRel.findIndex(x=>x.id===r.id);
   const ants = relIdx>=0 ? todosRel.slice(0,relIdx) : todosRel;
-  let cumAcid = ants.reduce((s,x)=>s+(x.acidentes_com_baixa||[]).length,0)+aB.length;
-  let cumDias = ants.reduce((s,x)=>s+(x.acidentes_com_baixa||[]).reduce((ss,a)=>ss+(a.dias||0),0),0)+diasPerd;
+  // Acumulados — buscar acidentes das tabelas separadas para meses anteriores
+  let cumAcid = aB.length, cumDias = diasPerd;
+  ants.forEach(x => {
+    const xStart = `${x.ano}-${String(x.mes).padStart(2,'0')}-01`;
+    const xEnd = `${x.ano}-${String(x.mes).padStart(2,'0')}-${new Date(x.ano,x.mes,0).getDate()}`;
+    const xAB = allAcidBaixa.filter(a => a.centro_custo_id===r.centro_custo_id && a.data>=xStart && a.data<=xEnd);
+    cumAcid += xAB.length;
+    cumDias += xAB.reduce((s,a)=>s+(a.dias_perdidos||0),0);
+  });
   let cumHHT = ants.reduce((s,x)=>s+(x.horas_homem_trabalhadas||0),0)+(r.horas_homem_trabalhadas||0);
   const tf100 = cumHHT>0 ? ((cumAcid*100000)/cumHHT).toFixed(2) : '0.00';
   const tg100 = cumHHT>0 ? ((cumDias*100000)/cumHHT).toFixed(2) : '0.00';
@@ -1594,6 +1608,54 @@ async function gerarPDFData(r, alcData, todosRel) {
     // Após gráficos, forçar nova página para secção 8
     doc.addPage();
     y = 24;
+  }
+
+  // 6b. MEDIDAS CORRECTIVAS
+  const todasMedidasPDF = [
+    ...aB.filter(x=>x.medida_correctiva).map(x=>({tipo:'Acidente com Baixa',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva})),
+    ...aS.filter(x=>x.medida_correctiva).map(x=>({tipo:'Acidente sem Baixa',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva})),
+    ...inc.filter(x=>x.medida_correctiva).map(x=>({tipo:'Near Miss',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva}))
+  ].sort((a,b)=>a.data>b.data?1:-1);
+  if(todasMedidasPDF.length>0){
+    secTitle('6b. Medidas Correctivas Aplicadas');
+    if(y>pH-30){doc.addPage();y=24;}
+    doc.autoTable({startY:y,
+      head:[['Data','Tipo','Trabalhadores','Medida Correctiva']],
+      body:todasMedidasPDF.map(m=>[
+        m.data?new Date(m.data+'T00:00:00').toLocaleDateString('pt-PT'):'-',
+        m.tipo,
+        (m.trabalhadores||[]).join(', ')||'-',
+        m.medida||'-'
+      ]),
+      headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
+      styles:{fontSize:8},margin:{left:14,right:14}
+    });
+    y=doc.lastAutoTable.finalY+5;
+  }
+
+  // 6c. TST — TREINAMENTOS SEMANAIS
+  if(tstPDF.length>0){
+    secTitle('6c. TST — Treinamentos Semanais de Trabalho');
+    if(y>pH-30){doc.addPage();y=24;}
+    const avalLabel={'1':'Mau','2':'Satisfatório','3':'Bom','4':'Muito Bom'};
+    doc.autoTable({startY:y,
+      head:[['Data','Formador','Temas','Participantes','Duração','Avaliação']],
+      body:tstPDF.map(t=>[
+        t.data?new Date(t.data+'T00:00:00').toLocaleDateString('pt-PT'):'-',
+        t.formador||'-',
+        (t.temas||[]).join(', ')||'-',
+        t.num_participantes||0,
+        t.duracao?t.duracao+'min':'-',
+        avalLabel[t.avaliacao_geral]||'-'
+      ]),
+      headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
+      styles:{fontSize:8},margin:{left:14,right:14}
+    });
+    y=doc.lastAutoTable.finalY+5;
+  } else {
+    secTitle('6c. TST — Treinamentos Semanais de Trabalho');
+    doc.setFont(undefined,'normal'); doc.setTextColor(100); doc.setFontSize(10);
+    doc.text('Não existem TST registados para este período.',16,y); y+=8;
   }
 
   // 8. REGISTO FOTOGRÁFICO
