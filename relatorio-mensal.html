@@ -1309,7 +1309,8 @@ async function gerarPDFData(r, dados) {
   let y = cy || 74;
   const secTitle = (txt) => {
     if(y>pH-35){doc.addPage();y=24;}
-    doc.setFillColor(27,42,74); doc.roundedRect(14,y-5,pW-28,10,2,2,'F');
+    doc.setDrawColor(27,42,74); doc.setLineWidth(0);
+    doc.setFillColor(27,42,74); doc.rect(14,y-5,pW-28,10,'F');
     doc.setFontSize(12); doc.setTextColor(255); doc.setFont(undefined,'bold');
     doc.text(txt,18,y+2); doc.setTextColor(60); doc.setFont(undefined,'normal'); doc.setFontSize(10);
     y+=13;
@@ -1335,14 +1336,14 @@ async function gerarPDFData(r, dados) {
   doc.setFont(undefined,'bold'); doc.setTextColor(60);
   doc.text(String((r.num_viaturas_ligeiras||0)+(r.num_viaturas_pesadas||0)+(r.num_maquinas||0)), 100, y);
   y+=7;
-  y+=3;
+  y+=10;
 
   // 2. TRABALHOS
   secTitle('2. Principais Trabalhos Realizados');
   const trab = Array.isArray(r.trabalhos_realizados)?r.trabalhos_realizados:[];
   if(!trab.length){doc.text('Sem trabalhos registados.',16,y);y+=7;}
   else trab.forEach((t,i)=>{if(y>pH-16){doc.addPage();y=24;}doc.text((i+1)+'. '+t,16,y);y+=6;});
-  y+=3;
+  y+=10;
 
   // 3. ALCOOLEMIA
   secTitle('3. Controlo de Alcoolemia');
@@ -1350,25 +1351,25 @@ async function gerarPDFData(r, dados) {
   lineVal('Negativos', alcData.filter(a=>a.resultado==='negativo').length);
   lineVal('Positivos', alcData.filter(a=>a.resultado==='positivo').length);
   lineVal('Críticos', alcData.filter(a=>a.resultado==='critico').length);
-  y+=3;
+  y+=10;
 
   // 4. ACIDENTES
   secTitle('4. Acidentes e Incidentes');
   const diasPerd = aB.reduce((s,a)=>s+(a.dias_perdidos||0),0);
-  lineVal('Acidentes com Baixa', aB.length || 'Não existem registos neste período');
+  lineVal('Acidentes com Baixa', aB.length === 0 ? 'Não existem registos neste período' : aB.length);
   lineVal('Acidentes sem Baixa', aS.length || 'Não existem registos neste período');
   // Label longo — usar posição x mais à direita para o valor
   if(y>pH-16){doc.addPage();y=24;}
   doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
   doc.text('Incidentes / Quase-Acidentes (Near Miss):', 16, y);
   doc.setFont(undefined,'normal'); doc.setTextColor(60);
-  doc.text(String(inc.length), 100, y); y+=7;
+  doc.text(inc.length === 0 ? 'Não existem registos neste período' : String(inc.length), 100, y); y+=7;
   // Dias perdidos também
   if(y>pH-16){doc.addPage();y=24;}
   doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
   doc.text('Dias Perdidos:', 16, y);
   doc.setFont(undefined,'normal'); doc.setTextColor(60);
-  doc.text(String(diasPerd), 100, y); y+=7;
+  doc.text(diasPerd === 0 ? 'Não existem registos neste período' : String(diasPerd), 100, y); y+=7;
   y+=3;
   if(aB.length){
     if(y>pH-30){doc.addPage();y=24;}
@@ -1623,9 +1624,12 @@ async function gerarPDFData(r, dados) {
   if(grafDefs.length > 0) {
     doc.addPage();
     let gy = 28;
-    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
-    doc.text('9. Gráficos Históricos', pW/2, gy, {align:'center'});
-    gy += 10;
+    // Title styled like other sections
+    doc.setFillColor(27,42,74); doc.roundedRect(14,gy-5,pW-28,10,2,2,'F');
+    doc.setFontSize(12); doc.setTextColor(255); doc.setFont(undefined,'bold');
+    doc.text('9. Gráficos Históricos',18,gy+2);
+    doc.setTextColor(60); doc.setFont(undefined,'normal'); doc.setFontSize(10);
+    gy += 16;
 
     const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
     const gH2 = 55;               // altura de cada gráfico
