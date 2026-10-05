@@ -140,6 +140,12 @@
       <div class="nav-section">Relatórios</div>
       <div class="nav-item active" onclick="navigate('lista')"><span>📂</span> Lista de Relatórios</div>
       <div class="nav-item" onclick="navigate('graficos')"><span>📊</span> Gráficos Históricos</div>
+      <div class="nav-section">Registos</div>
+      <div class="nav-item" onclick="navigate('acid-baixa')"><span>🔴</span> Acidentes com Baixa</div>
+      <div class="nav-item" onclick="navigate('acid-sem')"><span>🟠</span> Acidentes sem Baixa</div>
+      <div class="nav-item" onclick="navigate('near-miss')"><span>🟡</span> Near Miss</div>
+      <div class="nav-item" onclick="navigate('tst')"><span>📚</span> TST</div>
+      <div class="nav-section">Configuração</div>
       <div class="nav-item" onclick="navigate('centros')"><span>⚙️</span> Centros de Custo</div>
     </div>
     <div class="main-content">
@@ -258,6 +264,17 @@
           </div>
         </div>
 
+        <!-- TST -->
+        <div class="card">
+          <div class="card-title">📚 TST — Treinamentos Semanais do Mês</div>
+          <div id="tst-relatorio-lista">
+            <div style="font-size:13px;color:var(--gray-400);">Nenhum TST registado para este mês neste centro de custo.</div>
+          </div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-outline btn-sm" onclick="navigate('tst')">➕ Registar TST</button>
+          </div>
+        </div>
+
         <!-- REGISTO FOTOGRÁFICO -->
         <div class="card">
           <div class="card-title">📷 Registo Fotográfico</div>
@@ -306,6 +323,86 @@
         </div>
       </div>
 
+
+      <!-- ACIDENTES COM BAIXA -->
+      <div class="page" id="page-acid-baixa">
+        <div class="page-header">
+          <div><div class="page-title">Acidentes com Baixa</div><div class="page-subtitle">Registo de acidentes com dias perdidos</div></div>
+          <button class="btn btn-primary" onclick="openRegistoModal('baixa',-1)">+ Novo Registo</button>
+        </div>
+        <div class="card" style="padding:14px 16px;margin-bottom:16px;">
+          <div class="form-group" style="max-width:380px;margin-bottom:0;">
+            <label>Centro de Custo</label>
+            <select id="f-cc-acid-baixa" onchange="renderAcidBaixaLista()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:'Barlow',sans-serif;">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:0;"><div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Centro de Custo</th><th>Trabalhadores</th><th>Causa</th><th>Dias Perdidos</th><th>Medida Correctiva</th><th></th></tr></thead>
+          <tbody id="acid-baixa-tbody"></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- ACIDENTES SEM BAIXA -->
+      <div class="page" id="page-acid-sem">
+        <div class="page-header">
+          <div><div class="page-title">Acidentes sem Baixa</div><div class="page-subtitle">Registo de acidentes sem dias perdidos</div></div>
+          <button class="btn btn-primary" onclick="openRegistoModal('sem',-1)">+ Novo Registo</button>
+        </div>
+        <div class="card" style="padding:14px 16px;margin-bottom:16px;">
+          <div class="form-group" style="max-width:380px;margin-bottom:0;">
+            <label>Centro de Custo</label>
+            <select id="f-cc-acid-sem" onchange="renderAcidSemLista()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:'Barlow',sans-serif;">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:0;"><div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Centro de Custo</th><th>Trabalhadores</th><th>Causa</th><th>Medida Correctiva</th><th></th></tr></thead>
+          <tbody id="acid-sem-tbody"></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- NEAR MISS -->
+      <div class="page" id="page-near-miss">
+        <div class="page-header">
+          <div><div class="page-title">Near Miss / Incidentes</div><div class="page-subtitle">Registo de incidentes e quase-acidentes</div></div>
+          <button class="btn btn-primary" onclick="openRegistoModal('nm',-1)">+ Novo Registo</button>
+        </div>
+        <div class="card" style="padding:14px 16px;margin-bottom:16px;">
+          <div class="form-group" style="max-width:380px;margin-bottom:0;">
+            <label>Centro de Custo</label>
+            <select id="f-cc-nm" onchange="renderNMLista()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:'Barlow',sans-serif;">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:0;"><div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Centro de Custo</th><th>Trabalhadores</th><th>Descrição</th><th>Medida Correctiva</th><th></th></tr></thead>
+          <tbody id="nm-tbody"></tbody>
+        </table></div></div>
+      </div>
+
+      <!-- TST -->
+      <div class="page" id="page-tst">
+        <div class="page-header">
+          <div><div class="page-title">TST — Treinamento Semanal</div><div class="page-subtitle">Registo de treinamentos semanais de trabalho</div></div>
+          <button class="btn btn-primary" onclick="openTSTModal(-1)">+ Novo TST</button>
+        </div>
+        <div class="card" style="padding:14px 16px;margin-bottom:16px;">
+          <div class="form-group" style="max-width:380px;margin-bottom:0;">
+            <label>Centro de Custo</label>
+            <select id="f-cc-tst" onchange="renderTSTLista()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:'Barlow',sans-serif;">
+              <option value="">Todos</option>
+            </select>
+          </div>
+        </div>
+        <div class="card" style="padding:0;"><div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Centro de Custo</th><th>Formador</th><th>Temas</th><th>Participantes</th><th>Duração</th><th>Avaliação</th><th></th></tr></thead>
+          <tbody id="tst-tbody"></tbody>
+        </table></div></div>
+      </div>
 
       <!-- CENTROS DE CUSTO -->
       <div class="page" id="page-centros">
@@ -391,6 +488,82 @@
       <button class="btn btn-outline btn-sm" onclick="closeModal('modal-centro')">Cancelar</button>
       <button class="btn btn-danger btn-sm" id="btn-del-centro" onclick="deleteCentro()" style="display:none;">🗑️ Apagar</button>
       <button class="btn btn-primary btn-sm" onclick="saveCentro()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Registo (Acidentes + Near Miss) -->
+<div class="modal-overlay" id="modal-registo">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="registo-modal-title">Registo</span><button class="modal-close" onclick="closeModal('modal-registo')">×</button></div>
+    <div class="modal-body">
+      <div id="registo-alert"></div>
+      <input type="hidden" id="reg-tipo">
+      <input type="hidden" id="reg-id">
+      <div class="form-row">
+        <div class="form-group"><label>Data *</label><input type="date" id="reg-data"></div>
+        <div class="form-group"><label>Centro de Custo *</label>
+          <select id="reg-cc"><option value="">-- Seleccionar --</option></select>
+        </div>
+      </div>
+      <div class="section-div">Trabalhadores Envolvidos</div>
+      <div id="reg-trabalhadores-lista"></div>
+      <button class="btn btn-outline btn-sm" onclick="addRegTrabalhador()" style="margin-bottom:12px;">+ Adicionar Trabalhador</button>
+      <div class="form-group"><label>Causa</label><textarea id="reg-causa" rows="2" placeholder="Descrever a causa..."></textarea></div>
+      <div class="form-group"><label>Descrição</label><textarea id="reg-desc" rows="2" placeholder="Descrição do ocorrido..."></textarea></div>
+      <div id="reg-dias-wrap" style="display:none;">
+        <div class="form-group"><label>Dias Perdidos</label><input type="number" id="reg-dias" min="0" value="0"></div>
+      </div>
+      <div class="form-group"><label>Medida Correctiva Aplicada</label><textarea id="reg-medida" rows="2" placeholder="Descrever a medida correctiva..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="btn-del-registo" onclick="deleteRegisto()" style="display:none;">🗑️ Apagar</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-registo')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveRegisto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal TST -->
+<div class="modal-overlay" id="modal-tst">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="tst-modal-title">TST — Treinamento Semanal</span><button class="modal-close" onclick="closeModal('modal-tst')">×</button></div>
+    <div class="modal-body">
+      <div id="tst-alert"></div>
+      <input type="hidden" id="tst-id">
+      <div class="form-row">
+        <div class="form-group"><label>Data *</label><input type="date" id="tst-data"></div>
+        <div class="form-group"><label>Centro de Custo *</label>
+          <select id="tst-cc"><option value="">-- Seleccionar --</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Formador</label><input type="text" id="tst-formador" placeholder="Nome do formador"></div>
+        <div class="form-group"><label>Nº Participantes</label><input type="number" id="tst-participantes" min="0" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Duração (minutos)</label><input type="number" id="tst-duracao" min="0" value="60"></div>
+        <div class="form-group"><label>Avaliação Geral</label>
+          <select id="tst-avaliacao">
+            <option value="">-- Seleccionar --</option>
+            <option value="1">1 — Mau</option>
+            <option value="2">2 — Satisfatório</option>
+            <option value="3">3 — Bom</option>
+            <option value="4">4 — Muito Bom</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-div">Temas Abordados</div>
+      <div id="tst-temas-lista"></div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input type="text" id="new-tema" placeholder="Descrever tema abordado..." style="flex:1;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;" onkeydown="if(event.key==='Enter')addTema()">
+        <button class="btn btn-outline btn-sm" onclick="addTema()">+ Adicionar</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="btn-del-tst" onclick="deleteTST()" style="display:none;">🗑️ Apagar</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-tst')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveTST()">Guardar</button>
     </div>
   </div>
 </div>
@@ -536,6 +709,8 @@ async function loadAll() {
   allCentros = cc || [];
   allRelatorios = rel || [];
   allColabs = col || [];
+  // Load registos tables
+  await loadRegistos();
   populateCCSelects();
   renderLista();
   populateAnoFilter();
@@ -570,6 +745,10 @@ function navigate(page) {
   if (page === 'lista') renderLista();
   if (page === 'graficos') renderGraficos();
   if (page === 'centros') renderCentros();
+  if (page === 'acid-baixa') { populateFilterCC('f-cc-acid-baixa'); renderAcidBaixaLista(); }
+  if (page === 'acid-sem') { populateFilterCC('f-cc-acid-sem'); renderAcidSemLista(); }
+  if (page === 'near-miss') { populateFilterCC('f-cc-nm'); renderNMLista(); }
+  if (page === 'tst') { populateFilterCC('f-cc-tst'); renderTSTLista(); }
 }
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -665,8 +844,26 @@ async function abrirRelatorio(id) {
 }
 
 async function loadAlcoolemiaMes(ccId, mes, ano) {
+  const startDate = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  const endDate = `${ano}-${String(mes).padStart(2,'0')}-${new Date(ano,mes,0).getDate()}`;
   const start = new Date(ano, mes-1, 1).toISOString();
   const end = new Date(ano, mes, 0, 23, 59, 59).toISOString();
+
+  // Load acidentes/nm/tst for this month and CC from global arrays
+  const filterMes = (arr) => arr.filter(r =>
+    r.centro_custo_id === ccId && r.data >= startDate && r.data <= endDate
+  );
+  acidBaixa = filterMes(allAcidBaixa);
+  acidSem = filterMes(allAcidSem);
+  incidentes = filterMes(allNearMiss);
+
+  // Render acidentes
+  renderAllAcid();
+
+  // TST do mês
+  const tstMes = filterMes(allTST);
+  renderTSTNoRelatorio(tstMes);
+
   const { data } = await sb.from('alcoolemia').select('resultado').eq('centro_custo_id', ccId).gte('data', start).lte('data', end);
   alcDadosMes = data || [];
   const el = document.getElementById('alc-info');
@@ -1608,6 +1805,287 @@ async function saveFotos() {
   currentRel.fotos = fotosAtuais;
 }
 
+
+
+// === DADOS GLOBAIS REGISTOS ===
+let allAcidBaixa = [], allAcidSem = [], allNearMiss = [], allTST = [];
+
+async function loadRegistos() {
+  const paginate = async (table, select, order) => {
+    let all = [], from = 0, chunk;
+    do {
+      const { data } = await sb.from(table).select(select).order(order, { ascending: false }).range(from, from+999);
+      chunk = data || []; all = all.concat(chunk); from += 1000;
+    } while(chunk.length === 1000);
+    return all;
+  };
+  const cc = 'centros_custo(nome,codigo)';
+  [allAcidBaixa, allAcidSem, allNearMiss, allTST] = await Promise.all([
+    paginate('acidentes_baixa', `*, ${cc}`, 'data'),
+    paginate('acidentes_sem_baixa', `*, ${cc}`, 'data'),
+    paginate('near_miss', `*, ${cc}`, 'data'),
+    paginate('tst', `*, ${cc}`, 'data')
+  ]);
+}
+
+function populateFilterCC(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = '<option value="">Todos</option>' + allCentros.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  if (cur) el.value = cur;
+}
+
+const AVAL_LABEL = { '1':'Mau','2':'Satisfatório','3':'Bom','4':'Muito Bom' };
+const AVAL_COLOR = { '1':'badge-red','2':'badge-orange','3':'badge-green','4':'badge-blue' };
+
+// === RENDER LISTAS ===
+function renderAcidBaixaLista() {
+  const cc = document.getElementById('f-cc-acid-baixa').value;
+  const lista = cc ? allAcidBaixa.filter(r => r.centro_custo_id === cc) : allAcidBaixa;
+  const tbody = document.getElementById('acid-baixa-tbody');
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray-400);">Sem registos</td></tr>'; return; }
+  tbody.innerHTML = lista.map(r => `<tr>
+    <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
+    <td>${r.centros_custo?.nome || '-'}</td>
+    <td style="font-size:12px;">${(r.trabalhadores||[]).join(', ') || '-'}</td>
+    <td style="font-size:12px;">${r.causa || '-'}</td>
+    <td><strong>${r.dias_perdidos || 0}</strong></td>
+    <td style="font-size:12px;">${r.medida_correctiva || '-'}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="openRegistoModal('baixa','${r.id}')">✏️</button></td>
+  </tr>`).join('');
+}
+
+function renderAcidSemLista() {
+  const cc = document.getElementById('f-cc-acid-sem').value;
+  const lista = cc ? allAcidSem.filter(r => r.centro_custo_id === cc) : allAcidSem;
+  const tbody = document.getElementById('acid-sem-tbody');
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">Sem registos</td></tr>'; return; }
+  tbody.innerHTML = lista.map(r => `<tr>
+    <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
+    <td>${r.centros_custo?.nome || '-'}</td>
+    <td style="font-size:12px;">${(r.trabalhadores||[]).join(', ') || '-'}</td>
+    <td style="font-size:12px;">${r.causa || '-'}</td>
+    <td style="font-size:12px;">${r.medida_correctiva || '-'}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="openRegistoModal('sem','${r.id}')">✏️</button></td>
+  </tr>`).join('');
+}
+
+function renderNMLista() {
+  const cc = document.getElementById('f-cc-nm').value;
+  const lista = cc ? allNearMiss.filter(r => r.centro_custo_id === cc) : allNearMiss;
+  const tbody = document.getElementById('nm-tbody');
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">Sem registos</td></tr>'; return; }
+  tbody.innerHTML = lista.map(r => `<tr>
+    <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
+    <td>${r.centros_custo?.nome || '-'}</td>
+    <td style="font-size:12px;">${(r.trabalhadores||[]).join(', ') || '-'}</td>
+    <td style="font-size:12px;">${r.descricao || '-'}</td>
+    <td style="font-size:12px;">${r.medida_correctiva || '-'}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="openRegistoModal('nm','${r.id}')">✏️</button></td>
+  </tr>`).join('');
+}
+
+function renderTSTLista() {
+  const cc = document.getElementById('f-cc-tst').value;
+  const lista = cc ? allTST.filter(r => r.centro_custo_id === cc) : allTST;
+  const tbody = document.getElementById('tst-tbody');
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--gray-400);">Sem registos</td></tr>'; return; }
+  tbody.innerHTML = lista.map(r => `<tr>
+    <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
+    <td>${r.centros_custo?.nome || '-'}</td>
+    <td>${r.formador || '-'}</td>
+    <td style="font-size:12px;">${(r.temas||[]).join(', ') || '-'}</td>
+    <td>${r.num_participantes || 0}</td>
+    <td>${r.duracao ? r.duracao+'min' : '-'}</td>
+    <td>${r.avaliacao_geral ? `<span class="badge ${AVAL_COLOR[r.avaliacao_geral]}">${AVAL_LABEL[r.avaliacao_geral]}</span>` : '-'}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="openTSTModal('${r.id}')">✏️</button></td>
+  </tr>`).join('');
+}
+
+// === MODAL REGISTO (ACIDENTES + NEAR MISS) ===
+let _regTrabalhadores = [];
+
+function openRegistoModal(tipo, id) {
+  document.getElementById('reg-tipo').value = tipo;
+  document.getElementById('reg-id').value = id || '';
+  document.getElementById('registo-alert').innerHTML = '';
+  const titles = { baixa:'🔴 Acidente com Baixa', sem:'🟠 Acidente sem Baixa', nm:'🟡 Near Miss / Incidente' };
+  document.getElementById('registo-modal-title').textContent = titles[tipo] || 'Registo';
+  document.getElementById('reg-dias-wrap').style.display = tipo === 'baixa' ? '' : 'none';
+
+  // Fill CC select
+  const ccSel = document.getElementById('reg-cc');
+  ccSel.innerHTML = '<option value="">-- Seleccionar --</option>' + allCentros.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+
+  // Find existing record
+  const lista = tipo==='baixa' ? allAcidBaixa : tipo==='sem' ? allAcidSem : allNearMiss;
+  const r = id ? lista.find(x => x.id === id) : null;
+
+  document.getElementById('reg-data').value = r?.data || '';
+  ccSel.value = r?.centro_custo_id || '';
+  document.getElementById('reg-causa').value = r?.causa || '';
+  document.getElementById('reg-desc').value = r?.descricao || '';
+  document.getElementById('reg-dias').value = r?.dias_perdidos || 0;
+  document.getElementById('reg-medida').value = r?.medida_correctiva || '';
+  document.getElementById('btn-del-registo').style.display = id ? '' : 'none';
+
+  _regTrabalhadores = r ? [...(r.trabalhadores||[''])] : [''];
+  renderRegTrabalhadores();
+  openModal('modal-registo');
+}
+
+function renderRegTrabalhadores() {
+  const el = document.getElementById('reg-trabalhadores-lista');
+  const opts = '<option value="">-- Seleccionar --</option>' + allColabs.map(c => `<option value="${c.nome}">${c.nome}${c.numero_mecanografico ? ' ('+c.numero_mecanografico+')':''}</option>`).join('');
+  el.innerHTML = _regTrabalhadores.map((t,i) => `
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+      <select onchange="_regTrabalhadores[${i}]=this.value" style="flex:1;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:4px;font-size:13px;font-family:'Barlow',sans-serif;">${opts}</select>
+      ${i>0 ? `<button class="btn btn-danger btn-sm" onclick="_regTrabalhadores.splice(${i},1);renderRegTrabalhadores()">✕</button>` : ''}
+    </div>`).join('');
+  _regTrabalhadores.forEach((t,i) => {
+    const sel = el.querySelectorAll('select')[i];
+    if (sel && t) sel.value = t;
+  });
+}
+
+function addRegTrabalhador() { _regTrabalhadores.push(''); renderRegTrabalhadores(); }
+
+async function saveRegisto() {
+  const tipo = document.getElementById('reg-tipo').value;
+  const id = document.getElementById('reg-id').value;
+  const data = document.getElementById('reg-data').value;
+  const ccId = document.getElementById('reg-cc').value;
+  if (!data) return showAlert('registo-alert', 'Data é obrigatória.', 'error');
+  if (!ccId) return showAlert('registo-alert', 'Centro de Custo é obrigatório.', 'error');
+
+  const table = tipo==='baixa' ? 'acidentes_baixa' : tipo==='sem' ? 'acidentes_sem_baixa' : 'near_miss';
+  const payload = {
+    data,
+    centro_custo_id: ccId,
+    trabalhadores: _regTrabalhadores.filter(t => t.trim()),
+    causa: document.getElementById('reg-causa').value.trim() || null,
+    descricao: document.getElementById('reg-desc').value.trim() || null,
+    medida_correctiva: document.getElementById('reg-medida').value.trim() || null,
+  };
+  if (tipo === 'baixa') payload.dias_perdidos = parseInt(document.getElementById('reg-dias').value) || 0;
+
+  let error;
+  if (id) {
+    ({ error } = await sb.from(table).update(payload).eq('id', id));
+  } else {
+    ({ error } = await sb.from(table).insert(payload));
+  }
+  if (error) return showAlert('registo-alert', error.message, 'error');
+  closeModal('modal-registo');
+  await loadRegistos();
+  if (tipo==='baixa') renderAcidBaixaLista();
+  else if (tipo==='sem') renderAcidSemLista();
+  else renderNMLista();
+}
+
+async function deleteRegisto() {
+  const tipo = document.getElementById('reg-tipo').value;
+  const id = document.getElementById('reg-id').value;
+  if (!id || !confirm('Apagar este registo?')) return;
+  const table = tipo==='baixa' ? 'acidentes_baixa' : tipo==='sem' ? 'acidentes_sem_baixa' : 'near_miss';
+  await sb.from(table).delete().eq('id', id);
+  closeModal('modal-registo');
+  await loadRegistos();
+  if (tipo==='baixa') renderAcidBaixaLista();
+  else if (tipo==='sem') renderAcidSemLista();
+  else renderNMLista();
+}
+
+// === MODAL TST ===
+let _tstTemas = [];
+
+function openTSTModal(id) {
+  document.getElementById('tst-id').value = id || '';
+  document.getElementById('tst-alert').innerHTML = '';
+  const ccSel = document.getElementById('tst-cc');
+  ccSel.innerHTML = '<option value="">-- Seleccionar --</option>' + allCentros.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  const r = id ? allTST.find(x => x.id === id) : null;
+  document.getElementById('tst-data').value = r?.data || '';
+  ccSel.value = r?.centro_custo_id || '';
+  document.getElementById('tst-formador').value = r?.formador || '';
+  document.getElementById('tst-participantes').value = r?.num_participantes || 0;
+  document.getElementById('tst-duracao').value = r?.duracao || 60;
+  document.getElementById('tst-avaliacao').value = r?.avaliacao_geral || '';
+  document.getElementById('btn-del-tst').style.display = id ? '' : 'none';
+  _tstTemas = r ? [...(r.temas||[])] : [];
+  renderTSTTemas();
+  openModal('modal-tst');
+}
+
+function renderTSTTemas() {
+  const el = document.getElementById('tst-temas-lista');
+  if (!_tstTemas.length) { el.innerHTML = '<div style="font-size:12px;color:var(--gray-400);padding:4px 0;">Sem temas adicionados.</div>'; return; }
+  el.innerHTML = _tstTemas.map((t,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--gray-50);border-radius:6px;margin-bottom:6px;border:1px solid var(--gray-100);">
+      <span style="flex:1;font-size:13px;">${i+1}. ${t}</span>
+      <button class="btn btn-danger btn-sm" onclick="_tstTemas.splice(${i},1);renderTSTTemas()">✕</button>
+    </div>`).join('');
+}
+
+function addTema() {
+  const inp = document.getElementById('new-tema');
+  const v = inp.value.trim(); if (!v) return;
+  _tstTemas.push(v); inp.value = ''; renderTSTTemas();
+}
+
+async function saveTST() {
+  const id = document.getElementById('tst-id').value;
+  const data = document.getElementById('tst-data').value;
+  const ccId = document.getElementById('tst-cc').value;
+  if (!data) return showAlert('tst-alert', 'Data é obrigatória.', 'error');
+  if (!ccId) return showAlert('tst-alert', 'Centro de Custo é obrigatório.', 'error');
+  const payload = {
+    data, centro_custo_id: ccId,
+    formador: document.getElementById('tst-formador').value.trim() || null,
+    num_participantes: parseInt(document.getElementById('tst-participantes').value) || 0,
+    duracao: parseInt(document.getElementById('tst-duracao').value) || null,
+    avaliacao_geral: document.getElementById('tst-avaliacao').value || null,
+    temas: _tstTemas
+  };
+  let error;
+  if (id) { ({ error } = await sb.from('tst').update(payload).eq('id', id)); }
+  else { ({ error } = await sb.from('tst').insert(payload)); }
+  if (error) return showAlert('tst-alert', error.message, 'error');
+  closeModal('modal-tst');
+  await loadRegistos();
+  renderTSTLista();
+}
+
+async function deleteTST() {
+  const id = document.getElementById('tst-id').value;
+  if (!id || !confirm('Apagar este TST?')) return;
+  await sb.from('tst').delete().eq('id', id);
+  closeModal('modal-tst');
+  await loadRegistos();
+  renderTSTLista();
+}
+
+function renderTSTNoRelatorio(lista) {
+  const el = document.getElementById('tst-relatorio-lista');
+  if (!el) return;
+  if (!lista.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--gray-400);">Nenhum TST registado para este mês neste centro de custo.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Data</th><th>Formador</th><th>Temas</th><th>Participantes</th><th>Duração</th><th>Avaliação</th></tr></thead>
+      <tbody>${lista.map(r => `<tr>
+        <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
+        <td>${r.formador || '-'}</td>
+        <td style="font-size:12px;">${(r.temas||[]).join(', ') || '-'}</td>
+        <td>${r.num_participantes || 0}</td>
+        <td>${r.duracao ? r.duracao+'min' : '-'}</td>
+        <td>${r.avaliacao_geral ? `<span class="badge ${AVAL_COLOR[r.avaliacao_geral]}">${AVAL_LABEL[r.avaliacao_geral]}</span>` : '-'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+}
 
 // === CENTROS DE CUSTO ===
 function renderCentros() {
