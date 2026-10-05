@@ -468,7 +468,19 @@ async function loadAll() {
   const [{ data: colabs }, { data: centros }, { data: registos }] = await Promise.all([
     sb.from('colaboradores').select('id,nome,numero_mecanografico').eq('ativo', true).order('nome'),
     sb.from('centros_custo').select('*').order('codigo', { ascending: true, nullsFirst: false }),
-    sb.from('alcoolemia').select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)').order('data', { ascending: false })
+    (async () => {
+      let all = [], from = 0, chunk;
+      do {
+        const { data } = await sb.from('alcoolemia')
+          .select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)')
+          .order('data', { ascending: false })
+          .range(from, from + 999);
+        chunk = data || [];
+        all = all.concat(chunk);
+        from += 1000;
+      } while (chunk.length === 1000);
+      return { data: all };
+    })()
   ]);
   allColabs = colabs || [];
   allCentros = centros || [];
