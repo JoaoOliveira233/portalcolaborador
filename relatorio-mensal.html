@@ -1404,6 +1404,7 @@ async function gerarPDFData(r, dados) {
   y+=3;
 
   // 5. INDICADORES
+  doc.addPage(); y = 24;
   secTitle('5. Indicadores de Segurança');
   const relIdx = todosRel.findIndex(x=>x.id===r.id);
   const ants = relIdx>=0 ? todosRel.slice(0,relIdx) : todosRel;
@@ -1485,6 +1486,54 @@ async function gerarPDFData(r, dados) {
     if(y+obs.length*6>pH-16){doc.addPage();y=24;}
     doc.setFont(undefined,'normal'); doc.setTextColor(60); doc.setFontSize(10);
     doc.text(obs,16,y); y+=obs.length*6+4;
+  }
+
+  // 7. MEDIDAS CORRECTIVAS
+  const todasMedidasPDF = [
+    ...aB.filter(x=>x.medida_correctiva).map(x=>({tipo:'Acidente com Baixa',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva})),
+    ...aS.filter(x=>x.medida_correctiva).map(x=>({tipo:'Acidente sem Baixa',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva})),
+    ...inc.filter(x=>x.medida_correctiva).map(x=>({tipo:'Near Miss',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva}))
+  ].sort((a,b)=>a.data>b.data?1:-1);
+  if(todasMedidasPDF.length>0){
+    secTitle('7. Medidas Correctivas Aplicadas');
+    if(y>pH-30){doc.addPage();y=24;}
+    doc.autoTable({startY:y,
+      head:[['Data','Tipo','Trabalhadores','Medida Correctiva']],
+      body:todasMedidasPDF.map(m=>[
+        m.data?new Date(m.data+'T00:00:00').toLocaleDateString('pt-PT'):'-',
+        m.tipo,
+        (m.trabalhadores||[]).join(', ')||'-',
+        m.medida||'-'
+      ]),
+      headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
+      styles:{fontSize:8},margin:{left:14,right:14}
+    });
+    y=doc.lastAutoTable.finalY+5;
+  }
+
+  // 6c. TST — TREINAMENTOS SEMANAIS
+  if(tstPDF.length>0){
+    secTitle('8. TST — Treinamentos Semanais de Trabalho');
+    if(y>pH-30){doc.addPage();y=24;}
+    const avalLabel={'1':'Mau','2':'Satisfatório','3':'Bom','4':'Muito Bom'};
+    doc.autoTable({startY:y,
+      head:[['Data','Formador','Temas','Participantes','Duração','Avaliação']],
+      body:tstPDF.map(t=>[
+        t.data?new Date(t.data+'T00:00:00').toLocaleDateString('pt-PT'):'-',
+        t.formador||'-',
+        (t.temas||[]).join(', ')||'-',
+        t.num_participantes||0,
+        t.duracao?t.duracao+'min':'-',
+        avalLabel[t.avaliacao_geral]||'-'
+      ]),
+      headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
+      styles:{fontSize:8},margin:{left:14,right:14}
+    });
+    y=doc.lastAutoTable.finalY+5;
+  } else {
+    secTitle('8. TST — Treinamentos Semanais de Trabalho');
+    doc.setFont(undefined,'normal'); doc.setTextColor(100); doc.setFontSize(10);
+    doc.text('Não existem TST registados para este período.',16,y); y+=8;
   }
 
 
@@ -1575,7 +1624,7 @@ async function gerarPDFData(r, dados) {
     doc.addPage();
     let gy = 28;
     doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
-    doc.text('7. Gráficos Históricos', pW/2, gy, {align:'center'});
+    doc.text('9. Gráficos Históricos', pW/2, gy, {align:'center'});
     gy += 10;
 
     const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
@@ -1610,58 +1659,10 @@ async function gerarPDFData(r, dados) {
     y = 24;
   }
 
-  // 6b. MEDIDAS CORRECTIVAS
-  const todasMedidasPDF = [
-    ...aB.filter(x=>x.medida_correctiva).map(x=>({tipo:'Acidente com Baixa',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva})),
-    ...aS.filter(x=>x.medida_correctiva).map(x=>({tipo:'Acidente sem Baixa',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva})),
-    ...inc.filter(x=>x.medida_correctiva).map(x=>({tipo:'Near Miss',data:x.data,trabalhadores:x.trabalhadores,medida:x.medida_correctiva}))
-  ].sort((a,b)=>a.data>b.data?1:-1);
-  if(todasMedidasPDF.length>0){
-    secTitle('6b. Medidas Correctivas Aplicadas');
-    if(y>pH-30){doc.addPage();y=24;}
-    doc.autoTable({startY:y,
-      head:[['Data','Tipo','Trabalhadores','Medida Correctiva']],
-      body:todasMedidasPDF.map(m=>[
-        m.data?new Date(m.data+'T00:00:00').toLocaleDateString('pt-PT'):'-',
-        m.tipo,
-        (m.trabalhadores||[]).join(', ')||'-',
-        m.medida||'-'
-      ]),
-      headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
-      styles:{fontSize:8},margin:{left:14,right:14}
-    });
-    y=doc.lastAutoTable.finalY+5;
-  }
-
-  // 6c. TST — TREINAMENTOS SEMANAIS
-  if(tstPDF.length>0){
-    secTitle('6c. TST — Treinamentos Semanais de Trabalho');
-    if(y>pH-30){doc.addPage();y=24;}
-    const avalLabel={'1':'Mau','2':'Satisfatório','3':'Bom','4':'Muito Bom'};
-    doc.autoTable({startY:y,
-      head:[['Data','Formador','Temas','Participantes','Duração','Avaliação']],
-      body:tstPDF.map(t=>[
-        t.data?new Date(t.data+'T00:00:00').toLocaleDateString('pt-PT'):'-',
-        t.formador||'-',
-        (t.temas||[]).join(', ')||'-',
-        t.num_participantes||0,
-        t.duracao?t.duracao+'min':'-',
-        avalLabel[t.avaliacao_geral]||'-'
-      ]),
-      headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
-      styles:{fontSize:8},margin:{left:14,right:14}
-    });
-    y=doc.lastAutoTable.finalY+5;
-  } else {
-    secTitle('6c. TST — Treinamentos Semanais de Trabalho');
-    doc.setFont(undefined,'normal'); doc.setTextColor(100); doc.setFontSize(10);
-    doc.text('Não existem TST registados para este período.',16,y); y+=8;
-  }
-
   // 8. REGISTO FOTOGRÁFICO
   const fotos = Array.isArray(r.fotos) ? r.fotos : [];
   if(fotos.length > 0) {
-    secTitle('8. Registo Fotográfico');
+    secTitle('10. Registo Fotográfico');
     const fotoUrls = await Promise.all(fotos.map(async f => {
       try {
         const { data } = await sb.storage.from('relatorios-fotos').createSignedUrl(f.path, 300);
