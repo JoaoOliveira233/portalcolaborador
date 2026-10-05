@@ -1478,7 +1478,7 @@ async function gerarPDFData(r, dados) {
     body:[['0','Excelente'],['0 – 10','Muito Bom'],['10 – 50','Bom'],['50 – 100','Aceitável'],['100 – 200','Elevado'],['>200','Crítico']],
     headStyles:{fillColor:[200,16,46],textColor:255,fontSize:8},styles:{fontSize:8},columnStyles:{0:{cellWidth:45}},margin:{left:pW/2+4,right:14}
   });
-  y=Math.max(midY, doc.lastAutoTable.finalY)+5;
+  y=Math.max(midY, doc.lastAutoTable.finalY)+14;
 
   // 6. OBSERVAÇÕES
   if(r.observacoes){
@@ -1624,7 +1624,7 @@ async function gerarPDFData(r, dados) {
 
   if(grafDefs.length > 0) {
     doc.addPage();
-    let gy = 28;
+    let gy = 30;
     // Title styled like other sections
     doc.setDrawColor(27,42,74); doc.setLineWidth(0);
     doc.setFillColor(27,42,74); doc.rect(14,gy-5,pW-28,10,'F');
@@ -1642,7 +1642,7 @@ async function gerarPDFData(r, dados) {
       const def2 = grafDefs[i+1] || null;
 
       // Se não cabe mais nesta página, nova página
-      if(gy + gH2 + 14 > pH - 16) { doc.addPage(); gy = 28; }
+      if(gy + gH2 + 14 > pH - 16) { doc.addPage(); gy = 30; }
 
       const img1 = await renderChartToPDF(def1);
       const img2 = def2 ? await renderChartToPDF(def2) : null;
@@ -1665,10 +1665,10 @@ async function gerarPDFData(r, dados) {
     y = 24;
   }
 
-  // 8. REGISTO FOTOGRÁFICO
+  // 10. REGISTO FOTOGRÁFICO
   const fotos = Array.isArray(r.fotos) ? r.fotos : [];
+  secTitle('10. Registo Fotográfico');
   if(fotos.length > 0) {
-    secTitle('10. Registo Fotográfico');
     const fotoUrls = await Promise.all(fotos.map(async f => {
       try {
         const { data } = await sb.storage.from('relatorios-fotos').createSignedUrl(f.path, 300);
@@ -1696,7 +1696,7 @@ async function gerarPDFData(r, dados) {
       if (!imgData) continue;
       const isPortrait = imgData.h > imgData.w;
       const fH = isPortrait ? 70 : 50;
-      if(fy + fH + 20 > pH - 16) { doc.addPage(); fy = 24; fx = 14; }
+      if(fy + fH + 20 > pH - 16) { doc.addPage(); fy = 30; fx = 14; }
       doc.addImage('data:image/jpeg;base64,' + imgData.b64, 'JPEG', fx, fy, colW, fH);
       doc.setDrawColor(200); doc.rect(fx, fy, colW, fH);
       if(f.legenda) {
