@@ -236,13 +236,18 @@
           <div class="card-title">⚠️ Acidentes e Incidentes</div>
           <div class="section-div">Acidentes com Baixa</div>
           <div id="lista-acid-baixa"></div>
-          <button class="btn btn-outline btn-sm" onclick="openAcidModal('baixa',-1)" style="margin-bottom:14px;">+ Adicionar Acidente com Baixa</button>
           <div class="section-div">Acidentes sem Baixa</div>
           <div id="lista-acid-sem"></div>
-          <button class="btn btn-outline btn-sm" onclick="openAcidModal('sem',-1)" style="margin-bottom:14px;">+ Adicionar Acidente sem Baixa</button>
           <div class="section-div">Near Miss / Incidentes / Quase-Acidentes</div>
           <div id="lista-inc"></div>
-          <button class="btn btn-outline btn-sm" onclick="openAcidModal('inc',-1)">+ Adicionar Near Miss / Incidente</button>
+        </div>
+
+        <!-- MEDIDAS CORRECTIVAS -->
+        <div class="card">
+          <div class="card-title">✅ Medidas Correctivas Aplicadas</div>
+          <div id="medidas-correctivas-lista">
+            <div style="font-size:13px;color:var(--gray-400);">Sem medidas correctivas registadas para este mês.</div>
+          </div>
         </div>
 
         <!-- INDICADORES -->
@@ -266,13 +271,11 @@
 
         <!-- TST -->
         <div class="card">
-          <div class="card-title">📚 TST — Treinamentos Semanais do Mês</div>
+          <div class="card-title">📚 TST — Treinamentos Semanais de Trabalho do Mês</div>
           <div id="tst-relatorio-lista">
             <div style="font-size:13px;color:var(--gray-400);">Nenhum TST registado para este mês neste centro de custo.</div>
           </div>
-          <div style="margin-top:10px;">
-            <button class="btn btn-outline btn-sm" onclick="navigate('tst')">➕ Registar TST</button>
-          </div>
+
         </div>
 
         <!-- REGISTO FOTOGRÁFICO -->
@@ -857,8 +860,16 @@ async function loadAlcoolemiaMes(ccId, mes, ano) {
   acidSem = filterMes(allAcidSem);
   incidentes = filterMes(allNearMiss);
 
-  // Render acidentes
+  // Render acidentes (só leitura, sem botões de adicionar)
   renderAllAcid();
+
+  // Medidas correctivas — agrupa todas de acidentes e near miss do mês
+  const todasMedidas = [
+    ...acidBaixa.filter(r => r.medida_correctiva).map(r => ({ tipo: 'Acidente com Baixa', data: r.data, medida: r.medida_correctiva, trabalhadores: r.trabalhadores })),
+    ...acidSem.filter(r => r.medida_correctiva).map(r => ({ tipo: 'Acidente sem Baixa', data: r.data, medida: r.medida_correctiva, trabalhadores: r.trabalhadores })),
+    ...incidentes.filter(r => r.medida_correctiva).map(r => ({ tipo: 'Near Miss', data: r.data, medida: r.medida_correctiva, trabalhadores: r.trabalhadores }))
+  ].sort((a,b) => a.data > b.data ? 1 : -1);
+  renderMedidasCorrectivas(todasMedidas);
 
   // TST do mês
   const tstMes = filterMes(allTST);
@@ -2064,6 +2075,24 @@ async function deleteTST() {
   closeModal('modal-tst');
   await loadRegistos();
   renderTSTLista();
+}
+
+function renderMedidasCorrectivas(lista) {
+  const el = document.getElementById('medidas-correctivas-lista');
+  if (!el) return;
+  if (!lista.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--gray-400);">Sem medidas correctivas registadas para este mês.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Trabalhadores</th><th>Medida Correctiva</th></tr></thead>
+    <tbody>${lista.map(m => `<tr>
+      <td>${m.data ? new Date(m.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
+      <td><span class="badge ${m.tipo==='Acidente com Baixa'?'badge-red':m.tipo==='Acidente sem Baixa'?'badge-orange':'badge-blue'}">${m.tipo}</span></td>
+      <td style="font-size:12px;">${(m.trabalhadores||[]).join(', ') || '-'}</td>
+      <td style="font-size:12px;">${m.medida}</td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
 }
 
 function renderTSTNoRelatorio(lista) {
