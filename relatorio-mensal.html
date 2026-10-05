@@ -390,7 +390,7 @@
       <!-- TST -->
       <div class="page" id="page-tst">
         <div class="page-header">
-          <div><div class="page-title">TST — Treinamento Semanal</div><div class="page-subtitle">Registo de treinamentos semanais de trabalho</div></div>
+          <div><div class="page-title">TST — Treinamento Semanal de Trabalho</div><div class="page-subtitle">Registo de treinamentos semanais de trabalho</div></div>
           <button class="btn btn-primary" onclick="openTSTModal(null)">+ Novo TST</button>
         </div>
         <div class="card" style="padding:14px 16px;margin-bottom:16px;">
@@ -530,7 +530,7 @@
 <!-- Modal TST -->
 <div class="modal-overlay" id="modal-tst">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title" id="tst-modal-title">TST — Treinamento Semanal</span><button class="modal-close" onclick="closeModal('modal-tst')">×</button></div>
+    <div class="modal-header"><span class="modal-title" id="tst-modal-title">TST — Treinamento Semanal de Trabalho</span><button class="modal-close" onclick="closeModal('modal-tst')">×</button></div>
     <div class="modal-body">
       <div id="tst-alert"></div>
       <input type="hidden" id="tst-id">
@@ -921,7 +921,7 @@ function renderAcidLista(elId, lista, tipo) {
     <div style="flex:1;">
       <div style="font-weight:600;font-size:13px;">${(a.trabalhadores||[]).join(', ') || 'Sem trabalhadores'}</div>
       ${a.data ? `<div style="font-size:11px;color:var(--gray-400);">${new Date(a.data+'T00:00:00').toLocaleDateString('pt-PT')}</div>` : ''}
-      ${a.causa ? `<div style="font-size:12px;color:var(--gray-600);margin-top:3px;">${a.causa}</div>` : ''}
+      ${a.causa ? `<div style="font-size:12px;color:var(--gray-600);margin-top:3px;white-space:pre-wrap;">${a.causa}</div>` : ''}
       ${tipo==='baixa' && a.dias ? `<span class="badge badge-blue">${a.dias} dia${a.dias>1?'s':''}</span>` : ''}
     </div>
   </div>`).join('');
@@ -1507,7 +1507,7 @@ async function gerarPDFData(r, dados) {
         m.medida||'-'
       ]),
       headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
-      styles:{fontSize:8},margin:{left:14,right:14}
+      styles:{fontSize:8,overflow:'linebreak'},margin:{left:14,right:14}
     });
     y=doc.lastAutoTable.finalY+14;
   }
@@ -1528,7 +1528,7 @@ async function gerarPDFData(r, dados) {
         avalLabel[t.avaliacao_geral]||'-'
       ]),
       headStyles:{fillColor:[27,42,74],textColor:255,fontSize:8},
-      styles:{fontSize:8},margin:{left:14,right:14}
+      styles:{fontSize:8,overflow:'linebreak'},margin:{left:14,right:14}
     });
     y=doc.lastAutoTable.finalY+5;
   } else {
@@ -1929,9 +1929,9 @@ function renderAcidBaixaLista() {
     <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
     <td>${r.centros_custo?.nome || '-'}</td>
     <td style="font-size:12px;">${(r.trabalhadores||[]).join(', ') || '-'}</td>
-    <td style="font-size:12px;">${r.causa || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${r.causa || '-'}</td>
     <td><strong>${r.dias_perdidos || 0}</strong></td>
-    <td style="font-size:12px;">${r.medida_correctiva || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${r.medida_correctiva || '-'}</td>
     <td><button class="btn btn-outline btn-sm" onclick="openRegistoModal('baixa','${r.id}')">✏️</button></td>
   </tr>`).join('');
 }
@@ -1945,8 +1945,8 @@ function renderAcidSemLista() {
     <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
     <td>${r.centros_custo?.nome || '-'}</td>
     <td style="font-size:12px;">${(r.trabalhadores||[]).join(', ') || '-'}</td>
-    <td style="font-size:12px;">${r.causa || '-'}</td>
-    <td style="font-size:12px;">${r.medida_correctiva || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${r.causa || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${r.medida_correctiva || '-'}</td>
     <td><button class="btn btn-outline btn-sm" onclick="openRegistoModal('sem','${r.id}')">✏️</button></td>
   </tr>`).join('');
 }
@@ -1960,8 +1960,8 @@ function renderNMLista() {
     <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
     <td>${r.centros_custo?.nome || '-'}</td>
     <td style="font-size:12px;">${(r.trabalhadores||[]).join(', ') || '-'}</td>
-    <td style="font-size:12px;">${r.descricao || '-'}</td>
-    <td style="font-size:12px;">${r.medida_correctiva || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${r.descricao || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${r.medida_correctiva || '-'}</td>
     <td><button class="btn btn-outline btn-sm" onclick="openRegistoModal('nm','${r.id}')">✏️</button></td>
   </tr>`).join('');
 }
@@ -1975,7 +1975,7 @@ function renderTSTLista() {
     <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
     <td>${r.centros_custo?.nome || '-'}</td>
     <td>${r.formador || '-'}</td>
-    <td style="font-size:12px;">${(r.temas||[]).join(', ') || '-'}</td>
+    <td style="font-size:12px;white-space:pre-wrap;">${(r.temas||[]).join('\n') || '-'}</td>
     <td>${r.num_participantes || 0}</td>
     <td>${r.duracao ? r.duracao+'min' : '-'}</td>
     <td>${r.avaliacao_geral ? `<span class="badge ${AVAL_COLOR[r.avaliacao_geral]}">${AVAL_LABEL[r.avaliacao_geral]}</span>` : '-'}</td>
@@ -2177,7 +2177,7 @@ function renderTSTNoRelatorio(lista) {
       <tbody>${lista.map(r => `<tr>
         <td>${r.data ? new Date(r.data+'T00:00:00').toLocaleDateString('pt-PT') : '-'}</td>
         <td>${r.formador || '-'}</td>
-        <td style="font-size:12px;">${(r.temas||[]).join(', ') || '-'}</td>
+        <td style="font-size:12px;white-space:pre-wrap;">${(r.temas||[]).join('\n') || '-'}</td>
         <td>${r.num_participantes || 0}</td>
         <td>${r.duracao ? r.duracao+'min' : '-'}</td>
         <td>${r.avaliacao_geral ? `<span class="badge ${AVAL_COLOR[r.avaliacao_geral]}">${AVAL_LABEL[r.avaliacao_geral]}</span>` : '-'}</td>
