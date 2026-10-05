@@ -468,7 +468,7 @@ async function loadAll() {
   const [{ data: colabs }, { data: centros }, { data: registos }] = await Promise.all([
     sb.from('colaboradores').select('id,nome,numero_mecanografico').eq('ativo', true).order('nome'),
     sb.from('centros_custo').select('*').order('codigo', { ascending: true, nullsFirst: false }),
-    sb.from('alcoolemia').select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)').order('data', { ascending: false }).limit(1000)
+    sb.from('alcoolemia').select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)').order('data', { ascending: false })
   ]);
   allColabs = colabs || [];
   allCentros = centros || [];
