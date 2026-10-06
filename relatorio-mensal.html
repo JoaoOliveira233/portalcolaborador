@@ -312,8 +312,12 @@
         </div>
         <div id="graficos-area" style="display:none;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-            <div class="card"><div class="card-title">🧪 Alcoolemia</div><div class="chart-container"><canvas id="g-alc"></canvas></div></div>
+            <div class="card"><div class="card-title">🧪 Alcoolemia — Total de Testes</div><div class="chart-container"><canvas id="g-alc-total"></canvas></div></div>
+            <div class="card"><div class="card-title">🧪 Alcoolemia — Positivos / Críticos</div><div class="chart-container"><canvas id="g-alc-pc"></canvas></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="card"><div class="card-title">⚠️ Acidentes e Incidentes / Near Miss</div><div class="chart-container"><canvas id="g-acid"></canvas></div></div>
+            <div class="card"><div class="card-title">📈 Taxa de Frequência (TF100)</div><div class="chart-container"><canvas id="g-tf"></canvas></div></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div class="card"><div class="card-title">👷 Meios Humanos</div><div class="chart-container"><canvas id="g-hum"></canvas></div></div>
@@ -1169,8 +1173,10 @@ async function renderGraficos() {
       scales:{ x:{grid:{display:false},ticks:{font:{size:9}}}, y:{beginAtZero:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}} }
     } });
 
-  _grafCharts.alc = new Chart(document.getElementById('g-alc'), barOpts(labels, [
-    {label:'Total',data:alcPorMes.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3},
+  _grafCharts.alcTotal = new Chart(document.getElementById('g-alc-total'), barOpts(labels, [
+    {label:'Total',data:alcPorMes.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3}
+  ]));
+  _grafCharts.alcPC = new Chart(document.getElementById('g-alc-pc'), barOpts(labels, [
     {label:'Positivos',data:alcPorMes.map(a=>a.pos),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
     {label:'Críticos',data:alcPorMes.map(a=>a.crit),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3}
   ]));
@@ -1214,8 +1220,8 @@ async function exportGraficosPDF() {
   doc.text('Gerado em: '+dataHoje, pW/2, 21, {align:'center'});
   doc.setDrawColor(27,42,74); doc.line(10,25,pW-10,25);
 
-  const chartIds = ['g-alc','g-acid','g-hum','g-mec','g-tf','g-tg','g-nm'];
-  const chartTitles = ['Alcoolemia','Acidentes e Incidentes / Near Miss','Meios Humanos','Meios Mecânicos','Taxa de Frequência (TF100) Acumulada','Taxa de Gravidade (TG100) Acumulada','Taxa de Incidentes / Quase-Acidentes'];
+  const chartIds = ['g-alc-total','g-alc-pc','g-hum','g-mec','g-acid','g-tf','g-tg','g-nm'];
+  const chartTitles = ['Alcoolemia — Total','Alcoolemia — Positivos/Críticos','Meios Humanos','Meios Mecânicos','Acidentes e Incidentes / Near Miss','TF100 Acumulada','TG100 Acumulada','Taxa Incid./Quase-Acid.'];
   let x=10, y=30, w=(pW-30)/3, h=65;
   chartIds.forEach((id,i) => {
     const canvas = document.getElementById(id);
@@ -1573,23 +1579,33 @@ async function gerarPDFData(r, dados) {
   });
 
   const grafDefs = [
-    { title:'Alcoolemia — Total / Positivos / Críticos', type:'bar', datasets:[
-      {label:'Total',data:alcPorMes_pdf.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)'},
-      {label:'Positivos',data:alcPorMes_pdf.map(a=>a.pos),backgroundColor:'rgba(234,88,12,.7)'},
-      {label:'Críticos',data:alcPorMes_pdf.map(a=>a.crit),backgroundColor:'rgba(220,38,38,.7)'}
+    // Linha 1
+    { title:'Alcoolemia — Total de Testes', type:'bar', datasets:[
+      {label:'Total',data:alcPorMes_pdf.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3}
     ]},
-    { title:'Acidentes e Incidentes / Near Miss', type:'bar', datasets:[
-      {label:'Com Baixa',data:todosOrdenados.map(x=>(x.acidentes_com_baixa||[]).length),backgroundColor:'rgba(220,38,38,.7)'},
-      {label:'Sem Baixa',data:todosOrdenados.map(x=>(x.acidentes_sem_baixa||[]).length),backgroundColor:'rgba(234,88,12,.7)'},
-      {label:'Near Miss',data:todosOrdenados.map(x=>(x.incidentes||[]).length),backgroundColor:'rgba(217,119,6,.7)'}
+    { title:'Alcoolemia — Positivos / Críticos', type:'bar', datasets:[
+      {label:'Positivos',data:alcPorMes_pdf.map(a=>a.pos),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
+      {label:'Críticos',data:alcPorMes_pdf.map(a=>a.crit),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3}
     ]},
+    // Linha 2
     { title:'Meios Humanos (Colaboradores)', type:'line', datasets:[
       {label:'Colaboradores',data:todosOrdenados.map(x=>x.num_colaboradores||0),borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
     ]},
-
+    { title:'Meios Mecânicos', type:'bar', datasets:[
+      {label:'Ligeiras',data:todosOrdenados.map(x=>x.num_viaturas_ligeiras||0),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3},
+      {label:'Pesadas',data:todosOrdenados.map(x=>x.num_viaturas_pesadas||0),backgroundColor:'rgba(200,16,46,.7)',borderRadius:3},
+      {label:'Máquinas',data:todosOrdenados.map(x=>x.num_maquinas||0),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
+    ]},
+    // Linha 3
+    { title:'Acidentes e Incidentes / Near Miss', type:'bar', datasets:[
+      {label:'Com Baixa',data:todosOrdenados.map(x=>(x.acidentes_com_baixa||[]).length),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3},
+      {label:'Sem Baixa',data:todosOrdenados.map(x=>(x.acidentes_sem_baixa||[]).length),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
+      {label:'Near Miss',data:todosOrdenados.map(x=>(x.incidentes||[]).length),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
+    ]},
     { title:'Taxa de Frequência (TF100) — Acumulada', type:'line', datasets:[
       {label:'TF100',data:tf100s_pdf,borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
     ]},
+    // Linha 4
     { title:'Taxa de Gravidade (TG100) — Acumulada', type:'line', datasets:[
       {label:'TG100',data:tg100s_pdf,borderColor:'rgba(220,38,38,1)',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true,pointRadius:4}
     ]},
@@ -1637,7 +1653,7 @@ async function gerarPDFData(r, dados) {
     gy += 16;
 
     const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
-    const gH2 = 55;               // altura de cada gráfico
+    const gH2 = 48;               // altura de cada gráfico (reduzido para 4 linhas numa página)
     const gGap = 8;               // espaço entre gráficos
 
     for(let i = 0; i < grafDefs.length; i += 2) {
