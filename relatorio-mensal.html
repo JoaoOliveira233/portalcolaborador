@@ -1578,39 +1578,43 @@ async function gerarPDFData(r, dados) {
     return nc>0?parseFloat((((x.incidentes||[]).length*1000)/nc).toFixed(2)):0;
   });
 
+  // Helper: label with total value
+  const lbl = (name, data) => name + ' (' + data.reduce((s,v)=>s+v,0) + ')';
+  const lblLast = (name, data) => name + ' (' + (data[data.length-1]||0) + ')';
+
   const grafDefs = [
     // Linha 1
     { title:'Alcoolemia — Total de Testes', type:'bar', datasets:[
-      {label:'Total',data:alcPorMes_pdf.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3}
+      {label:lbl('Total',alcPorMes_pdf.map(a=>a.total)),data:alcPorMes_pdf.map(a=>a.total),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3}
     ]},
     { title:'Alcoolemia — Positivos / Críticos', type:'bar', datasets:[
-      {label:'Positivos',data:alcPorMes_pdf.map(a=>a.pos),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
-      {label:'Críticos',data:alcPorMes_pdf.map(a=>a.crit),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3}
+      {label:lbl('Positivos',alcPorMes_pdf.map(a=>a.pos)),data:alcPorMes_pdf.map(a=>a.pos),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
+      {label:lbl('Críticos',alcPorMes_pdf.map(a=>a.crit)),data:alcPorMes_pdf.map(a=>a.crit),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3}
     ]},
     // Linha 2
     { title:'Meios Humanos (Colaboradores)', type:'line', datasets:[
-      {label:'Colaboradores',data:todosOrdenados.map(x=>x.num_colaboradores||0),borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
+      {label:lblLast('Colaboradores',todosOrdenados.map(x=>x.num_colaboradores||0)),data:todosOrdenados.map(x=>x.num_colaboradores||0),borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
     ]},
     { title:'Meios Mecânicos', type:'bar', datasets:[
-      {label:'Ligeiras',data:todosOrdenados.map(x=>x.num_viaturas_ligeiras||0),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3},
-      {label:'Pesadas',data:todosOrdenados.map(x=>x.num_viaturas_pesadas||0),backgroundColor:'rgba(200,16,46,.7)',borderRadius:3},
-      {label:'Máquinas',data:todosOrdenados.map(x=>x.num_maquinas||0),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
+      {label:lbl('Ligeiras',todosOrdenados.map(x=>x.num_viaturas_ligeiras||0)),data:todosOrdenados.map(x=>x.num_viaturas_ligeiras||0),backgroundColor:'rgba(27,42,74,.7)',borderRadius:3},
+      {label:lbl('Pesadas',todosOrdenados.map(x=>x.num_viaturas_pesadas||0)),data:todosOrdenados.map(x=>x.num_viaturas_pesadas||0),backgroundColor:'rgba(200,16,46,.7)',borderRadius:3},
+      {label:lbl('Máquinas',todosOrdenados.map(x=>x.num_maquinas||0)),data:todosOrdenados.map(x=>x.num_maquinas||0),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
     ]},
     // Linha 3
     { title:'Acidentes e Incidentes / Near Miss', type:'bar', datasets:[
-      {label:'Com Baixa',data:todosOrdenados.map(x=>(x.acidentes_com_baixa||[]).length),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3},
-      {label:'Sem Baixa',data:todosOrdenados.map(x=>(x.acidentes_sem_baixa||[]).length),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
-      {label:'Near Miss',data:todosOrdenados.map(x=>(x.incidentes||[]).length),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
+      {label:lbl('Com Baixa',todosOrdenados.map(x=>(x.acidentes_com_baixa||[]).length)),data:todosOrdenados.map(x=>(x.acidentes_com_baixa||[]).length),backgroundColor:'rgba(220,38,38,.7)',borderRadius:3},
+      {label:lbl('Sem Baixa',todosOrdenados.map(x=>(x.acidentes_sem_baixa||[]).length)),data:todosOrdenados.map(x=>(x.acidentes_sem_baixa||[]).length),backgroundColor:'rgba(234,88,12,.7)',borderRadius:3},
+      {label:lbl('Near Miss',todosOrdenados.map(x=>(x.incidentes||[]).length)),data:todosOrdenados.map(x=>(x.incidentes||[]).length),backgroundColor:'rgba(217,119,6,.7)',borderRadius:3}
     ]},
     { title:'Taxa de Frequência (TF100) — Acumulada', type:'line', datasets:[
-      {label:'TF100',data:tf100s_pdf,borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
+      {label:lblLast('TF100',tf100s_pdf),data:tf100s_pdf,borderColor:'rgba(27,42,74,1)',backgroundColor:'rgba(27,42,74,.1)',tension:.3,fill:true,pointRadius:4}
     ]},
     // Linha 4
     { title:'Taxa de Gravidade (TG100) — Acumulada', type:'line', datasets:[
-      {label:'TG100',data:tg100s_pdf,borderColor:'rgba(220,38,38,1)',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true,pointRadius:4}
+      {label:lblLast('TG100',tg100s_pdf),data:tg100s_pdf,borderColor:'rgba(220,38,38,1)',backgroundColor:'rgba(220,38,38,.1)',tension:.3,fill:true,pointRadius:4}
     ]},
     { title:'Taxa de Incidentes / Quase-Acidentes (TNM)', type:'line', datasets:[
-      {label:'TNM',data:tnms_pdf,borderColor:'rgba(2,132,199,1)',backgroundColor:'rgba(2,132,199,.1)',tension:.3,fill:true,pointRadius:4}
+      {label:lblLast('TNM',tnms_pdf),data:tnms_pdf,borderColor:'rgba(2,132,199,1)',backgroundColor:'rgba(2,132,199,.1)',tension:.3,fill:true,pointRadius:4}
     ]}
   ];
 
@@ -1650,7 +1654,7 @@ async function gerarPDFData(r, dados) {
     doc.setFontSize(12); doc.setTextColor(255); doc.setFont(undefined,'bold');
     doc.text('9. Gráficos Históricos',18,gy+2);
     doc.setTextColor(60); doc.setFont(undefined,'normal'); doc.setFontSize(10);
-    gy += 16;
+    gy += 8;
 
     const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
     const gH2 = 48;               // altura de cada gráfico (reduzido para 4 linhas numa página)
