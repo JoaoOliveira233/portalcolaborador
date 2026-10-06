@@ -1657,7 +1657,7 @@ async function gerarPDFData(r, dados) {
     gy += 8;
 
     const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
-    const gH2 = 48;               // altura de cada gráfico (reduzido para 4 linhas numa página)
+    const gH2 = 100;              // altura de cada gráfico (4 por página, 2 linhas de 2)
     const gGap = 8;               // espaço entre gráficos
 
     for(let i = 0; i < grafDefs.length; i += 2) {
