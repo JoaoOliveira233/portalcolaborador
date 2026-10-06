@@ -1376,10 +1376,10 @@ async function gerarPDFData(r, dados) {
 
   // 3. ALCOOLEMIA
   secTitle('3. Controlo de Alcoolemia');
-  lineVal('Total Testes', alcData.length);
-  lineVal('Negativos', alcData.filter(a=>a.resultado==='negativo').length);
-  lineVal('Positivos', alcData.filter(a=>a.resultado==='positivo').length);
-  lineVal('Críticos', alcData.filter(a=>a.resultado==='critico').length);
+  lineVal('Total Testes', String(alcData.length));
+  lineVal('Negativos', String(alcData.filter(a=>a.resultado==='negativo').length));
+  lineVal('Positivos', String(alcData.filter(a=>a.resultado==='positivo').length));
+  lineVal('Críticos', String(alcData.filter(a=>a.resultado==='critico').length));
   y+=10;
 
   // 4. ACIDENTES
