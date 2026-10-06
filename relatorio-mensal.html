@@ -1542,8 +1542,10 @@ async function gerarPDFData(r, dados) {
 
   // 7. GRÁFICOS HISTÓRICOS — gerados programaticamente em canvas ocultos
   const ccId_pdf = r.centro_custo_id;
-  const todosOrdenados = todosRel.filter(x => x.centro_custo_id === ccId_pdf)
-    .sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
+  const todosOrdenados = todosRel.filter(x =>
+    x.centro_custo_id === ccId_pdf &&
+    (x.ano < r.ano || (x.ano === r.ano && x.mes <= r.mes))
+  ).sort((a,b) => a.ano!==b.ano ? a.ano-b.ano : a.mes-b.mes);
 
   const { data: alcAll } = await sb.from('alcoolemia').select('resultado,data')
     .eq('centro_custo_id', ccId_pdf).order('data');
