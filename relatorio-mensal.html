@@ -1462,7 +1462,7 @@ async function gerarPDFData(r, dados) {
   doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
   doc.text('Horas Homem Acumuladas:',16,y);
   doc.setFont(undefined,'normal'); doc.setTextColor(60);
-  doc.text(String(cumHHT.toFixed(1)),70,y); y+=7;
+  doc.text(String(Math.round(cumHHT)),70,y); y+=7;
   y+=4;
   // Indicadores com label longo — valor em linha separada
   const longLine = (l, v, avaliacao, corAv) => {
