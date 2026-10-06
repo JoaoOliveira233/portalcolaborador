@@ -1210,7 +1210,7 @@ async function exportGraficosPDF() {
   if (!ccId) return alert('Seleccione um centro de custo.');
   const cc = allCentros.find(c => c.id === ccId);
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation:'landscape' });
+  const doc = new jsPDF({ orientation:'landscape', compress: true });
   const pW = doc.internal.pageSize.width;
   const dataHoje = new Date().toLocaleDateString('pt-PT');
   try{ doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',10,6,40,10); }catch(e){}
@@ -1232,7 +1232,7 @@ async function exportGraficosPDF() {
     if (y+h > doc.internal.pageSize.height-15) { doc.addPage(); y=15; x=10; }
     doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
     doc.text(chartTitles[i], x, y+4);
-    doc.addImage(img,'PNG',x,y+7,w,h-10);
+    doc.addImage(img,'PNG',x,y+7,w,h-10,undefined,'FAST');
   });
 
   const pc = doc.internal.getNumberOfPages();
@@ -1280,18 +1280,40 @@ async function gerarPDF() {
   await gerarPDFData(currentRel, dados);
 }
 
+// Reduz uma imagem base64 para uma largura máxima (mantém proporções e transparência)
+function reduzirImagemB64(b64, maxW) {
+  return new Promise(resolve => {
+    if (!b64) return resolve(null);
+    const img = new Image();
+    img.onload = () => {
+      const esc = Math.min(1, maxW / img.naturalWidth);
+      const c2 = document.createElement('canvas');
+      c2.width = Math.round(img.naturalWidth * esc);
+      c2.height = Math.round(img.naturalHeight * esc);
+      c2.getContext('2d').drawImage(img, 0, 0, c2.width, c2.height);
+      resolve(c2.toDataURL('image/png').split(',')[1]);
+    };
+    img.onerror = () => resolve(null);
+    img.src = 'data:image/png;base64,' + b64;
+  });
+}
+
 async function gerarPDFData(r, dados) {
+  // Logótipos reduzidos (~300 dpi para o tamanho em que aparecem) — evita PDFs enormes
+  const _logoEIPpdf = await reduzirImagemB64(window._logoB64, 600);
+  const _rawLogoCli = r.centros_custo?.logo_cliente || allCentros.find(c=>c.id===r.centro_custo_id)?.logo_cliente || null;
+  const _logoCliPdf = await reduzirImagemB64(_rawLogoCli, 600);
   const { alcData, acidBaixaPDF: aB, acidSemPDF: aS, nearMissPDF: inc, tstPDF, todosRel } = dados;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({ compress: true });
   const pW = doc.internal.pageSize.width, pH = doc.internal.pageSize.height;
   const dataHoje = new Date().toLocaleDateString('pt-PT');
 
   // CAPA
-  try{ doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,6,48,12); }catch(e){}
+  try{ if(_logoEIPpdf) doc.addImage('data:image/png;base64,'+_logoEIPpdf,'PNG',14,6,48,12,'logoEIP','FAST'); }catch(e){}
   // Logo cliente na capa — canto superior direito, mesma altura do logo EIP
   const _logoCliente = r.centros_custo?.logo_cliente || allCentros.find(c=>c.id===r.centro_custo_id)?.logo_cliente || null;
-  if(_logoCliente) { try{ doc.addImage('data:image/png;base64,'+_logoCliente,'PNG',pW-62,4,48,13); }catch(e){} }
+  if(_logoCliPdf) { try{ doc.addImage('data:image/png;base64,'+_logoCliPdf,'PNG',pW-62,4,48,13,'logoCliente','FAST'); }catch(e){} }
   doc.setFontSize(17); doc.setTextColor(27,42,74); doc.setFont(undefined,'bold');
   // Título começa abaixo dos logos
   doc.setDrawColor(27,42,74); doc.setLineWidth(.3); doc.line(14,20,pW-14,20);
@@ -1621,7 +1643,7 @@ async function gerarPDFData(r, dados) {
   // Render each chart in a hidden canvas and add to PDF
   // Desenha o gráfico com as MESMAS proporções do espaço que ocupa no PDF (sem deformação)
   // PX_MM = píxeis lógicos por mm; DPR = multiplicador de resolução para nitidez na impressão
-  const PX_MM = 4, DPR = 4;
+  const PX_MM = 4, DPR = 3; // ~300 dpi na impressão
   const PT = 1.41; // 1 pt tipográfico ≈ 1.41 px lógicos nesta escala
   const renderChartToPDF = (def, wMm, hMm) => new Promise(resolve => {
     const wPx = Math.round(wMm * PX_MM), hPx = Math.round(hMm * PX_MM);
@@ -1690,11 +1712,11 @@ async function gerarPDFData(r, dados) {
 
       doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
       doc.text(def1.title, 14, gy + 4);
-      doc.addImage(img1, 'PNG', 14, gy + tituloH, gW2, gH2);
+      doc.addImage(img1, 'PNG', 14, gy + tituloH, gW2, gH2, undefined, 'FAST');
 
       if(img2) {
         doc.text(def2.title, 14 + gW2 + gGap, gy + 4);
-        doc.addImage(img2, 'PNG', 14 + gW2 + gGap, gy + tituloH, gW2, gH2);
+        doc.addImage(img2, 'PNG', 14 + gW2 + gGap, gy + tituloH, gW2, gH2, undefined, 'FAST');
       }
 
       gy += tituloH + gH2 + rowGap;
@@ -1720,8 +1742,9 @@ async function gerarPDFData(r, dados) {
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         const c = document.createElement('canvas');
-        c.width = img.naturalWidth; c.height = img.naturalHeight;
-        c.getContext('2d').drawImage(img, 0, 0);
+        const escF = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+        c.width = Math.round(img.naturalWidth * escF); c.height = Math.round(img.naturalHeight * escF);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         resolve({ b64: c.toDataURL('image/jpeg', 0.85).split(',')[1], w: img.naturalWidth, h: img.naturalHeight });
       };
       img.onerror = () => resolve(null);
@@ -1760,11 +1783,11 @@ async function gerarPDFData(r, dados) {
     doc.setPage(i);
     // Logo EIP Angola — canto superior esquerdo (excepto página 1 onde já está)
     if(i > 1) {
-      try { doc.addImage('data:image/png;base64,'+window._logoB64,'PNG',14,4,40,12); } catch(e){}
+      try { if(_logoEIPpdf) doc.addImage('data:image/png;base64,'+_logoEIPpdf,'PNG',14,4,40,12,'logoEIP','FAST'); } catch(e){}
     }
     // Logo cliente — canto superior direito (excepto página 1 onde já está)
     if(logoCliente && i > 1) {
-      try { doc.addImage('data:image/png;base64,'+logoCliente,'PNG',pW-54,4,40,12); } catch(e){}
+      try { if(_logoCliPdf) doc.addImage('data:image/png;base64,'+_logoCliPdf,'PNG',pW-54,4,40,12,'logoCliente','FAST'); } catch(e){}
     }
     // Linha separadora do cabeçalho (páginas > 1)
     if(i > 1) {
