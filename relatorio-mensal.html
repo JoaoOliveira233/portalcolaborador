@@ -1619,71 +1619,87 @@ async function gerarPDFData(r, dados) {
   ];
 
   // Render each chart in a hidden canvas and add to PDF
-  const renderChartToPDF = (def) => new Promise(resolve => {
+  // Desenha o gráfico com as MESMAS proporções do espaço que ocupa no PDF (sem deformação)
+  // PX_MM = píxeis lógicos por mm; DPR = multiplicador de resolução para nitidez na impressão
+  const PX_MM = 4, DPR = 4;
+  const PT = 1.41; // 1 pt tipográfico ≈ 1.41 px lógicos nesta escala
+  const renderChartToPDF = (def, wMm, hMm) => new Promise(resolve => {
+    const wPx = Math.round(wMm * PX_MM), hPx = Math.round(hMm * PX_MM);
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:absolute;left:-10000px;top:0;width:'+wPx+'px;height:'+hPx+'px;';
     const canvas = document.createElement('canvas');
-    canvas.width = 900; canvas.height = 350;
-    canvas.style.position = 'absolute'; canvas.style.left = '-9999px';
-    document.body.appendChild(canvas);
+    canvas.width = wPx; canvas.height = hPx;
+    canvas.style.width = wPx+'px'; canvas.style.height = hPx+'px';
+    holder.appendChild(canvas);
+    document.body.appendChild(holder);
+    const fundoBranco = { id:'fundoBranco', beforeDraw: (ch) => {
+      const cx = ch.ctx; cx.save(); cx.fillStyle = '#ffffff'; cx.fillRect(0,0,ch.width,ch.height); cx.restore();
+    }};
     const chart = new Chart(canvas, {
       type: def.type,
-      data: { labels: gLabels, datasets: def.datasets },
+      data: { labels: gLabels, datasets: def.datasets.map(ds => ({ ...ds, maxBarThickness: 12*PX_MM, borderWidth: def.type==='line' ? 2 : 0 })) },
       options: {
-        responsive: false, animation: false,
-        plugins: { legend: { position:'bottom', labels:{ font:{size:18}, boxWidth:18, padding:12 } } },
+        responsive: false, animation: false, devicePixelRatio: DPR,
+        layout: { padding: { top: 4, right: 6, bottom: 0, left: 0 } },
+        plugins: {
+          legend: { position:'bottom', labels:{ font:{ size: 8*PT, family:'Helvetica, Arial, sans-serif' }, boxWidth: 8*PT, boxHeight: 8*PT, padding: 6*PT } },
+          tooltip: { enabled:false }
+        },
         scales: {
-          x: { grid:{display:false}, ticks:{font:{size:16}, maxRotation:45} },
-          y: { beginAtZero:true, ticks:{font:{size:16}}, grid:{color:'rgba(0,0,0,.06)'} }
+          x: { grid:{ display:false }, ticks:{ font:{ size: 7.5*PT, family:'Helvetica, Arial, sans-serif' }, maxRotation:0, autoSkip:true, color:'#444' } },
+          y: { beginAtZero:true, ticks:{ font:{ size: 7.5*PT, family:'Helvetica, Arial, sans-serif' }, color:'#444', precision: def.type==='bar' ? 0 : undefined }, grid:{ color:'rgba(0,0,0,.08)' } }
         }
-      }
+      },
+      plugins: [fundoBranco]
     });
-    // Wait for chart to render
     setTimeout(() => {
       const img = canvas.toDataURL('image/png');
       chart.destroy();
-      document.body.removeChild(canvas);
+      document.body.removeChild(holder);
       resolve(img);
-    }, 300);
+    }, 150);
   });
 
   if(grafDefs.length > 0) {
     doc.addPage();
     let gy = 30;
-    // Title styled like other sections
     doc.setDrawColor(27,42,74); doc.setLineWidth(0);
     doc.setFillColor(27,42,74); doc.rect(14,gy-5,pW-28,10,'F');
     doc.setFontSize(12); doc.setTextColor(255); doc.setFont(undefined,'bold');
     doc.text('9. Gráficos Históricos',18,gy+2);
     doc.setTextColor(60); doc.setFont(undefined,'normal'); doc.setFontSize(10);
-    gy += 8;
+    gy += 10;
 
-    const gW2 = (pW - 36) / 2;  // largura de cada gráfico (2 por linha)
-    const gH2 = 100;              // altura de cada gráfico (4 por página, 2 linhas de 2)
-    const gGap = 8;               // espaço entre gráficos
+    // Layout: 2 colunas x 2 linhas por página, a ocupar a página toda
+    const gGap = 8;                                   // espaço horizontal entre gráficos
+    const gW2 = (pW - 28 - gGap) / 2;                 // largura de cada gráfico
+    const tituloH = 7;                                // espaço do título de cada gráfico
+    const rowGap = 8;                                 // espaço vertical entre linhas
+    const limiteInferior = pH - 18;                   // acima da linha do rodapé
+    const gH2 = ((limiteInferior - gy) - 2*tituloH - rowGap) / 2;  // altura de cada gráfico
 
     for(let i = 0; i < grafDefs.length; i += 2) {
       const def1 = grafDefs[i];
       const def2 = grafDefs[i+1] || null;
 
-      // Forçar nova página após os primeiros 4 gráficos (2 linhas)
+      // 4 gráficos por página: nova página a partir do 5.º
       if(i === 4) { doc.addPage(); gy = 30; }
 
-      const img1 = await renderChartToPDF(def1);
-      const img2 = def2 ? await renderChartToPDF(def2) : null;
+      const img1 = await renderChartToPDF(def1, gW2, gH2);
+      const img2 = def2 ? await renderChartToPDF(def2, gW2, gH2) : null;
 
-      // Título e gráfico 1 (esquerda)
-      doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
+      doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(27,42,74);
       doc.text(def1.title, 14, gy + 4);
-      doc.addImage(img1, 'PNG', 14, gy + 7, gW2, gH2);
+      doc.addImage(img1, 'PNG', 14, gy + tituloH, gW2, gH2);
 
-      // Título e gráfico 2 (direita)
       if(img2) {
         doc.text(def2.title, 14 + gW2 + gGap, gy + 4);
-        doc.addImage(img2, 'PNG', 14 + gW2 + gGap, gy + 7, gW2, gH2);
+        doc.addImage(img2, 'PNG', 14 + gW2 + gGap, gy + tituloH, gW2, gH2);
       }
 
-      gy += gH2 + 18;
+      gy += tituloH + gH2 + rowGap;
     }
-    // Após gráficos, forçar nova página para secção 8
+    // Após gráficos, nova página para a secção 10
     doc.addPage();
     y = 24;
   }
