@@ -1664,8 +1664,8 @@ async function gerarPDFData(r, dados) {
       const def1 = grafDefs[i];
       const def2 = grafDefs[i+1] || null;
 
-      // Se não cabe mais nesta página, nova página
-      if(gy + gH2 + 14 > pH - 16) { doc.addPage(); gy = 30; }
+      // Forçar nova página após os primeiros 4 gráficos (2 linhas)
+      if(i === 4) { doc.addPage(); gy = 30; }
 
       const img1 = await renderChartToPDF(def1);
       const img2 = def2 ? await renderChartToPDF(def2) : null;
