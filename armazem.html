@@ -318,7 +318,7 @@
       <!-- MOVIMENTOS -->
       <section class="page" id="page-movimentos">
         <div class="page-header">
-          <div><div class="page-title">Movimentos</div><div class="page-subtitle">Extrato de todas as entradas e saídas de stock</div></div>
+          <div><div class="page-title">Movimentos</div><div class="page-subtitle">Extrato de todas as entradas e saídas de stock — clique numa linha para abrir o registo (e corrigir ou apagar)</div></div>
         </div>
         <div class="card">
           <div class="toolbar">
@@ -627,7 +627,7 @@
     <div class="form-group" id="m-ativo-fg"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="m-ativo" checked> Armazém activo</label></div>
   </div>
   <div class="modal-footer">
-    <div class="left"><button class="btn btn-red btn-sm" id="m-apagar" onclick="apagarArmazem()">🗑️ Apagar</button></div>
+    <div class="left"><button class="btn btn-red btn-sm" id="m-apagar" onclick="apagarArmazemTudo(ARM_EDIT)">🗑️ Apagar</button></div>
     <button class="btn btn-outline" onclick="closeModal('modal-armazem')">Cancelar</button>
     <button class="btn btn-primary" onclick="guardarArmazem()">Guardar</button>
   </div>
@@ -669,7 +669,7 @@ const EST_PED = {
 };
 const TIPO_MOV = {
   entrada: 'Entrada', consumo: 'Consumo em obra', interno_saida: 'Mov. interno (saída)', interno_entrada: 'Mov. interno (entrada)',
-  transf_saida: 'Expedição (guia)', transf_entrada: 'Receção (guia)', ajuste: 'Ajuste', abate: 'Abate', anulacao: 'Anulação'
+  transf_saida: 'Expedição (guia)', transf_entrada: 'Receção (guia)', ajuste: 'Acerto de stock', abate: 'Abate', anulacao: 'Anulação'
 };
 const DECISAO = { devolver_origem: 'Devolvido à origem', receber_destino: 'Recebido no destino', perda: 'Dado como perdido' };
 const UNIDADES = ['un', 'm', 'km', 'kg', 'ton', 'l', 'm²', 'm³', 'rolo', 'bobine', 'cx', 'par', 'jogo', 'saco', 'conjunto', 'lata', 'balde'];
@@ -1131,9 +1131,31 @@ function drawStock() {
       { t: 'Artigo', h: r => `<strong>${esc(r.artigo_nome)}</strong>`, s: r => r.artigo_nome },
       { t: 'Un.', v: r => r.unidade },
       { t: 'Quantidade', cls: 'num', h: r => `<strong>${fmtQ(r.quantidade)}</strong>`, s: r => Number(r.quantidade) },
-      { t: 'Valor (USD)', cls: 'num hide-m', v: r => fmtU(r.valor_usd), s: r => Number(r.valor_usd ?? -1) }
+      { t: 'Valor (USD)', cls: 'num hide-m', v: r => fmtU(r.valor_usd), s: r => Number(r.valor_usd ?? -1) },
+      ...(IS_ADMIN ? [{ t: '', nosort: true, h: r => `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();acertarStock('${r.artigo_id}','${r.localizacao_id}',${Number(r.quantidade)})">✏️ Acertar</button>` }] : [])
     ], stockLinhasLocal(), { onRow: r => abrirArtigoDetalhe(r.artigo_id), empty: 'Nenhum stock com estes filtros', resetShown: true });
   }
+}
+function acertarStock(artId, locId, atual) {
+  const a = M.art[artId], l = M.loc[locId];
+  $('modal-gen2-box').className = 'modal';
+  $('gen2-title').textContent = '✏️ Acertar stock';
+  $('gen2-body').innerHTML = `<div id="acs-alert"></div>
+    <p style="font-size:14px;margin-bottom:12px;"><strong>${esc(a.codigo)} · ${esc(a.nome)}</strong><br><span class="muted">${esc(armNome(l.armazem_id))} / ${esc(l.nome)}</span></p>
+    <div class="form-row"><div class="form-group"><label>Quantidade actual</label><input type="text" value="${fmtQ(atual)} ${esc(a.unidade)}" disabled></div>
+    <div class="form-group"><label>Quantidade correcta <span class="req">*</span></label><input type="number" id="acs-q" min="0" step="0.001" value="${atual}"><div class="hint">Ponha 0 para retirar todo o stock.</div></div></div>
+    <div class="form-group"><label>Motivo <span class="req">*</span></label><input type="text" id="acs-mot" placeholder="Ex.: contagem física, registo errado, dados de teste…"></div>`;
+  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="acs-ok" onclick="confirmarAcerto('${artId}','${locId}')">Guardar acerto</button>`;
+  openModal('modal-gen2'); setTimeout(() => $('acs-q').select(), 50);
+}
+async function confirmarAcerto(artId, locId) {
+  const q = numVal('acs-q'), mot = $('acs-mot').value.trim();
+  if (q == null || isNaN(q) || q < 0) return showAlert('acs-alert', 'Indique uma quantidade válida (0 ou mais).');
+  if (!mot) return showAlert('acs-alert', 'Indique o motivo.');
+  $('acs-ok').disabled = true; loading(true);
+  try { const r = await rpc('arm_acertar_stock', { p_artigo: artId, p_localizacao: locId, p_quantidade: q, p_motivo: mot }); closeModal('modal-gen2'); toast('Stock acertado (' + r.numero + ')'); await refreshPage(); }
+  catch (e) { showAlert('acs-alert', errText(e)); }
+  $('acs-ok').disabled = false; loading(false);
 }
 async function exportStock(fmt) {
   loading(true);
@@ -1293,7 +1315,7 @@ async function apagarArtigo() {
   loading(true);
   try {
     const { error } = await sb.from('arm_artigos').delete().eq('id', a.id);
-    if (error) { if (/foreign key/i.test(error.message)) throw new Error('Este artigo já tem movimentos ou pedidos e não pode ser apagado. Pode desmarcar "Artigo activo" para o esconder.'); throw error; }
+    if (error) { if (/foreign key/i.test(error.message)) throw new Error('Este artigo ainda aparece em entradas, consumos, pedidos ou guias. Apague primeiro esses registos (em Movimentos, clique no registo) ou desmarque "Artigo activo" para o esconder.'); throw error; }
     if (a.foto_path) sb.storage.from('armazem-fotos').remove([a.foto_path]);
     await reloadArtigos(); closeModal('modal-artigo'); closeModal('modal-gen'); toast('Artigo apagado'); refreshPage();
   } catch (e) { showAlert('artigo-alert', errText(e)); }
@@ -1336,7 +1358,7 @@ function motivoOk() {
 function motivoResolve(v) { closeModal('modal-motivo'); $('mot-ok').className = 'btn btn-red'; const r = MOT_RESOLVE; MOT_RESOLVE = null; if (r) r(v); }
 
 /* ============================ OPERAÇÕES (entradas, consumos, internos) ============================ */
-const OPS = { entrada: [], consumo: [], interno: [] };
+const OPS = { entrada: [], consumo: [], interno: [], ajuste: [] };
 const OP_PREF = { entrada: 'en', consumo: 'co', interno: 'in' };
 async function loadOperacoes(tipo) {
   const p = OP_PREF[tipo], de = $(p + '-de').value, ate = $(p + '-ate').value;
@@ -1368,7 +1390,7 @@ function drawOperacoes(tipo) {
 function abrirOperacao(tipo, id) {
   const o = OPS[tipo].find(x => x.id === id); if (!o) return;
   $('modal-gen-box').className = 'modal lg';
-  $('gen-title').textContent = { entrada: '📥 Entrada ', consumo: '🏗️ Consumo ', interno: '🔀 Movimento interno ' }[tipo] + o.numero;
+  $('gen-title').textContent = { entrada: '📥 Entrada ', consumo: '🏗️ Consumo ', interno: '🔀 Mudança de localização ', ajuste: '✏️ Acerto de stock ' }[tipo] + o.numero;
   let info = `<div class="info-grid">
     <div><div class="k">Data</div><div class="v">${fmtD(o.data)}</div></div>
     <div><div class="k">Registado por</div><div class="v">${esc(profNome(o.created_by))}<div class="muted">${fmtDT(o.created_at)}</div></div></div>`;
@@ -1376,7 +1398,7 @@ function abrirOperacao(tipo, id) {
     <div><div class="k">Documento</div><div class="v">${esc(o.documento || '—')}</div></div>
     <div><div class="k">Moeda</div><div class="v">${esc(o.moeda || 'Sem preço')}${o.cambio ? ` · câmbio ${o.moeda === 'AOA' ? '1 USD = ' + fmtQ(o.cambio) + ' AOA' : '1 EUR = ' + fmtQ(o.cambio) + ' USD'}` : ''}</div></div>`;
   if (tipo === 'consumo') info += `<div><div class="k">Centro de custo</div><div class="v">${esc(ccNome(o.centro_custo_id))}</div></div>`;
-  if (o.observacoes) info += `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(o.observacoes)}</div></div>`;
+  if (o.observacoes) info += `<div style="grid-column:1/-1;"><div class="k">${tipo === 'ajuste' ? 'Motivo' : 'Observações'}</div><div class="v">${esc(o.observacoes)}</div></div>`;
   if (o.anulada) info += `<div style="grid-column:1/-1;"><div class="alert alert-error" style="margin:0;"><strong>Anulada</strong> em ${fmtDT(o.anulada_em)} por ${esc(profNome(o.anulada_por))}: ${esc(o.motivo_anulacao || '')}</div></div>`;
   info += '</div>';
   let tab;
@@ -1386,21 +1408,29 @@ function abrirOperacao(tipo, id) {
     tab = miniTable([{ t: 'Artigo', v: p => artLabel(p.s.artigo_id) }, { t: 'Armazém', v: p => armNome(p.s.armazem_id) }, { t: 'De', v: p => locNome(p.s.localizacao_id) }, { t: 'Para', v: p => p.e ? locNome(p.e.localizacao_id) : '—' }, { t: 'Qtd', cls: 'num', v: p => fmtQ(-p.s.quantidade) + ' ' + (M.art[p.s.artigo_id]?.unidade || '') }], pares);
     o._lin.forEach(m => delete m._u);
   } else {
-    const c = [{ t: 'Artigo', v: m => artLabel(m.artigo_id) }, { t: 'Armazém / localização', v: m => armNome(m.armazem_id) + ' / ' + locNome(m.localizacao_id) }, { t: 'Qtd', cls: 'num', v: m => fmtQ(Math.abs(m.quantidade)) + ' ' + (M.art[m.artigo_id]?.unidade || '') }];
+    const c = [{ t: 'Artigo', v: m => artLabel(m.artigo_id) }, { t: 'Armazém / localização', v: m => armNome(m.armazem_id) + ' / ' + locNome(m.localizacao_id) }, tipo === 'ajuste' ? { t: 'Acerto', cls: 'num', h: m => `<span class="${m.quantidade < 0 ? 'neg' : 'pos'}">${m.quantidade > 0 ? '+' : ''}${fmtQ(m.quantidade)}</span> ${esc(M.art[m.artigo_id]?.unidade || '')}` } : { t: 'Qtd', cls: 'num', v: m => fmtQ(Math.abs(m.quantidade)) + ' ' + (M.art[m.artigo_id]?.unidade || '') }];
     if (tipo === 'entrada') c.push({ t: 'Preço unit.', cls: 'num', v: m => m.preco_unit_orig == null ? '—' : fmtU(m.preco_unit_orig) + ' ' + (o.moeda || '') });
     c.push({ t: 'Valor (USD)', cls: 'num', v: m => fmtU(m.valor_usd == null ? null : Math.abs(m.valor_usd)) });
     tab = miniTable(c, o._lin);
   }
   $('gen-body').innerHTML = info + '<div class="sec-title">Linhas</div>' + tab;
-  $('gen-footer').innerHTML = (IS_ADMIN && !o.anulada ? `<div class="left"><button class="btn btn-red btn-sm" onclick="anularOperacao('${tipo}','${o.id}')">Anular operação</button></div>` : '') + `<button class="btn btn-primary" onclick="closeModal('modal-gen')">Fechar</button>`;
+  $('gen-footer').innerHTML = (IS_ADMIN ? `<div class="left"><button class="btn btn-red btn-sm" onclick="apagarOperacao('${tipo}','${o.id}')">🗑️ Apagar</button>${!o.anulada ? `<button class="btn btn-outline btn-sm" onclick="anularOperacao('${tipo}','${o.id}')">Anular (fica no histórico)</button>` : ''}</div>` : '') + `<button class="btn btn-primary" onclick="closeModal('modal-gen')">Fechar</button>`;
   openModal('modal-gen');
+}
+async function apagarOperacao(tipo, id) {
+  const o = OPS[tipo].find(x => x.id === id);
+  if (!(await confirmar('Apagar ' + o.numero, `Apagar definitivamente <strong>${esc(o.numero)}</strong>?<br><br>O stock volta a ficar como estava antes deste registo e o registo desaparece do histórico. Não é possível desfazer.`, true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { await rpc('arm_apagar_operacao', { p_operacao: id }); toast(o.numero + ' apagada'); closeModal('modal-gen'); await reloadArtigos(); if (PAGE === 'movimentos') await loadMovimentos(); else if (OP_PREF[tipo]) await loadOperacoes(tipo); else await refreshPage(); atualizarContadores(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
 }
 async function anularOperacao(tipo, id) {
   const o = OPS[tipo].find(x => x.id === id);
   const m = await pedirMotivo('Anular ' + o.numero, 'O stock será reposto como estava antes desta operação. A operação fica no histórico marcada como anulada.', 'Motivo da anulação', true, 'Anular');
   if (m == null) return;
   loading(true);
-  try { await rpc('arm_anular_operacao', { p_operacao: id, p_motivo: m }); toast(o.numero + ' anulada'); closeModal('modal-gen'); await reloadArtigos(); await loadOperacoes(tipo); }
+  try { await rpc('arm_anular_operacao', { p_operacao: id, p_motivo: m }); toast(o.numero + ' anulada'); closeModal('modal-gen'); await reloadArtigos(); if (PAGE === 'movimentos') await loadMovimentos(); else await loadOperacoes(tipo); }
   catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
@@ -1812,6 +1842,7 @@ async function abrirPedido(id) {
     if (p.estado === 'pendente' && (IS_ADMIN || (CAN_OP && p.solicitante_id === ME.id))) left += `<button class="btn btn-outline btn-sm" onclick="cancelarPedido('${p.id}')">Cancelar pedido</button>`;
     if (IS_ADMIN && p.estado === 'pendente') { left += `<button class="btn btn-red btn-sm" onclick="rejeitarPedido('${p.id}')">Rejeitar</button>`; right += `<button class="btn btn-success" onclick="abrirAprovacao('${p.id}')">✔ Aprovar…</button>`; }
     if (IS_ADMIN && ['aprovado', 'em_curso'].includes(p.estado)) left += `<button class="btn btn-outline btn-sm" onclick="fecharPedido('${p.id}')">Fechar pedido</button>`;
+    if (IS_ADMIN) left += `<button class="btn btn-red btn-sm" onclick="apagarPedido('${p.id}', ${guias.length})">🗑️ Apagar</button>`;
     if (CAN_OP && ['aprovado', 'em_curso'].includes(p.estado)) right += `<button class="btn btn-primary" onclick="abrirExpedicao('${p.id}')">🚚 Expedir…</button>`;
     $('gen-footer').innerHTML = `<div class="left">${left}</div>${right}<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
     openModal('modal-gen');
@@ -1819,6 +1850,14 @@ async function abrirPedido(id) {
   loading(false);
 }
 async function depoisDePedido() { if (PAGE === 'pedidos') await loadPedidos(); else if (PAGE === 'painel') await renderPainel(); atualizarContadores(); }
+async function apagarPedido(id, nGuias) {
+  const p = PED_CACHE[id];
+  if (!(await confirmar('Apagar ' + p.numero, `Apagar definitivamente o pedido <strong>${esc(p.numero)}</strong>${nGuias ? ` e as suas <strong>${nGuias} guia(s)</strong>` : ''}?<br><br>${nGuias ? 'Todo o material destas guias volta ao armazém de origem, como se nunca tivesse saído. ' : ''}Não é possível desfazer.`, true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { const r = await rpc('arm_apagar_pedido', { p_pedido: id }); toast('Pedido ' + r.numero + ' apagado' + (r.guias ? ` (com ${r.guias} guia(s))` : '')); closeModal('modal-gen'); await depoisDePedido(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
 async function cancelarPedido(id) {
   if (!(await confirmar('Cancelar pedido', 'Tem a certeza que quer cancelar este pedido?', true, 'Cancelar pedido'))) return;
   loading(true);
@@ -2071,7 +2110,8 @@ async function abrirGuia(id) {
       { t: 'Estado', h: d => d.estado === 'pendente' ? badge('Por resolver', 'b-red') : badge(DECISAO[d.decisao], 'b-gray') }], divs);
     $('gen-body').innerHTML = h;
     let left = '', right = '';
-    if (IS_ADMIN && g.estado === 'em_transito') left += `<button class="btn btn-red btn-sm" onclick="cancelarGuia('${g.id}')">Cancelar guia</button>`;
+    if (IS_ADMIN) left += `<button class="btn btn-red btn-sm" onclick="apagarGuia('${g.id}','${esc(g.numero)}','${g.estado}')">🗑️ Apagar</button>`;
+    if (IS_ADMIN && g.estado === 'em_transito') left += `<button class="btn btn-outline btn-sm" onclick="cancelarGuia('${g.id}')">Cancelar guia (fica no histórico)</button>`;
     if (CAN_OP && g.estado === 'em_transito') right += `<button class="btn btn-success" onclick="abrirRececao('${g.id}')">📦 Registar receção…</button>`;
     right += `<button class="btn btn-outline" onclick="gerarGuiaPDF('${g.id}')">📄 Imprimir guia</button>`;
     $('gen-footer').innerHTML = `<div class="left">${left}</div>${right}<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
@@ -2080,6 +2120,14 @@ async function abrirGuia(id) {
   loading(false);
 }
 async function depoisDeGuia() { if (PAGE === 'guias') await loadGuias(); else if (PAGE === 'painel') await renderPainel(); else if (PAGE === 'divergencias') await loadDivergencias(); else if (PAGE === 'pedidos') await loadPedidos(); atualizarContadores(); }
+async function apagarGuia(id, numero, estado) {
+  const txt = estado === 'recebida' ? 'O material sai do armazém de destino e volta à origem, como se a guia nunca tivesse existido.' : estado === 'em_transito' ? 'O material em trânsito volta ao armazém de origem.' : 'A guia já estava cancelada; só desaparece da lista.';
+  if (!(await confirmar('Apagar guia ' + numero, `Apagar definitivamente a guia <strong>${esc(numero)}</strong>?<br><br>${txt} O pedido volta a ficar por expedir. Se esta for a última guia do ano, o número volta a ser usado.<br><br>Não é possível desfazer.`, true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { await rpc('arm_apagar_guia', { p_guia: id }); toast('Guia ' + numero + ' apagada'); closeModal('modal-gen'); await depoisDeGuia(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
 async function cancelarGuia(id) {
   const m = await pedirMotivo('Cancelar guia', 'O material volta às localizações de origem e o pedido volta a ficar por expedir. O número da guia fica registado como <strong>cancelado</strong>.', 'Motivo do cancelamento', true, 'Cancelar guia');
   if (m == null) return;
@@ -2224,7 +2272,24 @@ async function loadMovimentos() {
       { t: 'Valor (USD)', cls: 'num hide-m', v: m => fmtU(m.valor_usd), s: m => Number(m.valor_usd ?? 0) },
       { t: 'Centro de custo', v: m => m.centro_custo_id ? ccNome(m.centro_custo_id) : '', cls: 'hide-m' },
       { t: 'Por', v: m => profNome(m.created_by), cls: 'hide-m' }
-    ], MOVS, { empty: 'Nenhum movimento com estes filtros', resetShown: true });
+    ], MOVS, { onRow: m => abrirRegistoDoMovimento(m), empty: 'Nenhum movimento com estes filtros', resetShown: true });
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function abrirRegistoDoMovimento(m) {
+  const tipo = m.arm_operacoes?.tipo;
+  loading(true);
+  try {
+    if (tipo === 'transferencia') {
+      const { data, error } = await sb.from('arm_guias').select('id').eq('operacao_id', m.operacao_id).single(); if (error) throw error;
+      loading(false); return abrirGuia(data.id);
+    }
+    if (!OPS[tipo]) throw new Error('Tipo de registo desconhecido');
+    const { data: o, error } = await sb.from('arm_operacoes').select('*, arm_movimentos(id,tipo,artigo_id,localizacao_id,armazem_id,quantidade,preco_unit_orig,custo_unit_usd,valor_usd,anula_movimento_id)').eq('id', m.operacao_id).single();
+    if (error) throw error;
+    o._lin = (o.arm_movimentos || []).filter(x => !x.anula_movimento_id && x.tipo !== 'anulacao');
+    OPS[tipo] = OPS[tipo].filter(x => x.id !== o.id).concat([o]);
+    abrirOperacao(tipo, o.id);
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
@@ -2628,7 +2693,7 @@ async function guardarEstaleiro() {
 async function apagarEstaleiro() {
   if (!(await confirmar('Apagar estaleiro', 'Apagar definitivamente este estaleiro?'))) return;
   loading(true);
-  try { const { error } = await sb.from('arm_estaleiros').delete().eq('id', EST_EDIT); if (error) { if (/foreign key/i.test(error.message)) throw new Error('Este estaleiro tem armazéns ou histórico e não pode ser apagado. Pode desmarcar "Estaleiro activo".'); throw error; } closeModal('modal-estaleiro'); toast('Estaleiro apagado'); await renderEstrutura(); refreshSelects(); }
+  try { await rpc('arm_apagar_estaleiro', { p_estaleiro: EST_EDIT }); closeModal('modal-estaleiro'); toast('Estaleiro apagado'); await renderEstrutura(); refreshSelects(); }
   catch (e) { showAlert('estaleiro-alert', errText(e)); }
   loading(false);
 }
@@ -2663,9 +2728,33 @@ async function abrirArmazemDetalhe(id, novo = false) {
       { t: 'Desde', v: x => fmtDT(x.desde) }, { t: 'Estaleiro', v: x => estNome(x.estaleiro_id) }, { t: 'Responsável', v: x => x.responsavel_id ? colNome(x.responsavel_id) : '—' }, { t: 'Alterado por', v: x => x.alterado_por ? profNome(x.alterado_por) : '—' }
     ], hist, 'Sem histórico');
     $('gen-body').innerHTML = h;
-    $('gen-footer').innerHTML = `<div class="left"><button class="btn btn-outline btn-sm" onclick="closeModal('modal-gen');verStockArmazem('${a.id}')">📦 Ver stock</button></div>` + (IS_ADMIN ? `<button class="btn btn-primary" onclick="openArmazem('${a.id}')">✏️ Editar${a.tipo === 'pessoa' ? '' : ' / mudar de estaleiro'}</button>` : '') + `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
+    const temStock = st.length > 0;
+    $('gen-footer').innerHTML = `<div class="left"><button class="btn btn-outline btn-sm" onclick="closeModal('modal-gen');verStockArmazem('${a.id}')">📦 Ver stock</button>` +
+      (IS_ADMIN && temStock ? `<button class="btn btn-outline btn-sm" onclick="esvaziarArmazem('${a.id}')">🧹 Esvaziar stock</button>` : '') +
+      (IS_ADMIN ? `<button class="btn btn-red btn-sm" onclick="apagarArmazemTudo('${a.id}')">🗑️ Apagar armazém</button>` : '') + `</div>` +
+      (IS_ADMIN ? `<button class="btn btn-primary" onclick="openArmazem('${a.id}')">✏️ Editar${a.tipo === 'pessoa' ? '' : ' / mudar de estaleiro'}</button>` : '') + `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
     openModal('modal-gen');
   } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function esvaziarArmazem(id) {
+  const m = await pedirMotivo('Esvaziar stock de ' + armNome(id), 'Todo o stock deste armazém passa a <strong>0</strong>. Fica registado como um acerto de stock (pode ser apagado depois, se for engano).', 'Motivo', true, '🧹 Esvaziar');
+  if (m == null) return;
+  loading(true);
+  try { const r = await rpc('arm_esvaziar_armazem', { p_armazem: id, p_motivo: m }); toast('Stock esvaziado (' + r.numero + ', ' + r.linhas + ' linhas)'); closeModal('modal-gen'); await abrirArmazemDetalhe(id); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function apagarArmazemTudo(id) {
+  const a = M.arm[id];
+  const m = await pedirMotivo('Apagar armazém ' + a.nome,
+    `<div class="alert alert-error" style="margin:0 0 10px;">Isto apaga o armazém <strong>${esc(a.nome)}</strong> e <strong>todo o seu histórico</strong>: entradas, consumos, acertos, e todos os pedidos e guias de e para este armazém. O material que veio de outros armazéns volta para lá, como se nunca tivesse saído.<br><br>Não é possível desfazer. Se o armazém foi usado a sério, é preferível só o <strong>desactivar</strong> (botão Editar).</div>`,
+    'Para confirmar, escreva APAGAR', true, '🗑️ Apagar tudo');
+  if (m == null) return;
+  if (m.trim().toUpperCase() !== 'APAGAR') return toast('Não foi apagado: tem de escrever APAGAR para confirmar.', 'err');
+  loading(true);
+  try { const r = await rpc('arm_apagar_armazem', { p_armazem: id }); toast(`Armazém ${r.nome} apagado (${r.pedidos} pedido(s), ${r.registos} registo(s))`); closeModal('modal-armazem'); closeModal('modal-gen'); await renderEstrutura(); await reloadArtigos(); atualizarContadores(); }
+  catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
 function verStockArmazem(id) {
@@ -2686,8 +2775,20 @@ function editarLocalizacao(id) {
   $('gen2-body').innerHTML = `<div id="loc-alert"></div><div class="form-group"><label>Nome <span class="req">*</span></label><input type="text" id="l-nome" value="${esc(l.nome)}"></div>
     <div class="form-group"><label>Observações</label><input type="text" id="l-obs" value="${esc(l.observacoes || '')}"></div>
     <div class="form-group"><label class="chk"><input type="checkbox" id="l-ativo" ${l.ativo ? 'checked' : ''}> Localização activa</label></div>`;
-  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" onclick="guardarLocalizacao('${id}')">Guardar</button>`;
+  $('gen2-footer').innerHTML = `<div class="left"><button class="btn btn-red btn-sm" onclick="apagarLocalizacao('${id}')">🗑️ Apagar</button></div><button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" onclick="guardarLocalizacao('${id}')">Guardar</button>`;
   openModal('modal-gen2');
+}
+async function apagarLocalizacao(id) {
+  const l = M.loc[id], arm = l.armazem_id;
+  if (locsDoArmazem(arm, false).length <= 1) return showAlert('loc-alert', 'Não pode apagar a única localização do armazém. Mude-lhe o nome se quiser.');
+  if (!(await confirmar('Apagar localização', `Apagar a localização <strong>${esc(l.nome)}</strong>?`))) return;
+  loading(true);
+  try {
+    const { error } = await sb.from('arm_localizacoes').delete().eq('id', id);
+    if (error) { if (/foreign key/i.test(error.message)) throw new Error('Esta localização tem stock ou registos. Mova o material e apague esses registos primeiro (ou desmarque "Localização activa").'); throw error; }
+    await reloadEstrutura(); if (PAGE === 'estrutura') drawArmazens(); closeModal('modal-gen2'); toast('Localização apagada'); closeModal('modal-gen'); abrirArmazemDetalhe(arm);
+  } catch (e) { showAlert('loc-alert', errText(e)); }
+  loading(false);
 }
 async function guardarLocalizacao(id) {
   const nome = $('l-nome').value.trim(); if (!nome) return showAlert('loc-alert', 'Indique o nome.');
@@ -2749,12 +2850,10 @@ async function guardarArmazem() {
   loading(false);
 }
 async function apagarArmazem() {
-  if (!(await confirmar('Apagar armazém', 'Apagar definitivamente este armazém? Só é possível se nunca teve movimentos.'))) return;
+  if (!(await confirmar('Apagar armazém', 'Apagar definitivamente este armazém e as suas localizações? Só é possível se não tiver stock nem registos (apague-os primeiro).'))) return;
   loading(true);
   try {
-    await sb.from('arm_localizacoes').delete().eq('armazem_id', ARM_EDIT);
-    const { error } = await sb.from('arm_armazens').delete().eq('id', ARM_EDIT);
-    if (error) { if (/foreign key/i.test(error.message)) throw new Error('Este armazém já tem movimentos, pedidos ou histórico e não pode ser apagado. Pode desmarcar "Armazém activo".'); throw error; }
+    await rpc('arm_apagar_armazem', { p_armazem: ARM_EDIT });
     closeModal('modal-armazem'); closeModal('modal-gen'); toast('Armazém apagado'); await renderEstrutura(); refreshSelects();
   } catch (e) { showAlert('armazem-alert', errText(e)); await reloadEstrutura(); }
   loading(false);
