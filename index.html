@@ -201,7 +201,7 @@
     <div class="portal-nav-item active" onclick="navigate('home')" id="nav-home">🏠 Início</div>
     <a class="portal-nav-item module-link" href="qsa.html" id="nav-qsa">🛡️ Portal QSA</a>
     <a class="portal-nav-item module-link" href="oficina.html" id="nav-oficina">🔩 Oficina</a>
-    <a class="portal-nav-item module-link" href="#" id="nav-armazem" style="opacity:.5;cursor:not-allowed;" onclick="return false;">📦 Armazém <span style="font-size:10px;background:rgba(255,255,255,.2);padding:1px 6px;border-radius:10px;margin-left:4px;">Em breve</span></a>
+    <a class="portal-nav-item module-link" href="armazem.html" id="nav-armazem">📦 Armazém</a>
     <a class="portal-nav-item module-link" href="rh.html" id="nav-rh">👔 Portal RH</a>
 
     <div class="portal-nav-item admin-only" onclick="navigate('utilizadores')" id="nav-users" style="display:none;">👥 Utilizadores <span id="nav-pending" style="display:none;background:var(--red);color:white;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;"></span></div>
@@ -229,12 +229,11 @@
           <div class="module-card-title">Portal Oficina</div>
           <div class="module-card-desc">Gestão de oficina e manutenção de equipamentos e viaturas.</div>
         </a>
-        <div class="module-card" style="opacity:.6;cursor:not-allowed;">
+        <a class="module-card" href="armazem.html">
           <div class="module-card-icon">📦</div>
           <div class="module-card-title">Portal Armazém</div>
           <div class="module-card-desc">Gestão de armazém, materiais e requisições.</div>
-          <span class="module-card-badge">Em breve</span>
-        </div>
+        </a>
         <a class="module-card" href="rh.html">
           <div class="module-card-icon">👔</div>
           <div class="module-card-title">Portal RH</div>
@@ -290,8 +289,10 @@
             <thead><tr>
               <th class="sortable" onclick="sortTable('users-body',0,'str')">Nome / Email</th>
               <th class="sortable" onclick="sortTable('users-body',1,'str')">Papel</th>
+              <th>Colaborador (RH)</th>
+              <th>Armazém</th>
               <th>Estado</th>
-              <th class="sortable" onclick="sortTable('users-body',3,'date')">Desde</th>
+              <th class="sortable" onclick="sortTable('users-body',5,'date')">Desde</th>
               <th>Ações</th>
             </tr></thead>
             <tbody id="users-body"></tbody>
@@ -570,7 +571,7 @@ async function loadProfile() {
     document.getElementById('app-screen').style.display = 'flex';
     const nomeCompleto = data.nome || data.email;
     document.getElementById('topbar-user-name').textContent = window.innerWidth < 768 ? nomeCompleto.split(' ')[0] : nomeCompleto;
-    const roleLabels = {"admin": "Administrador", "tqs": "Técnico QSA", "apontador": "Apontador", "mecanico": "Mecânico", "gestor_oficina": "Gestor de Oficina", "viewer": "Visualizador"};
+    const roleLabels = {"admin": "Administrador", "tqs": "Técnico QSA", "apontador": "Apontador", "mecanico": "Mecânico", "gestor_oficina": "Gestor de Oficina", "encarregado": "Encarregado", "viewer": "Visualizador"};
     const roleEl = document.getElementById('topbar-user-role');
     if (roleEl) roleEl.textContent = roleLabels[data.role] || data.role;
     const isAdmin = data.role === 'admin';
@@ -603,8 +604,12 @@ function navigate(page) {
 let allColabs = [];
 
 async function loadColabs() {
-  const { data } = await sb.from('colaboradores').select('*').order('nome');
-  allColabs = data || [];
+  let all = [], from = 0, chunk;
+  do {
+    const { data } = await sb.from('colaboradores').select('*').order('nome').order('id').range(from, from + 999);
+    chunk = data || []; all = all.concat(chunk); from += 1000;
+  } while (chunk.length === 1000);
+  allColabs = all;
   renderColabs();
 }
 
@@ -695,9 +700,35 @@ async function renderUtilizadores() {
 
   const body = document.getElementById('users-body');
   const activeUsers = (users || []).filter(u => u.ativo && u.role !== 'pendente');
-  const roles = ['admin','tqs','apontador','mecanico','gestor_oficina','viewer'];
-  const roleLabel = { admin:'Admin', tqs:'TQS', apontador:'Apontador', mecanico:'Mecânico', gestor_oficina:'Gestor Oficina', viewer:'Viewer' };
-  const roleBadge = { admin:'badge-blue', tqs:'badge-green', apontador:'badge-blue', mecanico:'badge-gray', gestor_oficina:'badge-gray', viewer:'badge-gray' };
+  const roles = ['admin','tqs','apontador','mecanico','gestor_oficina','encarregado','viewer'];
+  const roleLabel = { admin:'Admin', tqs:'TQS', apontador:'Apontador', mecanico:'Mecânico', gestor_oficina:'Gestor Oficina', encarregado:'Encarregado', viewer:'Viewer' };
+  const roleBadge = { admin:'badge-blue', tqs:'badge-green', apontador:'badge-blue', mecanico:'badge-gray', gestor_oficina:'badge-gray', encarregado:'badge-blue', viewer:'badge-gray' };
+  // Acesso ao armazém (tabela arm_acessos) — se a tabela ainda não existir, mostra "—"
+  let armAcessos = null;
+  try {
+    let all = [], from = 0, chunk;
+    do {
+      const { data, error } = await sb.from('arm_acessos').select('profile_id,nivel').order('profile_id').range(from, from + 999);
+      if (error) throw error;
+      chunk = data || []; all = all.concat(chunk); from += 1000;
+    } while (chunk.length === 1000);
+    armAcessos = {}; all.forEach(a => armAcessos[a.profile_id] = a.nivel);
+  } catch (e) { armAcessos = null; }
+  const colabsAtivos = allColabs.filter(c => c.ativo !== false);
+  const selColab = u => `<select onchange="changeColab('${u.id}', this)" style="padding:4px 8px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:12px;font-family:'Barlow',sans-serif;max-width:200px;">
+      <option value="">— não ligado —</option>
+      ${(u.colaborador_id && !colabsAtivos.some(c => c.id === u.colaborador_id) ? allColabs.filter(c => c.id === u.colaborador_id) : []).concat(colabsAtivos).map(c => `<option value="${c.id}" ${u.colaborador_id===c.id?'selected':''}>${(c.nome || '').replace(/</g,'&lt;')} (${c.numero_mecanografico})</option>`).join('')}
+    </select>`;
+  const selArm = u => {
+    if (u.role === 'admin') return '<span class="badge badge-blue">Admin</span>';
+    if (!armAcessos) return '<span style="font-size:12px;color:var(--gray-400);">—</span>';
+    const n = armAcessos[u.id] || 'consulta';
+    return `<select onchange="changeArmAcesso('${u.id}', this.value)" style="padding:4px 8px;border:1.5px solid var(--gray-200);border-radius:6px;font-size:12px;font-family:'Barlow',sans-serif;">
+      <option value="consulta" ${n==='consulta'?'selected':''}>Consulta</option>
+      <option value="operador" ${n==='operador'?'selected':''}>Operador</option>
+      <option value="sem_acesso" ${n==='sem_acesso'?'selected':''}>Sem acesso</option>
+    </select>`;
+  };
   body.innerHTML = activeUsers.map(u => `
     <tr>
       <td><strong>${u.nome || '—'}</strong><br><span style="font-size:12px;color:var(--gray-400);">${u.email}</span></td>
@@ -707,6 +738,8 @@ async function renderUtilizadores() {
           ${roles.map(r => `<option value="${r}" ${u.role===r?'selected':''}>${roleLabel[r]}</option>`).join('')}
         </select>` : `<span class="badge badge-blue">Admin (você)</span>`}
       </td>
+      <td>${selColab(u)}</td>
+      <td>${selArm(u)}</td>
       <td><span class="badge badge-green">Ativo</span></td>
       <td style="font-size:13px;color:var(--gray-400);">${u.created_at?.slice(0,10) || ''}</td>
       <td style="display:flex;gap:6px;">${u.id !== currentUser.id ? `
@@ -723,7 +756,20 @@ async function approveUser(id) {
 }
 
 async function changeRole(id, role) {
-  await sb.from('profiles').update({ role }).eq('id', id);
+  const { error } = await sb.from('profiles').update({ role }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return renderUtilizadores(); }
+  renderUtilizadores();
+}
+async function changeColab(id, sel) {
+  const { error } = await sb.from('profiles').update({ colaborador_id: sel.value || null }).eq('id', id);
+  if (error) {
+    alert(/profiles_colaborador_id_uniq|duplicate/i.test(error.message) ? 'Este colaborador já está ligado a outro utilizador.' : 'Erro: ' + error.message);
+    return renderUtilizadores();
+  }
+}
+async function changeArmAcesso(id, nivel) {
+  const { error } = await sb.from('arm_acessos').upsert({ profile_id: id, nivel, updated_at: new Date().toISOString(), updated_by: currentUser.id }, { onConflict: 'profile_id' });
+  if (error) { alert('Erro: ' + error.message); return renderUtilizadores(); }
 }
 async function rejectUser(id) {
   if (!confirm('Recusar este utilizador?')) return;
