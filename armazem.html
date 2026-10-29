@@ -454,7 +454,6 @@
           </div></div>
           <div class="card rep-card"><div class="card-head"><div class="card-title">👷 Material à guarda de pessoas</div></div><div class="card-body">
             <p>O que cada pessoa (encarregados, chefes de equipa) tem à sua guarda.</p>
-            <div class="form-group"><label>Estaleiro</label><select class="inp" id="r2-est"></select></div>
             <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repPessoas('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repPessoas('xlsx')">📊 Excel</button></div>
           </div></div>
           <div class="card rep-card"><div class="card-head"><div class="card-title">🏗️ Consumos por centro de custo</div></div><div class="card-body">
@@ -484,13 +483,14 @@
         <div class="page-header">
           <div><div class="page-title">Estaleiros e armazéns</div><div class="page-subtitle">Armazéns físicos, armazéns de pessoas e de viaturas, por estaleiro</div></div>
           <div class="page-actions">
-            <div class="tabs"><div class="tab active" id="etab-arm" onclick="setEstTab('arm')">Armazéns</div><div class="tab" id="etab-est" onclick="setEstTab('est')">Estaleiros</div></div>
+            <div class="tabs"><div class="tab active" id="etab-arm" onclick="setEstTab('arm')">🏭 Armazéns</div><div class="tab" id="etab-est" onclick="setEstTab('est')">🏗️ Estaleiros</div></div>
           </div>
         </div>
         <div class="card" id="est-arm-card">
           <div class="toolbar">
             <div class="fg grow"><span class="lbl">Pesquisar</span><input class="inp" id="ea-q" placeholder="Nome, código, responsável..." oninput="drawArmazens()"></div>
             <div class="fg"><span class="lbl">Estaleiro</span><select class="inp" id="ea-est" onchange="drawArmazens()"></select></div>
+            <div class="fg only-admin" style="min-width:auto;"><span class="lbl">&nbsp;</span><button class="btn btn-outline btn-sm" onclick="setEstTab('est')">🏗️ Gerir estaleiros</button></div>
             <div class="fg"><span class="lbl">Tipo</span><select class="inp" id="ea-tipo" onchange="drawArmazens()"><option value="">Todos</option><option value="fisico">Físicos</option><option value="pessoa">Pessoas</option><option value="viatura">Viaturas</option></select></div>
             <div class="fg"><span class="lbl">Estado</span><select class="inp" id="ea-ativo" onchange="drawArmazens()"><option value="1">Activos</option><option value="0">Inactivos</option><option value="">Todos</option></select></div>
             <div class="fg only-admin" style="min-width:auto;"><span class="lbl">&nbsp;</span><button class="btn btn-primary btn-sm" onclick="openArmazem()">+ Novo armazém</button></div>
@@ -594,7 +594,7 @@
 </div></div>
 
 <!-- Estaleiro -->
-<div class="modal-overlay" id="modal-estaleiro"><div class="modal">
+<div class="modal-overlay" id="modal-estaleiro" style="z-index:270;"><div class="modal">
   <div class="modal-header"><span class="modal-title" id="estaleiro-title">🏗️ Novo estaleiro</span><button class="modal-close" onclick="closeModal('modal-estaleiro')">×</button></div>
   <div class="modal-body">
     <div id="estaleiro-alert"></div>
@@ -620,7 +620,9 @@
     <div class="form-group" id="m-resp-fg"><label id="m-resp-label">Responsável <span class="req">*</span></label><input type="text" id="m-resp" class="inp" placeholder="Escreva o nome ou nº mecanográfico"></div>
     <div class="form-group" id="m-via-fg" style="display:none;"><label>Viatura <span class="req">*</span></label><select id="m-via" onchange="armazemViaturaMudou()"></select></div>
     <div class="form-group"><label>Nome <span class="req">*</span></label><input type="text" id="m-nome" placeholder="Ex.: Armazém de Linhas"></div>
-    <div class="form-group"><label>Estaleiro onde está <span class="req">*</span></label><select id="m-est"></select><div class="hint" id="m-est-hint"></div></div>
+    <div class="form-group" id="m-est-fg"><label id="m-est-label">Estaleiro onde está <span class="req">*</span></label>
+      <div style="display:flex;gap:6px;"><select id="m-est" style="flex:1;"></select><button class="btn btn-outline btn-sm" type="button" title="Criar estaleiro novo" onclick="openEstaleiro(null, e => { fillEstSelect('m-est', false, true, e.id); armazemTipoMudou(); })">+ Estaleiro</button></div>
+      <div class="hint" id="m-est-hint"></div></div>
     <div class="form-group"><label>Observações</label><textarea id="m-obs" rows="2"></textarea></div>
     <div class="form-group" id="m-ativo-fg"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="m-ativo" checked> Armazém activo</label></div>
   </div>
@@ -756,9 +758,9 @@ function download(blob, nome) {
 function nomeFicheiro(base, ext) { return 'EIP_Angola_' + base.replace(/[^\w\-]+/g, '_') + '_' + hoje() + '.' + ext; }
 
 /* ===================== ETIQUETAS / CONSULTAS RÁPIDAS ===================== */
-function estNome(id) { return M.est[id]?.nome || '—'; }
+function estNome(id) { return id ? (M.est[id]?.nome || '—') : 'Sem estaleiro'; }
 function armNome(id) { return M.arm[id]?.nome || '—'; }
-function armLabel(id) { const a = M.arm[id]; return a ? `${a.nome} · ${estNome(a.estaleiro_id)}` : '—'; }
+function armLabel(id) { const a = M.arm[id]; return !a ? '—' : a.estaleiro_id ? `${a.nome} · ${estNome(a.estaleiro_id)}` : a.tipo === 'pessoa' ? `${a.nome} (pessoa)` : a.nome; }
 function locNome(id) { return M.loc[id]?.nome || '—'; }
 function artLabel(id) { const a = M.art[id]; return a ? `${a.codigo} · ${a.nome}` : '—'; }
 function colNome(id) { return M.col[id]?.nome || '—'; }
@@ -785,11 +787,11 @@ function fillArmSelect(id, estId = '', todos = false, soAtivos = true, sel = '',
   const el = $(id); if (!el) return;
   let arms = D.armazens.filter(a => (!soAtivos || a.ativo) && (!estId || a.estaleiro_id === estId) && a.id !== excluir);
   const grupos = {};
-  arms.forEach(a => { (grupos[a.estaleiro_id] = grupos[a.estaleiro_id] || []).push(a); });
-  const ordemEst = Object.keys(grupos).sort((x, y) => estNome(x).localeCompare(estNome(y), 'pt'));
+  arms.forEach(a => { const k = a.estaleiro_id || ''; (grupos[k] = grupos[k] || []).push(a); });
+  const ordemEst = Object.keys(grupos).sort((x, y) => (x === '') - (y === '') || estNome(x).localeCompare(estNome(y), 'pt'));
   let h = todos ? '<option value="">Todos</option>' : '<option value="">— escolher armazém —</option>';
   ordemEst.forEach(eid => {
-    h += `<optgroup label="${esc(estNome(eid))}">` + grupos[eid].sort((x, y) => {
+    h += `<optgroup label="${eid ? esc(estNome(eid)) : 'Pessoas / sem estaleiro'}">` + grupos[eid].sort((x, y) => {
       const o = { fisico: 0, viatura: 1, pessoa: 2 }; return (o[x.tipo] - o[y.tipo]) || x.nome.localeCompare(y.nome, 'pt');
     }).map(a => `<option value="${a.id}">${a.tipo === 'pessoa' ? '👷 ' : a.tipo === 'viatura' ? '🚚 ' : '🏭 '}${esc(a.nome)}</option>`).join('') + '</optgroup>';
   });
@@ -987,10 +989,10 @@ async function reloadFornecedores() { D.fornecedores = await fetchAll('fornecedo
 
 function refreshSelects() {
   const keep = id => $(id).value;
-  const v = { st: keep('st-est'), sa: keep('st-arm'), r1: keep('r1-est'), r1a: keep('r1-arm'), r2: keep('r2-est'), r3: keep('r3-cc'), ea: keep('ea-est'), mv: keep('mv-arm') };
+  const v = { st: keep('st-est'), sa: keep('st-arm'), r1: keep('r1-est'), r1a: keep('r1-arm'), r3: keep('r3-cc'), ea: keep('ea-est'), mv: keep('mv-arm') };
   fillEstSelect('st-est', true, true, v.st); fillArmSelect('st-arm', v.st, true, true, v.sa);
-  fillEstSelect('r1-est', true, true, v.r1); fillArmSelect('r1-arm', v.r1, true, true, v.r1a); fillEstSelect('r2-est', true, true, v.r2); fillCCSelect('r3-cc', true, v.r3);
-  fillEstSelect('ea-est', true, false, v.ea);
+  fillEstSelect('r1-est', true, true, v.r1); fillArmSelect('r1-arm', v.r1, true, true, v.r1a);  fillCCSelect('r3-cc', true, v.r3);
+  fillEstSelect('ea-est', true, false); $('ea-est').insertAdjacentHTML('beforeend', '<option value="__sem">Sem estaleiro</option>'); $('ea-est').value = v.ea;
   fillArmSelect('mv-arm', '', true, false, v.mv);
 }
 function initFiltros() {
@@ -1122,7 +1124,7 @@ function drawStock() {
     ], stockLinhasArtigo(), { onRow: r => abrirArtigoDetalhe(r.artigo_id), empty: 'Nenhum artigo encontrado', resetShown: true });
   } else {
     renderTable('tbl-stock', [
-      { t: 'Estaleiro', v: r => r.estaleiro_nome, cls: 'hide-m' },
+      { t: 'Estaleiro', v: r => r.armazem_tipo === 'pessoa' ? '—' : r.estaleiro_nome, cls: 'hide-m' },
       { t: 'Armazém', h: r => `${r.armazem_tipo === 'pessoa' ? '👷' : r.armazem_tipo === 'viatura' ? '🚚' : '🏭'} ${esc(r.armazem_nome)}`, s: r => r.armazem_nome },
       { t: 'Localização', v: r => r.localizacao_nome },
       { t: 'Código', v: r => r.artigo_codigo, cls: 'nowrap' },
@@ -2231,7 +2233,7 @@ async function repInventarioDados(rows, fmt, sub, estId) {
       totais: ['TOTAL', '', '', '', '', '', '', '', '', '', tot] }]);
   } else {
     const grupos = []; let atual = null;
-    rows.forEach(r => { if (!atual || atual.id !== r.armazem_id) { atual = { id: r.armazem_id, titulo: `${r.armazem_nome} — ${r.estaleiro_nome} (${{ fisico: 'armazém físico', pessoa: 'à guarda de pessoa', viatura: 'viatura' }[r.armazem_tipo]})`, linhas: [] }; grupos.push(atual); } atual.linhas.push(r); });
+    rows.forEach(r => { if (!atual || atual.id !== r.armazem_id) { atual = { id: r.armazem_id, titulo: r.armazem_tipo === 'pessoa' ? `${r.armazem_nome} (à guarda de pessoa)` : `${r.armazem_nome} — ${r.estaleiro_nome} (${{ fisico: 'armazém físico', viatura: 'viatura' }[r.armazem_tipo]})`, linhas: [] }; grupos.push(atual); } atual.linhas.push(r); });
     await pdfTabela({ titulo: 'Inventário por armazém', subtitulo: sub, ccId: cc, ficheiro: 'Inventario',
       colunas: [{ h: 'Localização', w: 24 }, { h: 'Código', w: 18 }, { h: 'NSAP', w: 18 }, { h: 'Artigo' }, { h: 'Un.', w: 10 }, { h: 'Qtd', w: 18, f: 'q' }, { h: 'Valor USD', w: 22, f: 'usd' }],
       grupos: grupos.map(g => ({ titulo: g.titulo, linhas: g.linhas.map(r => [r.localizacao_nome, r.artigo_codigo, r.nsap || '', r.artigo_nome, r.unidade, +r.quantidade, r.valor_usd == null ? null : +r.valor_usd]), subtotal: g.linhas.reduce((s, r) => s + Number(r.valor_usd || 0), 0) })),
@@ -2241,19 +2243,19 @@ async function repInventarioDados(rows, fmt, sub, estId) {
 async function repPessoas(fmt) {
   loading(true);
   try {
-    const est = $('r2-est').value;
-    const rows = await fetchAll('arm_v_stock', '*', q => { q = q.eq('armazem_tipo', 'pessoa'); if (est) q = q.eq('estaleiro_id', est); return q.order('armazem_nome').order('artigo_codigo').order('localizacao_id'); });
-    const sub = (est ? 'Estaleiro: ' + estNome(est) : 'Todos os estaleiros');
+    const est = '';
+    const rows = await fetchAll('arm_v_stock', '*', q => q.eq('armazem_tipo', 'pessoa').order('armazem_nome').order('artigo_codigo').order('localizacao_id'));
+    const sub = 'Todas as pessoas com material à guarda';
     const pessoa = r => { const a = M.arm[r.armazem_id]; const c = M.col[a?.responsavel_id]; return c ? `${c.nome} (nº ${c.numero_mecanografico})` : r.armazem_nome; };
     const tot = rows.reduce((s, r) => s + Number(r.valor_usd || 0), 0);
     if (fmt === 'xlsx') {
-      await exportarExcel('Material_a_guarda', 'Material à guarda de pessoas', sub, [{ nome: 'À guarda', ccId: est ? M.est[est]?.centro_custo_id : null, colunas: [{ h: 'Pessoa', w: 32 }, { h: 'Estaleiro', w: 20 }, { h: 'Código', w: 11 }, { h: 'NSAP', w: 12 }, { h: 'Artigo', w: 42 }, { h: 'Un.', w: 7 }, { h: 'Quantidade', w: 12, f: 'q' }, { h: 'Valor USD', w: 14, f: 'usd' }],
-        linhas: rows.map(r => [pessoa(r), r.estaleiro_nome, r.artigo_codigo, r.nsap || '', r.artigo_nome, r.unidade, +r.quantidade, r.valor_usd == null ? null : +r.valor_usd]), totais: ['TOTAL', '', '', '', '', '', '', tot] }]);
+      await exportarExcel('Material_a_guarda', 'Material à guarda de pessoas', sub, [{ nome: 'À guarda', colunas: [{ h: 'Pessoa', w: 34 }, { h: 'Código', w: 11 }, { h: 'NSAP', w: 12 }, { h: 'Artigo', w: 42 }, { h: 'Un.', w: 7 }, { h: 'Quantidade', w: 12, f: 'q' }, { h: 'Valor USD', w: 14, f: 'usd' }],
+        linhas: rows.map(r => [pessoa(r), r.artigo_codigo, r.nsap || '', r.artigo_nome, r.unidade, +r.quantidade, r.valor_usd == null ? null : +r.valor_usd]), totais: ['TOTAL', '', '', '', '', '', tot] }]);
     } else {
       const g = {}; rows.forEach(r => (g[r.armazem_id] = g[r.armazem_id] || []).push(r));
-      await pdfTabela({ titulo: 'Material à guarda de pessoas', subtitulo: sub, ccId: est ? M.est[est]?.centro_custo_id : null, ficheiro: 'Material_a_guarda',
+      await pdfTabela({ titulo: 'Material à guarda de pessoas', subtitulo: sub, ficheiro: 'Material_a_guarda',
         colunas: [{ h: 'Código', w: 20 }, { h: 'NSAP', w: 20 }, { h: 'Artigo' }, { h: 'Un.', w: 12 }, { h: 'Qtd', w: 20, f: 'q' }, { h: 'Valor USD', w: 24, f: 'usd' }],
-        grupos: Object.values(g).map(ls => ({ titulo: pessoa(ls[0]) + ' — ' + ls[0].estaleiro_nome, linhas: ls.map(r => [r.artigo_codigo, r.nsap || '', r.artigo_nome, r.unidade, +r.quantidade, r.valor_usd == null ? null : +r.valor_usd]), subtotal: ls.reduce((s, r) => s + Number(r.valor_usd || 0), 0), assinatura: true })),
+        grupos: Object.values(g).map(ls => ({ titulo: pessoa(ls[0]), linhas: ls.map(r => [r.artigo_codigo, r.nsap || '', r.artigo_nome, r.unidade, +r.quantidade, r.valor_usd == null ? null : +r.valor_usd]), subtotal: ls.reduce((s, r) => s + Number(r.valor_usd || 0), 0), assinatura: true })),
         totais: ['TOTAL GERAL', '', '', '', '', tot] });
     }
   } catch (e) { toast(errText(e), 'err'); }
@@ -2449,8 +2451,8 @@ async function gerarGuiaPDF(id) {
         ['Pedido', (g.arm_pedidos?.numero || '') + ' · ' + (TIPO_PED[g.arm_pedidos?.tipo] || '')]
       ]);
       const y2 = caixa(14 + cw + 6, 34, cw, 'DESTINO', [
-        ['Armazém', armNome(g.destino_armazem_id)],
-        ['Estaleiro', estNome(destA?.estaleiro_id)],
+        ['Armazém', armNome(g.destino_armazem_id) + (destA?.tipo === 'pessoa' ? ' (à guarda de pessoa)' : '')],
+        ...(destA?.estaleiro_id ? [['Estaleiro', estNome(destA.estaleiro_id)]] : []),
         ['Responsável', armResponsavel(g.destino_armazem_id)],
         ['Local de descarga', g.local_descarga],
         ['Receção prevista', fmtD(g.data_prevista)]
@@ -2544,16 +2546,16 @@ function setEstTab(t) {
   $('est-arm-card').style.display = t === 'arm' ? '' : 'none'; $('est-est-card').style.display = t === 'est' ? '' : 'none';
   t === 'arm' ? drawArmazens() : drawEstaleiros();
 }
-async function renderEstrutura() { await reloadEstrutura(); refreshSelects(); setEstTab(EST_TAB); }
+async function renderEstrutura() { await reloadEstrutura(); refreshSelects(); if (!D.estaleiros.length) EST_TAB = 'est'; setEstTab(EST_TAB); }
 function drawArmazens() {
   const q = norm($('ea-q').value).split(/\s+/).filter(Boolean), est = $('ea-est').value, tipo = $('ea-tipo').value, at = $('ea-ativo').value;
-  const rows = D.armazens.filter(a => (!est || a.estaleiro_id === est) && (!tipo || a.tipo === tipo) && (at === '' || String(+a.ativo) === at) &&
+  const rows = D.armazens.filter(a => (!est || (est === '__sem' ? !a.estaleiro_id : a.estaleiro_id === est)) && (!tipo || a.tipo === tipo) && (at === '' || String(+a.ativo) === at) &&
     (!q.length || q.every(w => norm(`${a.codigo} ${a.nome} ${armResponsavel(a.id)} ${a.viatura_id ? viaLabel(a.viatura_id) : ''} ${estNome(a.estaleiro_id)}`).includes(w))));
   renderTable('tbl-armazens', [
     { t: 'Código', v: a => a.codigo, cls: 'nowrap' },
     { t: 'Nome', h: a => `<strong>${esc(a.nome)}</strong>`, s: a => a.nome },
     { t: 'Tipo', v: a => TIPO_ARM[a.tipo] },
-    { t: 'Estaleiro', v: a => estNome(a.estaleiro_id) },
+    { t: 'Estaleiro', v: a => a.tipo === 'pessoa' ? '—' : estNome(a.estaleiro_id) },
     { t: 'Responsável', h: a => esc(armResponsavel(a.id)) + (a.viatura_id ? `<div class="muted">${esc(viaLabel(a.viatura_id))}</div>` : '') },
     { t: 'Localizações', cls: 'num', v: a => locsDoArmazem(a.id).length },
     { t: 'Estado', h: a => a.ativo ? badge('Activo', 'b-green') : badge('Inactivo', 'b-gray'), s: a => +a.ativo }
@@ -2568,10 +2570,10 @@ function drawEstaleiros() {
     { t: 'Estado', h: e => e.ativo ? badge('Activo', 'b-green') : badge('Inactivo', 'b-gray') }
   ], D.estaleiros, { onRow: IS_ADMIN ? e => openEstaleiro(e.id) : null, empty: 'Ainda não há estaleiros. Comece por criar o Estaleiro Central.' });
 }
-let EST_EDIT = null;
-function openEstaleiro(id = null) {
+let EST_EDIT = null, EST_CB = null;
+function openEstaleiro(id = null, cb = null) {
   if (!IS_ADMIN) return;
-  EST_EDIT = id; const e = id ? M.est[id] : null;
+  EST_EDIT = id; EST_CB = cb; const e = id ? M.est[id] : null;
   $('estaleiro-title').textContent = e ? '✏️ Editar estaleiro' : '🏗️ Novo estaleiro';
   $('e-nome').value = e?.nome || ''; $('e-codigo').value = e?.codigo || ''; $('e-obs').value = e?.observacoes || ''; $('e-ativo').checked = e ? e.ativo : true;
   fillCCSelect('e-cc', false, e?.centro_custo_id || ''); $('e-cc').options[0].text = '— nenhum —';
@@ -2583,9 +2585,11 @@ async function guardarEstaleiro() {
   if (!payload.nome) return showAlert('estaleiro-alert', 'Indique o nome.');
   loading(true);
   try {
-    const r = EST_EDIT ? await sb.from('arm_estaleiros').update(payload).eq('id', EST_EDIT) : await sb.from('arm_estaleiros').insert(payload);
+    const r = EST_EDIT ? await sb.from('arm_estaleiros').update(payload).eq('id', EST_EDIT).select().single() : await sb.from('arm_estaleiros').insert(payload).select().single();
     if (r.error) throw r.error;
-    closeModal('modal-estaleiro'); toast('Estaleiro guardado'); await renderEstrutura(); refreshSelects();
+    closeModal('modal-estaleiro'); toast('Estaleiro guardado');
+    if (EST_CB) { await reloadEstrutura(); refreshSelects(); EST_CB(r.data); if (PAGE === 'estrutura') drawArmazens(); }
+    else { await renderEstrutura(); refreshSelects(); }
   } catch (e) { showAlert('estaleiro-alert', errText(e)); }
   loading(false);
 }
@@ -2610,7 +2614,7 @@ async function abrirArmazemDetalhe(id) {
     $('gen-title').innerHTML = `${a.tipo === 'pessoa' ? '👷' : a.tipo === 'viatura' ? '🚚' : '🏭'} ${esc(a.nome)} <span class="muted">${esc(a.codigo)}</span> ${a.ativo ? '' : badge('Inactivo', 'b-gray')}`;
     let h = `<div class="info-grid">
       <div><div class="k">Tipo</div><div class="v">${esc(TIPO_ARM[a.tipo])}</div></div>
-      <div><div class="k">Estaleiro actual</div><div class="v"><strong>${esc(estNome(a.estaleiro_id))}</strong></div></div>
+      ${a.tipo === 'pessoa' ? '' : `<div><div class="k">Estaleiro actual</div><div class="v"><strong>${esc(estNome(a.estaleiro_id))}</strong></div></div>`}
       <div><div class="k">${a.tipo === 'pessoa' ? 'Pessoa' : 'Responsável'}</div><div class="v">${esc(armResponsavel(a.id))}</div></div>
       ${a.viatura_id ? `<div><div class="k">Viatura</div><div class="v">${esc(viaLabel(a.viatura_id))}</div></div>` : ''}
       ${a.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(a.observacoes)}</div></div>` : ''}
@@ -2622,11 +2626,11 @@ async function abrirArmazemDetalhe(id) {
       { t: 'Estado', h: l => l.ativo ? badge('Activa', 'b-green') : badge('Inactiva', 'b-gray') },
       { t: '', h: l => IS_ADMIN ? `<button class="btn btn-ghost btn-sm" onclick="editarLocalizacao('${l.id}')">✏️ Editar</button>` : '' }
     ], locsDoArmazem(a.id, false));
-    h += '<div class="sec-title">Histórico (estaleiro e responsável)</div>' + miniTable([
+    h += `<div class="sec-title">Histórico (${a.tipo === 'pessoa' ? 'alterações' : 'estaleiro e responsável'})</div>` + miniTable([
       { t: 'Desde', v: x => fmtDT(x.desde) }, { t: 'Estaleiro', v: x => estNome(x.estaleiro_id) }, { t: 'Responsável', v: x => x.responsavel_id ? colNome(x.responsavel_id) : '—' }, { t: 'Alterado por', v: x => x.alterado_por ? profNome(x.alterado_por) : '—' }
     ], hist, 'Sem histórico');
     $('gen-body').innerHTML = h;
-    $('gen-footer').innerHTML = `<div class="left"><button class="btn btn-outline btn-sm" onclick="closeModal('modal-gen');verStockArmazem('${a.id}')">📦 Ver stock</button></div>` + (IS_ADMIN ? `<button class="btn btn-primary" onclick="openArmazem('${a.id}')">✏️ Editar / mudar de estaleiro</button>` : '') + `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
+    $('gen-footer').innerHTML = `<div class="left"><button class="btn btn-outline btn-sm" onclick="closeModal('modal-gen');verStockArmazem('${a.id}')">📦 Ver stock</button></div>` + (IS_ADMIN ? `<button class="btn btn-primary" onclick="openArmazem('${a.id}')">✏️ Editar${a.tipo === 'pessoa' ? '' : ' / mudar de estaleiro'}</button>` : '') + `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
     openModal('modal-gen');
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
@@ -2670,7 +2674,7 @@ function openArmazem(id = null) {
   $('m-nome').value = a?.nome || ''; $('m-obs').value = a?.observacoes || ''; $('m-ativo').checked = a ? a.ativo : true;
   $('m-ativo-fg').style.display = a ? '' : 'none';
   fillEstSelect('m-est', false, true, a?.estaleiro_id || '');
-  if (a && !M.est[a.estaleiro_id]?.ativo) $('m-est').insertAdjacentHTML('beforeend', `<option value="${a.estaleiro_id}">${esc(estNome(a.estaleiro_id))} (inactivo)</option>`), $('m-est').value = a.estaleiro_id;
+  if (a && a.estaleiro_id && !M.est[a.estaleiro_id]?.ativo) $('m-est').insertAdjacentHTML('beforeend', `<option value="${a.estaleiro_id}">${esc(estNome(a.estaleiro_id))} (inactivo)</option>`), $('m-est').value = a.estaleiro_id;
   $('m-est-hint').textContent = a ? 'Para mudar o armazém de estaleiro, basta escolher o novo estaleiro. O stock vai com ele e a mudança fica no histórico.' : '';
   $('m-via').innerHTML = '<option value="">— escolher —</option>' + D.viaturas.map(v => `<option value="${v.id}">${esc(viaLabel(v.id))}</option>`).join('');
   $('m-via').value = a?.viatura_id || '';
@@ -2683,6 +2687,9 @@ function openArmazem(id = null) {
 }
 function armazemTipoMudou(inicial = false) {
   const t = $('m-tipo').value;
+  $('m-est-fg').style.display = t === 'pessoa' ? 'none' : '';
+  $('m-est-label').innerHTML = t === 'fisico' ? 'Estaleiro onde está <span class="req">*</span>' : 'Estaleiro onde está (opcional)';
+  if ($('m-est').options[0]) $('m-est').options[0].text = t === 'fisico' ? '— escolher —' : '— sem estaleiro —';
   $('m-via-fg').style.display = t === 'viatura' ? '' : 'none';
   $('m-resp-label').innerHTML = t === 'pessoa' ? 'Pessoa <span class="req">*</span>' : t === 'viatura' ? 'Responsável (opcional)' : 'Responsável <span class="req">*</span>';
   $('m-nome').placeholder = t === 'pessoa' ? 'Por defeito, o nome da pessoa' : t === 'viatura' ? 'Por defeito, a viatura' : 'Ex.: Armazém de Linhas';
@@ -2695,7 +2702,9 @@ async function guardarArmazem() {
   if (t === 'viatura' && !via) return showAlert('armazem-alert', 'Escolha a viatura.');
   const payload = { nome: $('m-nome').value.trim(), estaleiro_id: $('m-est').value, responsavel_id: resp, viatura_id: t === 'viatura' ? via : null, observacoes: $('m-obs').value.trim() || null };
   if (!payload.nome) return showAlert('armazem-alert', 'Indique o nome.');
-  if (!payload.estaleiro_id) return showAlert('armazem-alert', 'Escolha o estaleiro.');
+  const tipoReal = ARM_EDIT ? M.arm[ARM_EDIT].tipo : t;
+  if (tipoReal === 'pessoa') payload.estaleiro_id = null;
+  else if (!payload.estaleiro_id) { if (tipoReal === 'fisico') return showAlert('armazem-alert', 'Escolha o estaleiro.'); payload.estaleiro_id = null; }
   if (ARM_EDIT) payload.ativo = $('m-ativo').checked; else payload.tipo = t;
   loading(true);
   try {
