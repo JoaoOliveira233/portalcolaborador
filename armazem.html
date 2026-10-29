@@ -249,9 +249,9 @@
       <div class="nav-section-title">Operações</div>
       <div class="nav-item" id="nav-entradas" onclick="navigate('entradas')"><span>📥</span><span>Entradas</span></div>
       <div class="nav-item" id="nav-consumos" onclick="navigate('consumos')"><span>🏗️</span><span>Consumos em obra</span></div>
-      <div class="nav-item" id="nav-internos" onclick="navigate('internos')"><span>🔀</span><span>Mov. internos</span></div>
+      <div class="nav-item" id="nav-internos" onclick="navigate('internos')"><span>🔀</span><span>Mudar de localização</span></div>
       <div class="nav-section-title">Transferências</div>
-      <div class="nav-item" id="nav-pedidos" onclick="navigate('pedidos')"><span>📝</span><span>Pedidos</span><span class="cnt" id="cnt-pedidos"></span></div>
+      <div class="nav-item" id="nav-pedidos" onclick="navigate('pedidos')"><span>🔁</span><span>Pedidos e transferências</span><span class="cnt" id="cnt-pedidos"></span></div>
       <div class="nav-item" id="nav-guias" onclick="navigate('guias')"><span>🚚</span><span>Guias</span><span class="cnt" id="cnt-guias"></span></div>
       <div class="nav-item" id="nav-divergencias" onclick="navigate('divergencias')"><span>⚠️</span><span>Divergências</span><span class="cnt" id="cnt-div"></span></div>
       <div class="nav-section-title">Gestão</div>
@@ -368,7 +368,7 @@
       <!-- INTERNOS -->
       <section class="page" id="page-internos">
         <div class="page-header">
-          <div><div class="page-title">Movimentos internos</div><div class="page-subtitle">Mudar material de localização dentro do mesmo armazém (ex.: contentor 3 → contentor 7)</div></div>
+          <div><div class="page-title">Mudar de localização</div><div class="page-subtitle">Mudar material de sítio <strong>dentro do mesmo armazém</strong> (ex.: contentor 3 → contentor 7). Para outro armazém use <a href="#" onclick="navigate('pedidos').then(()=>openNovoPedido('transferencia'));return false;">uma transferência</a>.</div></div>
           <div class="page-actions"><button class="btn btn-primary only-oper" onclick="openInterno()">+ Novo movimento</button></div>
         </div>
         <div class="card">
@@ -384,8 +384,8 @@
       <!-- PEDIDOS -->
       <section class="page" id="page-pedidos">
         <div class="page-header">
-          <div><div class="page-title">Pedidos</div><div class="page-subtitle">Requisições, transferências e devoluções entre armazéns</div></div>
-          <div class="page-actions"><button class="btn btn-primary only-oper" onclick="openNovoPedido()">+ Novo pedido</button></div>
+          <div><div class="page-title">Pedidos e transferências</div><div class="page-subtitle">Tudo o que passa de um armazém para outro: requisições, transferências e devoluções</div></div>
+          <div class="page-actions"><button class="btn btn-outline only-oper" onclick="openNovoPedido('transferencia')">🔁 Nova transferência</button><button class="btn btn-primary only-oper" onclick="openNovoPedido()">+ Novo pedido</button></div>
         </div>
         <div class="card">
           <div class="toolbar">
@@ -1574,8 +1574,8 @@ async function guardarConsumo() {
 let INT_STOCK = [];
 function openInterno() {
   $('modal-gen-box').className = 'modal lg';
-  $('gen-title').textContent = '🔀 Movimento interno';
-  $('gen-body').innerHTML = `<div id="int-alert"></div>
+  $('gen-title').textContent = '🔀 Mudar de localização (dentro do mesmo armazém)';
+  $('gen-body').innerHTML = `<div class="alert alert-info" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><span>Aqui muda-se material de um contentor/prateleira para outro <strong>no mesmo armazém</strong>. Para mandar material para outro armazém ou pessoa, faça uma transferência.</span><button class="btn btn-primary btn-sm" onclick="closeModal('modal-gen');navigate('pedidos').then(()=>openNovoPedido('transferencia'))">🔁 Transferir para outro armazém</button></div><div id="int-alert"></div>
     <div class="form-row-3">
       <div class="form-group"><label>Data <span class="req">*</span></label><input type="date" id="int-data" value="${hoje()}" max="${hoje()}"></div>
       <div class="form-group"><label>Armazém <span class="req">*</span></label><select id="int-arm" onchange="intArmMudou()"></select></div>
@@ -1588,6 +1588,7 @@ function openInterno() {
 }
 async function intArmMudou() {
   const arm = $('int-arm').value; $('int-linhas').innerHTML = ''; INT_STOCK = [];
+  showAlert('int-alert', arm && locsDoArmazem(arm).length < 2 ? `O armazém "${armNome(arm)}" só tem uma localização (${locsDoArmazem(arm)[0]?.nome || 'Geral'}), por isso não há para onde mudar. Para outro armazém, use "Transferir para outro armazém".` : '', 'warn');
   if (arm) { loading(true); try { INT_STOCK = await stockDoArmazem(arm); } catch (er) { showAlert('int-alert', errText(er)); } loading(false); }
   intAddLinha();
 }
@@ -1655,9 +1656,9 @@ function drawPedidos() {
 
 /* ---------- Novo pedido ---------- */
 let NP_STOCK = [];
-async function openNovoPedido() {
+async function openNovoPedido(tipoInicial = 'requisicao') {
   $('modal-gen-box').className = 'modal xl';
-  $('gen-title').textContent = '📝 Novo pedido';
+  $('gen-title').textContent = tipoInicial === 'transferencia' ? '🔁 Nova transferência entre armazéns' : '📝 Novo pedido';
   $('gen-body').innerHTML = `<div id="np-alert"></div>
     <div class="form-row-4">
       <div class="form-group"><label>Tipo de pedido <span class="req">*</span></label><select id="np-tipo" onchange="npTipoMudou()">
@@ -1669,12 +1670,13 @@ async function openNovoPedido() {
     <div class="form-group"><label>Observações</label><input type="text" id="np-obs" placeholder="Para que obra / frente de trabalho, urgência..."></div>
     <div class="hint" id="np-hint" style="margin-bottom:8px;"></div>
     ${linhasBox('np-linhas', [{ t: 'Artigo', w: '40%' }, { t: 'Quantidade', cls: 'num' }, { t: 'De que armazém', w: '34%' }], 'Adicionar artigo', 'npAddLinha()')}`;
-  $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="np-ok" onclick="guardarPedido()">Enviar pedido</button>`;
+  $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="np-ok" onclick="guardarPedido()">${IS_ADMIN ? 'Criar e aprovar' : 'Enviar pedido'}</button>`;
   attachPicker($('np-nome'), () => itensColabs(), it => {
     const pa = D.armazens.find(a => a.tipo === 'pessoa' && a.ativo && a.responsavel_id === it.id);
     if (pa && $('np-tipo').value !== 'devolucao' && !$('np-dest').value) $('np-dest').value = pa.id;
   });
   $('np-linhas').dataset.add = 'npAddLinha';
+  $('np-tipo').value = tipoInicial;
   openModal('modal-gen');
   loading(true);
   try { NP_STOCK = await fetchAll('arm_v_stock', 'artigo_id,armazem_id,quantidade', q => q.order('artigo_id').order('localizacao_id')); } catch (e) { showAlert('np-alert', errText(e)); }
@@ -1688,7 +1690,7 @@ function npTipoMudou() {
   if (t === 'devolucao') [...$('np-dest').querySelectorAll('option')].forEach(o => { if (o.value && M.arm[o.value]?.tipo !== 'fisico') o.remove(); });
   [...$('np-dest').querySelectorAll('optgroup')].forEach(g => { if (!g.children.length) g.remove(); });
   if (destAtual && [...$('np-dest').options].some(o => o.value === destAtual)) $('np-dest').value = destAtual;
-  $('np-hint').textContent = t === 'requisicao' ? 'A origem é opcional: o administrador escolhe de onde sai o material ao aprovar.' : 'Indique de que armazém sai cada artigo. O pedido só avança depois de aprovado pelo administrador.';
+  $('np-hint').textContent = t === 'requisicao' ? (IS_ADMIN ? 'A origem é opcional: se não a indicar, escolhe-a a seguir no ecrã de aprovação.' : 'A origem é opcional: o administrador escolhe de onde sai o material ao aprovar.') : (IS_ADMIN ? 'Indique de que armazém sai cada artigo. Como é administrador, fica aprovado logo e pode expedir de seguida.' : 'Indique de que armazém sai cada artigo. O pedido só avança depois de aprovado pelo administrador.');
   $('np-linhas').innerHTML = ''; npAddLinha();
 }
 function npDispPorArmazem(artId) {
@@ -1730,7 +1732,25 @@ async function guardarPedido() {
   $('np-ok').disabled = true; loading(true);
   try {
     const r = await rpc('arm_criar_pedido', { p: { tipo, destino_armazem_id: dest, em_nome_de_id: $('np-nome').dataset.id || null, data_necessaria: $('np-data').value || null, observacoes: $('np-obs').value, linhas } });
-    closeModal('modal-gen'); toast('Pedido ' + r.numero + ' enviado para aprovação');
+    closeModal('modal-gen');
+    if (IS_ADMIN) {
+      // o que o administrador regista fica aprovado: se todas as linhas têm origem, aprova já; senão abre o ecrã de aprovação
+      if (linhas.every(l => l.origem_armazem_id)) {
+        const { data: ped, error } = await sb.from('arm_pedidos').select(SEL_PEDIDO).eq('id', r.id).single(); if (error) throw error;
+        await rpc('arm_aprovar_pedido', { p: { pedido_id: r.id, observacoes: 'Criado e aprovado pelo administrador', linhas: ped.arm_pedido_linhas.map(l => ({ linha_id: l.id, origens: [{ armazem_id: l.origem_sugerida_id, quantidade: l.qtd_pedida }] })) } });
+        toast({ transferencia: 'Transferência ' + r.numero + ' criada e aprovada', devolucao: 'Devolução ' + r.numero + ' criada e aprovada' }[tipo] || 'Pedido ' + r.numero + ' criado e aprovado');
+        if (PAGE === 'pedidos') await loadPedidos(); atualizarContadores();
+        $('np-ok').disabled = false; loading(false);
+        await abrirPedido(r.id);
+        return;
+      }
+      toast('Pedido ' + r.numero + ' criado — escolha agora de onde sai o material');
+      if (PAGE === 'pedidos') await loadPedidos(); atualizarContadores();
+      $('np-ok').disabled = false; loading(false);
+      await abrirPedido(r.id); await abrirAprovacao(r.id);
+      return;
+    }
+    toast('Pedido ' + r.numero + ' enviado para aprovação');
     if (PAGE === 'pedidos') await loadPedidos(); else refreshPage();
     atualizarContadores();
   } catch (e) { showAlert('np-alert', errText(e)); }
