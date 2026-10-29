@@ -704,7 +704,7 @@ function numVal(id) { const v = String($(id)?.value ?? '').replace(',', '.').tri
 function errText(e) {
   if (!e) return 'Erro desconhecido';
   let m = e.message || e.error_description || String(e);
-  if (/Failed to fetch|NetworkError/i.test(m)) return 'Sem ligação à internet. Verifique a rede e tente de novo.';
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Não foi possível contactar o servidor (internet ou Supabase em baixo). Tente de novo dentro de alguns minutos.';
   if (/JWT expired/i.test(m)) return 'A sessão expirou. Saia e volte a entrar.';
   if (/duplicate key/i.test(m)) return 'Já existe um registo com esses dados.';
   if (/violates foreign key/i.test(m)) return 'Não é possível: este registo está a ser usado noutros registos.';
@@ -1442,6 +1442,17 @@ function openEntrada() {
   openModal('modal-gen');
 }
 function fillFornSelect(id, sel = '') { $(id).innerHTML = '<option value="">— sem fornecedor —</option>' + D.fornecedores.map(f => `<option value="${f.id}">${esc(f.nome)}</option>`).join(''); if (sel) $(id).value = sel; }
+async function locRapida(btn) {
+  const arm = $('ent-arm').value; if (!arm) return showAlert('ent-alert', 'Escolha primeiro o armazém.');
+  const nome = await pedirMotivo('Nova localização em ' + armNome(arm), 'Ex.: Contentor 12, Prateleira A3…', 'Nome da localização', true, 'Criar');
+  if (nome == null) return;
+  loading(true);
+  try {
+    const { data, error } = await sb.from('arm_localizacoes').insert({ armazem_id: arm, nome }).select().single(); if (error) throw error;
+    await reloadEstrutura(); entArmMudou(); btn.closest('td').querySelector('.loc').value = data.id; toast('Localização "' + data.nome + '" criada');
+  } catch (e) { showAlert('ent-alert', errText(e)); }
+  loading(false);
+}
 function entArmMudou() { document.querySelectorAll('#ent-linhas select.loc').forEach(s => fillLocSelect(s, $('ent-arm').value, s.value)); }
 function entMoedaMudou() {
   const m = $('ent-moeda').value;
@@ -1454,7 +1465,7 @@ function entMoedaMudou() {
 function entAddLinha() {
   const tr = document.createElement('tr');
   tr.innerHTML = `<td><input class="inp art" placeholder="Escreva código, NSAP ou nome..."></td>
-    <td><select class="inp loc"></select></td>
+    <td><div style="display:flex;gap:4px;"><select class="inp loc"></select>${IS_ADMIN ? `<button class="btn btn-outline btn-sm" type="button" title="Criar localização neste armazém" onclick="locRapida(this)">+</button>` : ''}</div></td>
     <td><div style="display:flex;align-items:center;gap:6px;"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;" oninput="entRecalc()"><span class="muted un"></span></div></td>
     <td class="ent-preco"><input class="inp preco num" type="number" min="0" step="0.0001" style="width:120px;" oninput="entRecalc()"></td>
     <td class="ent-preco num usd">—</td>
@@ -2577,8 +2588,9 @@ function drawArmazens() {
     { t: 'Tipo', v: a => TIPO_ARM[a.tipo] },
     { t: 'Estaleiro', v: a => a.tipo === 'pessoa' ? '—' : estNome(a.estaleiro_id) },
     { t: 'Responsável', h: a => esc(armResponsavel(a.id)) + (a.viatura_id ? `<div class="muted">${esc(viaLabel(a.viatura_id))}</div>` : '') },
-    { t: 'Localizações', cls: 'num', v: a => locsDoArmazem(a.id).length },
-    { t: 'Estado', h: a => a.ativo ? badge('Activo', 'b-green') : badge('Inactivo', 'b-gray'), s: a => +a.ativo }
+    { t: 'Localizações', h: a => { const ls = locsDoArmazem(a.id); return `<span class="muted">${ls.length} — ${esc(ls.slice(0, 3).map(l => l.nome).join(', '))}${ls.length > 3 ? '…' : ''}</span>`; }, s: a => locsDoArmazem(a.id).length },
+    { t: 'Estado', h: a => a.ativo ? badge('Activo', 'b-green') : badge('Inactivo', 'b-gray'), s: a => +a.ativo },
+    { t: '', nosort: true, h: a => `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirArmazemDetalhe('${a.id}')">📍 Localizações${IS_ADMIN ? ' / editar' : ''}</button>` }
   ], rows, { onRow: a => abrirArmazemDetalhe(a.id), empty: 'Nenhum armazém', resetShown: true });
 }
 function drawEstaleiros() {
@@ -2621,7 +2633,7 @@ async function apagarEstaleiro() {
   loading(false);
 }
 
-async function abrirArmazemDetalhe(id) {
+async function abrirArmazemDetalhe(id, novo = false) {
   const a = M.arm[id]; if (!a) return;
   loading(true);
   try {
@@ -2639,7 +2651,8 @@ async function abrirArmazemDetalhe(id) {
       ${a.viatura_id ? `<div><div class="k">Viatura</div><div class="v">${esc(viaLabel(a.viatura_id))}</div></div>` : ''}
       ${a.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(a.observacoes)}</div></div>` : ''}
     </div>
-    <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;">Localizações ${IS_ADMIN ? `<button class="btn btn-outline btn-sm" onclick="novaLocalizacao('${a.id}')">+ Nova localização</button>` : ''}</div>`;
+    ${novo ? `<div class="alert alert-success">Armazém criado com a localização <strong>Geral</strong>. Se tem contentores, prateleiras ou salas, crie-os agora em <strong>+ Nova localização</strong>.</div>` : ''}
+    <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;">Localizações (contentores, prateleiras…) ${IS_ADMIN ? `<button class="btn btn-primary btn-sm" onclick="novaLocalizacao('${a.id}')">+ Nova localização</button>` : ''}</div>`;
     h += miniTable([
       { t: 'Nome', h: l => `<strong>${esc(l.nome)}</strong>${l.observacoes ? `<div class="muted">${esc(l.observacoes)}</div>` : ''}` },
       { t: 'Artigos com stock', cls: 'num', v: l => nPorLoc[l.id] || 0 },
@@ -2662,7 +2675,7 @@ async function novaLocalizacao(armId) {
   const nome = await pedirMotivo('Nova localização', 'Ex.: Contentor 12, Prateleira A3, Sala 2…', 'Nome da localização', true, 'Criar');
   if (nome == null) return;
   loading(true);
-  try { const { error } = await sb.from('arm_localizacoes').insert({ armazem_id: armId, nome }); if (error) throw error; await reloadEstrutura(); toast('Localização criada'); closeModal('modal-gen'); abrirArmazemDetalhe(armId); }
+  try { const { error } = await sb.from('arm_localizacoes').insert({ armazem_id: armId, nome }); if (error) throw error; await reloadEstrutura(); if (PAGE === 'estrutura') drawArmazens(); toast('Localização criada'); closeModal('modal-gen'); abrirArmazemDetalhe(armId); }
   catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
@@ -2680,7 +2693,7 @@ async function guardarLocalizacao(id) {
   const nome = $('l-nome').value.trim(); if (!nome) return showAlert('loc-alert', 'Indique o nome.');
   loading(true);
   try { const { error } = await sb.from('arm_localizacoes').update({ nome, observacoes: $('l-obs').value.trim() || null, ativo: $('l-ativo').checked }).eq('id', id); if (error) throw error;
-    await reloadEstrutura(); closeModal('modal-gen2'); toast('Localização guardada'); const arm = M.loc[id].armazem_id; closeModal('modal-gen'); abrirArmazemDetalhe(arm); }
+    await reloadEstrutura(); if (PAGE === 'estrutura') drawArmazens(); closeModal('modal-gen2'); toast('Localização guardada'); const arm = M.loc[id].armazem_id; closeModal('modal-gen'); abrirArmazemDetalhe(arm); }
   catch (e) { showAlert('loc-alert', errText(e)); }
   loading(false);
 }
@@ -2728,9 +2741,10 @@ async function guardarArmazem() {
   if (ARM_EDIT) payload.ativo = $('m-ativo').checked; else payload.tipo = t;
   loading(true);
   try {
-    const r = ARM_EDIT ? await sb.from('arm_armazens').update(payload).eq('id', ARM_EDIT) : await sb.from('arm_armazens').insert(payload);
+    const r = ARM_EDIT ? await sb.from('arm_armazens').update(payload).eq('id', ARM_EDIT).select().single() : await sb.from('arm_armazens').insert(payload).select().single();
     if (r.error) { if (/arm_armazens_pessoa_uniq/.test(r.error.message)) throw new Error('Esta pessoa já tem um armazém pessoal activo.'); if (/arm_armazens_viatura_uniq/.test(r.error.message)) throw new Error('Esta viatura já tem um armazém activo.'); throw r.error; }
     closeModal('modal-armazem'); closeModal('modal-gen'); toast('Armazém guardado'); await renderEstrutura(); refreshSelects();
+    if (!ARM_EDIT && r.data.tipo === 'fisico') await abrirArmazemDetalhe(r.data.id, true);
   } catch (e) { showAlert('armazem-alert', errText(e)); }
   loading(false);
 }
