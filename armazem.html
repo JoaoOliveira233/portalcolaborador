@@ -686,6 +686,7 @@ const TIPO_MOV = {
   transf_saida: 'Expedição (guia)', transf_entrada: 'Receção (guia)', ajuste: 'Acerto de stock', abate: 'Abate', anulacao: 'Anulação'
 };
 const DECISAO = { devolver_origem: 'Devolvido à origem', receber_destino: 'Recebido no destino', perda: 'Dado como perdido' };
+const EIP_MORADA = ['Rua Kwamme Nkrumah, 207', 'LUANDA - ANGOLA', 'Tel: 937 781 814', 'Email: geral@eipangola.co.ao'];
 const UNIDADES = ['un', 'm', 'km', 'kg', 'ton', 'l', 'm²', 'm³', 'rolo', 'bobine', 'cx', 'par', 'jogo', 'saco', 'conjunto', 'lata', 'balde'];
 
 let currentUser = null, ME = null, NIVEL = 'sem_acesso', IS_ADMIN = false, CAN_OP = false;
@@ -2524,23 +2525,34 @@ async function novoPDF(landscape, ccId) {
   const eip = await imgInfo(LOGO_B64), cli = await logoCliente(ccId);
   return { doc, eip, cli };
 }
-function desenharCabecalho(doc, eip, cli, titulo, subtitulo) {
+function desenharCabecalho(doc, eip, cli, titulo, subtitulo, morada = false) {
   const W = doc.internal.pageSize.getWidth(), H = 13;
-  if (eip) { const w = Math.min(H * eip.ratio, 55); doc.addImage(eip.data, 'PNG', 14, 7, w, w / eip.ratio, 'logoEIP', 'FAST'); }
+  let hLogo = 0;
+  if (eip) { const w = Math.min(H * eip.ratio, 55); hLogo = w / eip.ratio; doc.addImage(eip.data, 'PNG', 14, 7, w, hLogo, 'logoEIP', 'FAST'); }
+  if (morada) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(44, 53, 71);
+    let ym = 7 + hLogo + 4.5;
+    EIP_MORADA.forEach(l => { doc.text(l, 14, ym); ym += 3.8; });
+  }
   if (cli) { let w = H * cli.ratio, h = H; if (w > 45) { w = 45; h = w / cli.ratio; } doc.addImage(cli.data, 'PNG', W - 14 - w, 7, w, h, 'logoCli', 'FAST'); }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(27, 42, 74);
   doc.text(titulo, W / 2, 14, { align: 'center' });
   if (subtitulo) { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(90, 100, 120); doc.text(doc.splitTextToSize(subtitulo, W - 130), W / 2, 19.5, { align: 'center' }); }
-  doc.setDrawColor(200, 16, 46); doc.setLineWidth(.6); doc.line(14, 25, W - 14, 25);
+  const yLinha = morada ? 7 + hLogo + 4.5 + EIP_MORADA.length * 3.8 : 25;
+  doc.setDrawColor(200, 16, 46); doc.setLineWidth(.6); doc.line(14, yLinha, W - 14, yLinha);
+  return yLinha;
 }
-function rodapes(doc, extra = '') {
+function rodapes(doc, extra = '', inicios = null) {
   const n = doc.getNumberOfPages(), W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  // inicios: página onde começa cada via (para numerar cada via à parte)
+  const pag = i => { if (!inicios) return [i, n]; let k = inicios.length - 1; while (k > 0 && i < inicios[k]) k--; const fim = k + 1 < inicios.length ? inicios[k + 1] - 1 : n; return [i - inicios[k] + 1, fim - inicios[k] + 1]; };
   const quando = new Date().toLocaleString('pt-PT', { timeZone: 'Africa/Luanda', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   for (let i = 1; i <= n; i++) {
     doc.setPage(i); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(140, 150, 165);
     doc.setDrawColor(216, 220, 229); doc.setLineWidth(.2); doc.line(14, H - 11, W - 14, H - 11);
     doc.text('EIP Angola · Portal do Colaborador · Armazém' + (extra ? ' · ' + extra : ''), 14, H - 7);
-    doc.text(`Gerado em ${quando} por ${ME?.nome || ME?.email || ''} · Página ${i} de ${n}`, W - 14, H - 7, { align: 'right' });
+    const [pi, pn] = pag(i);
+    doc.text(`Gerado em ${quando} por ${ME?.nome || ME?.email || ''} · Página ${pi} de ${pn}`, W - 14, H - 7, { align: 'right' });
   }
 }
 function pdfTxt(s) { return String(s ?? '').replace(/[\u202f\u00a0\u2009]/g, ' ').replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\u2013|\u2014/g, '-').replace(/\u2026/g, '...'); }
@@ -2601,12 +2613,14 @@ async function gerarGuiaPDF(id) {
     const resp = M.col[g.responsavel_envio_id];
     const recebida = g.estado === 'recebida';
     const vias = ['ORIGINAL', '2ª VIA'];
+    let topo = 25; const inicios = [];
     vias.forEach((via, vi) => {
       if (vi > 0) doc.addPage();
+      inicios.push(doc.getNumberOfPages());
       const cab = () => {
-        desenharCabecalho(doc, eip, cli, 'GUIA DE TRANSPORTE', 'Nº ' + g.numero);
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(200, 16, 46);
-        doc.text(via, W - 14, 30, { align: 'right' });
+        topo = desenharCabecalho(doc, eip, cli, 'GUIA DE TRANSPORTE', 'Nº ' + g.numero, true);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(200, 16, 46);
+        doc.text(via, W - 14, topo - 2, { align: 'right' });
         if (g.estado === 'cancelada') {
           doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: 0.13 })); doc.setFontSize(90); doc.setTextColor(220, 38, 38);
           doc.text('ANULADA', W / 2, H / 2, { align: 'center', angle: 35 }); doc.restoreGraphicsState();
@@ -2627,13 +2641,13 @@ async function gerarGuiaPDF(id) {
         return yy;
       };
       const cw = (W - 28 - 6) / 2;
-      const y1 = caixa(14, 34, cw, 'EXPEDIÇÃO', [
+      const y1 = caixa(14, topo + 5, cw, 'EXPEDIÇÃO', [
         ['Data / hora', fmtDT(g.data_expedicao)],
         ['Origem', origens.map(a => armLabel(a)).join('; ')],
         ['Resp. pelo envio', resp ? `${resp.nome} (nº ${resp.numero_mecanografico})` : '—'],
         ['Pedido', (g.arm_pedidos?.numero || '') + ' · ' + (TIPO_PED[g.arm_pedidos?.tipo] || '')]
       ]);
-      const y2 = caixa(14 + cw + 6, 34, cw, 'DESTINO', [
+      const y2 = caixa(14 + cw + 6, topo + 5, cw, 'DESTINO', [
         ['Armazém', armNome(g.destino_armazem_id) + (destA?.tipo === 'pessoa' ? ' (à guarda de pessoa)' : '')],
         ...(destA?.estaleiro_id ? [['Estaleiro', estNome(destA.estaleiro_id)]] : []),
         ['Responsável', armResponsavel(g.destino_armazem_id)],
@@ -2647,7 +2661,7 @@ async function gerarGuiaPDF(id) {
         const a = M.art[l.artigo_id] || {};
         return [i + 1, a.codigo || '', a.nsap || '', pdfTxt(a.nome || ''), a.unidade || '', pdfTxt(fmtQ(l.quantidade)), pdfTxt(armNome(l.origem_armazem_id) + ' / ' + locNome(l.origem_localizacao_id))].concat(recebida ? [pdfTxt(fmtQ(l.qtd_recebida))] : []);
       });
-      doc.autoTable({ startY: y3 + 2, head, body, theme: 'grid', margin: { top: 34, left: 14, right: 14, bottom: 15 },
+      doc.autoTable({ startY: y3 + 2, head, body, theme: 'grid', margin: { top: topo + 5, left: 14, right: 14, bottom: 15 },
         styles: { fontSize: 8, cellPadding: 1.8, lineColor: [216, 220, 229], lineWidth: .1, textColor: [30, 40, 60] },
         headStyles: { fillColor: [27, 42, 74], textColor: 255, fontStyle: 'bold' },
         columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { cellWidth: 19 }, 2: { cellWidth: 18 }, 4: { cellWidth: 11 }, 5: { cellWidth: 20, halign: 'right', fontStyle: 'bold' }, 6: { cellWidth: 40 }, 7: { cellWidth: 18, halign: 'right' } },
@@ -2657,7 +2671,7 @@ async function gerarGuiaPDF(id) {
       const obs = [g.observacoes, g.arm_pedidos?.observacoes ? 'Pedido: ' + g.arm_pedidos.observacoes : ''].filter(Boolean).join(' · ');
       if (obs) { doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(27, 42, 74); doc.text('Observações:', 14, y); doc.setFont('helvetica', 'normal'); doc.setTextColor(40); const t = doc.splitTextToSize(obs, W - 50); doc.text(t, 36, y); y += t.length * 4 + 3; }
       // Assinaturas
-      if (y > H - 58) { doc.addPage(); cab(); y = 36; }
+      if (y > H - 58) { doc.addPage(); cab(); y = topo + 7; }
       const sw = (W - 28 - 8) / 3, sy = Math.max(y + 2, H - 62);
       [['ENTREGUE POR', resp ? resp.nome : ''], ['TRANSPORTADO POR', g.motorista_id ? colNome(g.motorista_id) : g.motorista_nome], ['RECEBIDO POR', recebida ? colNome(g.recebido_por_id) : '']].forEach(([t, nome], i) => {
         const x = 14 + i * (sw + 4);
@@ -2670,7 +2684,7 @@ async function gerarGuiaPDF(id) {
         doc.text('Assinatura:', x + 2, sy + 28); doc.setDrawColor(150); doc.line(x + 4, sy + 39, x + sw - 4, sy + 39);
       });
     });
-    rodapes(doc, 'Guia ' + g.numero);
+    rodapes(doc, 'Guia ' + g.numero, inicios);
     doc.save('Guia_' + g.numero.replace(/\//g, '-') + '.pdf');
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
