@@ -150,6 +150,12 @@
     .lines .inp { padding: 7px 9px; font-size: 13px; }
     .lines .add-row { padding: 8px; border-top: 1px solid var(--gray-100); background: var(--gray-50); }
     .lines td.c-x { width: 34px; text-align: center; }
+    .lines th, .lines th.num, .lines td.num { text-align: left; }
+    .lines th { padding: 9px 8px; }
+    .lines td { vertical-align: middle; }
+    .lines .art-cell { display: flex; gap: 6px; align-items: center; }
+    .lines .art-cell .inp { flex: 1; min-width: 0; }
+    .lines .qtd-cell { display: flex; align-items: center; gap: 6px; }
 
     /* PICKER */
     .picker-dd { position: fixed; z-index: 1000; background: white; border: 1.5px solid var(--gray-200); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.15); max-height: 300px; overflow-y: auto; min-width: 260px; }
@@ -812,7 +818,7 @@ function fillLocSelect(el, armId, sel = '', extra = '') {
 /* ============================ PICKER ============================ */
 let PK = null; // { input, items, onPick, idx, list }
 function attachPicker(input, getItems, onPick, opts = {}) {
-  if (input._pk) return; input._pk = true;
+  if (input._pk) return; input._pk = true; input._onPick = onPick; input._pkOpts = opts;
   input.setAttribute('autocomplete', 'off');
   const show = () => {
     const q = norm(input.value).split(/\s+/).filter(Boolean);
@@ -838,12 +844,13 @@ function setPicked(input, id, label) {
 function openPicker(input, list, onPick) {
   let dd = $('picker-dd');
   if (!dd) { dd = document.createElement('div'); dd.id = 'picker-dd'; dd.className = 'picker-dd'; document.body.appendChild(dd); }
-  PK = { input, list, onPick, idx: 0, dd };
+  PK = { input, list, onPick, idx: 0, dd, criar: input._pkOpts?.criar && input.value.trim().length >= 2 };
   drawPicker(); posPicker();
 }
 function drawPicker() {
   if (!PK) return;
-  PK.dd.innerHTML = PK.list.length ? PK.list.map((it, i) => `<div class="opt ${i === PK.idx ? 'act' : ''}" onmousedown="event.preventDefault();pickItem(${i})">${esc(it.label)}${it.sub ? `<div class="s">${esc(it.sub)}</div>` : ''}</div>`).join('') : '<div class="none">Nada encontrado</div>';
+  PK.dd.innerHTML = (PK.list.length ? PK.list.map((it, i) => `<div class="opt ${i === PK.idx ? 'act' : ''}" onmousedown="event.preventDefault();pickItem(${i})">${esc(it.label)}${it.sub ? `<div class="s">${esc(it.sub)}</div>` : ''}</div>`).join('') : '<div class="none">Nada encontrado</div>') +
+    (PK.criar ? `<div class="opt" style="color:var(--navy);font-weight:700;border-top:1.5px solid var(--gray-200);" onmousedown="event.preventDefault();criarArtigoDoPicker()">+ Criar artigo novo «${esc(PK.input.value.trim())}»</div>` : '');
   const act = PK.dd.querySelector('.act'); if (act) act.scrollIntoView({ block: 'nearest' });
 }
 function posPicker() {
@@ -855,6 +862,17 @@ function posPicker() {
   else { dd.style.bottom = ''; dd.style.top = (r.bottom + 2) + 'px'; }
 }
 function pickItem(i) { if (!PK) return; const it = PK.list[i]; const { input, onPick } = PK; setPicked(input, it.id, it.value || it.label); closePicker(); onPick && onPick(it, input); }
+function criarArtigoDoPicker() { if (!PK) return; const inp = PK.input; closePicker(); artigoRapido(inp); }
+// Cria um artigo sem sair do formulário e coloca-o na linha
+async function artigoRapido(input) {
+  if (!CAN_OP) return;
+  const texto = input.value.trim();
+  await openArtigo(null, row => {
+    setPicked(input, row.id, `${row.codigo} · ${row.nome}`);
+    if (input._onPick) input._onPick({ id: row.id, label: `${row.codigo} · ${row.nome}` }, input);
+  });
+  if (texto && !input.dataset.id) { $('a-nome').value = texto; artigoSemelhantes(); }
+}
 function closePicker() { const dd = $('picker-dd'); if (dd) dd.style.display = 'none'; PK = null; }
 window.addEventListener('resize', posPicker);
 document.addEventListener('scroll', e => { if (PK && !(PK.dd.contains(e.target))) posPicker(); }, true);
@@ -1466,7 +1484,7 @@ function openEntrada() {
     </div>
     ${linhasBox('ent-linhas', [{ t: 'Artigo', w: '38%' }, { t: 'Localização' }, { t: 'Quantidade', cls: 'num' }, { t: 'Preço unit.', cls: 'num ent-preco' }, { t: 'Total USD', cls: 'num ent-preco' }], 'Adicionar linha', 'entAddLinha()')}
     <div style="text-align:right;margin-top:10px;font-weight:700;color:var(--navy);" id="ent-total"></div>`;
-  $('gen-footer').innerHTML = `<div class="left"><button class="btn btn-outline btn-sm" onclick="openArtigo(null, a=>{})">+ Criar artigo novo</button></div><button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="ent-ok" onclick="guardarEntrada()">Registar entrada</button>`;
+  $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="ent-ok" onclick="guardarEntrada()">Registar entrada</button>`;
   fillArmSelect('ent-arm'); fillFornSelect('ent-forn');
   $('ent-linhas').dataset.add = 'entAddLinha';
   entMoedaMudou(); entAddLinha();
@@ -1495,15 +1513,15 @@ function entMoedaMudou() {
 }
 function entAddLinha() {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input class="inp art" placeholder="Escreva código, NSAP ou nome..."></td>
+  tr.innerHTML = `<td><div class="art-cell"><input class="inp art" placeholder="Escreva código, NSAP ou nome..."><button class="btn btn-outline btn-sm" type="button" title="Criar artigo novo" onclick="artigoRapido(this.previousElementSibling)">+ Novo</button></div></td>
     <td><div style="display:flex;gap:4px;"><select class="inp loc"></select>${IS_ADMIN ? `<button class="btn btn-outline btn-sm" type="button" title="Criar localização neste armazém" onclick="locRapida(this)">+</button>` : ''}</div></td>
-    <td><div style="display:flex;align-items:center;gap:6px;"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;" oninput="entRecalc()"><span class="muted un"></span></div></td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;" oninput="entRecalc()"><span class="muted un"></span></div></td>
     <td class="ent-preco"><input class="inp preco num" type="number" min="0" step="0.0001" style="width:120px;" oninput="entRecalc()"></td>
     <td class="ent-preco num usd">—</td>
     <td class="c-x"><button class="btn btn-ghost" title="Remover" onclick="removerLinha(this);entRecalc()">✕</button></td>`;
   $('ent-linhas').appendChild(tr);
   fillLocSelect(tr.querySelector('.loc'), $('ent-arm').value);
-  attachPicker(tr.querySelector('.art'), () => itensArtigos(), it => { tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; tr.querySelector('.qtd').focus(); });
+  attachPicker(tr.querySelector('.art'), () => itensArtigos(), it => { tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; tr.querySelector('.qtd').focus(); }, { criar: true });
   document.querySelectorAll('.ent-preco').forEach(el => el.style.display = $('ent-moeda').value ? '' : 'none');
 }
 function entParaUSD(p) {
@@ -1576,7 +1594,7 @@ function conAddLinha() {
   tr.innerHTML = `<td><input class="inp art" placeholder="${$('con-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"></td>
     <td><select class="inp loc" onchange="conLocMudou(this)"></select></td>
     <td class="num disp">—</td>
-    <td><div style="display:flex;align-items:center;gap:6px;"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
     <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
   $('con-linhas').appendChild(tr);
   const comStock = new Set(CON_STOCK.map(s => s.artigo_id));
@@ -1638,7 +1656,7 @@ function intAddLinha() {
   const tr = document.createElement('tr');
   tr.innerHTML = `<td><input class="inp art" placeholder="${$('int-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"></td>
     <td><select class="inp de"></select></td><td><select class="inp para"></select></td>
-    <td><div style="display:flex;align-items:center;gap:6px;"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:100px;"><span class="muted un"></span></div></td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:100px;"><span class="muted un"></span></div></td>
     <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
   $('int-linhas').appendChild(tr);
   const arm = $('int-arm').value; if (arm) fillLocSelect(tr.querySelector('.para'), arm);
@@ -1741,8 +1759,8 @@ function npDispPorArmazem(artId) {
 }
 function npAddLinha() {
   const t = $('np-tipo').value, tr = document.createElement('tr');
-  tr.innerHTML = `<td><input class="inp art" placeholder="Escreva código, NSAP ou nome..."></td>
-    <td><div style="display:flex;align-items:center;gap:6px;"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
+  tr.innerHTML = `<td><div class="art-cell"><input class="inp art" placeholder="Escreva código, NSAP ou nome...">${CAN_OP ? `<button class="btn btn-outline btn-sm" type="button" title="Criar artigo novo" onclick="artigoRapido(this.previousElementSibling)">+ Novo</button>` : ''}</div></td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
     <td><select class="inp org"><option value="">${t === 'requisicao' ? '— o administrador decide —' : '— escolher —'}</option></select></td>
     <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
   $('np-linhas').appendChild(tr);
@@ -1753,7 +1771,7 @@ function npAddLinha() {
       disp.map(([a, q]) => `<option value="${a}">${esc(armLabel(a))} — ${fmtQ(q)} disp.</option>`).join('') +
       (disp.length ? '' : '<option value="" disabled>Sem stock em nenhum armazém</option>');
     tr.querySelector('.qtd').focus();
-  });
+  }, { criar: CAN_OP });
 }
 async function guardarPedido() {
   const tipo = $('np-tipo').value, dest = $('np-dest').value;
