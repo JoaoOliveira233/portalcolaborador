@@ -260,6 +260,9 @@
       <div class="nav-item" id="nav-pedidos" onclick="navigate('pedidos')"><span>🔁</span><span>Pedidos e transferências</span><span class="cnt" id="cnt-pedidos"></span></div>
       <div class="nav-item" id="nav-guias" onclick="navigate('guias')"><span>🚚</span><span>Guias</span><span class="cnt" id="cnt-guias"></span></div>
       <div class="nav-item" id="nav-divergencias" onclick="navigate('divergencias')"><span>⚠️</span><span>Divergências</span><span class="cnt" id="cnt-div"></span></div>
+      <div class="nav-section-title">Controlo</div>
+      <div class="nav-item" id="nav-inventarios" onclick="navigate('inventarios')"><span>📋</span><span>Inventários</span><span class="cnt" id="cnt-inv"></span></div>
+      <div class="nav-item" id="nav-abates" onclick="navigate('abates')"><span>🗑️</span><span>Abates</span><span class="cnt" id="cnt-abt"></span></div>
       <div class="nav-section-title">Gestão</div>
       <div class="nav-item" id="nav-relatorios" onclick="navigate('relatorios')"><span>📑</span><span>Relatórios</span></div>
       <div class="nav-item" id="nav-estrutura" onclick="navigate('estrutura')"><span>🏭</span><span>Estaleiros e armazéns</span></div>
@@ -446,6 +449,46 @@
         </div>
       </section>
 
+      <!-- INVENTARIOS -->
+      <section class="page" id="page-inventarios">
+        <div class="page-header">
+          <div><div class="page-title">Inventários</div><div class="page-subtitle">Contagem física do stock — as diferenças só são acertadas depois de aprovadas pelo administrador</div></div>
+          <div class="page-actions"><button class="btn btn-primary only-oper" onclick="openNovoInventario()">+ Novo inventário</button></div>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="tabs" id="inv-tabs">
+              <div class="tab active" data-f="em_contagem" onclick="setInvTab(this)">Em contagem</div>
+              <div class="tab" data-f="submetido" onclick="setInvTab(this)">Por aprovar</div>
+              <div class="tab" data-f="aprovado" onclick="setInvTab(this)">Aprovados</div>
+              <div class="tab" data-f="todos" onclick="setInvTab(this)">Todos</div>
+            </div>
+            <div class="fg grow"><span class="lbl">Pesquisar</span><input class="inp" id="inv-q" placeholder="Nº, armazém, localização..." oninput="drawInventarios()"></div>
+          </div>
+          <div id="tbl-inventarios"></div>
+        </div>
+      </section>
+
+      <!-- ABATES -->
+      <section class="page" id="page-abates">
+        <div class="page-header">
+          <div><div class="page-title">Abates</div><div class="page-subtitle">Material partido, perdido, roubado ou em fim de vida — sai do stock depois de aprovado pelo administrador</div></div>
+          <div class="page-actions"><button class="btn btn-primary only-oper" onclick="openNovoAbate()">+ Novo abate</button></div>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="tabs" id="abt-tabs">
+              <div class="tab active" data-f="pendente" onclick="setAbtTab(this)">Por aprovar</div>
+              <div class="tab" data-f="aprovado" onclick="setAbtTab(this)">Aprovados</div>
+              <div class="tab" data-f="outros" onclick="setAbtTab(this)">Rejeitados / cancelados</div>
+              <div class="tab" data-f="todos" onclick="setAbtTab(this)">Todos</div>
+            </div>
+            <div class="fg grow"><span class="lbl">Pesquisar</span><input class="inp" id="abt-q" placeholder="Nº, armazém, artigo, descrição..." oninput="drawAbates()"></div>
+          </div>
+          <div id="tbl-abates"></div>
+        </div>
+      </section>
+
       <!-- RELATORIOS -->
       <section class="page" id="page-relatorios">
         <div class="page-header">
@@ -483,6 +526,13 @@
             <div class="form-group"><label>Mostrar</label><select class="inp" id="r6-tipo"><option value="perda">Só material dado como perdido</option><option value="pendente">Divergências por resolver</option><option value="todas">Todas as divergências</option></select></div>
             <div class="form-group"><label>Pessoa (opcional)</label><input type="text" class="inp" id="r6-pessoa" placeholder="Todas — ou escreva o nome"><div class="hint">Mostra só as guias em que esta pessoa enviou, transportou ou recebeu.</div></div>
             <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repPerdas('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repPerdas('xlsx')">📊 Excel</button></div>
+          </div></div>
+          <div class="card rep-card"><div class="card-head"><div class="card-title">🗑️ Abates de material</div></div><div class="card-body">
+            <p>Material abatido (quebras, perdas, roubos, fim de vida) num período, com valor.</p>
+            <div class="form-row"><div class="form-group"><label>De</label><input type="date" class="inp" id="r7-de"></div><div class="form-group"><label>Até</label><input type="date" class="inp" id="r7-ate"></div></div>
+            <div class="form-row"><div class="form-group"><label>Motivo</label><select class="inp" id="r7-mot"><option value="">Todos</option><option value="quebra">Quebra / dano</option><option value="perda">Perda / extravio</option><option value="roubo">Roubo</option><option value="fim_vida">Fim de vida útil</option><option value="avaria">Avaria sem reparação</option><option value="outro">Outro</option></select></div>
+            <div class="form-group"><label>Estado</label><select class="inp" id="r7-est"><option value="aprovado">Aprovados</option><option value="pendente">Por aprovar</option><option value="">Todos</option></select></div></div>
+            <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repAbates('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repAbates('xlsx')">📊 Excel</button></div>
           </div></div>
           <div class="card rep-card"><div class="card-head"><div class="card-title">📜 Extrato de movimentos</div></div><div class="card-body">
             <p>Todas as entradas e saídas com filtros por período, armazém e artigo.</p>
@@ -1029,6 +1079,7 @@ function initFiltros() {
   $('r3-de').value = h.slice(0, 8) + '01'; $('r3-ate').value = h;
   $('r5-de').value = h.slice(0, 8) + '01'; $('r5-ate').value = h;
   $('r6-de').value = addDias(h, -365); $('r6-ate').value = h;
+  $('r7-de').value = h.slice(0, 4) + '-01-01'; $('r7-ate').value = h;
   attachPicker($('r6-pessoa'), () => itensColabs(false), null);
   refreshSelects();
   $('mv-tipo').innerHTML = '<option value="">Todos</option>' + Object.entries(TIPO_MOV).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
@@ -1041,7 +1092,8 @@ const PAGES = {
   painel: () => renderPainel(), stock: () => renderStock(), artigos: () => renderArtigos(), movimentos: () => loadMovimentos(),
   entradas: () => loadOperacoes('entrada'), consumos: () => loadOperacoes('consumo'), internos: () => loadOperacoes('interno'),
   pedidos: () => loadPedidos(), guias: () => loadGuias(), divergencias: () => loadDivergencias(), relatorios: () => {},
-  estrutura: () => renderEstrutura(), fornecedores: () => drawFornecedores()
+  estrutura: () => renderEstrutura(), fornecedores: () => drawFornecedores(),
+  inventarios: () => loadInventarios(), abates: () => loadAbates()
 };
 let PAGE = 'painel';
 async function navigate(p) {
@@ -1064,6 +1116,7 @@ async function atualizarContadores() {
     const set = (id, n) => { const el = $(id); el.textContent = n; el.style.display = n > 0 ? 'inline-block' : 'none'; };
     set('cnt-pedidos', IS_ADMIN ? data.pedidos_por_aprovar + data.pedidos_por_expedir : data.pedidos_por_expedir);
     set('cnt-guias', data.guias_em_transito); set('cnt-div', data.divergencias_pendentes); set('cnt-minimo', data.artigos_abaixo_minimo);
+    set('cnt-inv', IS_ADMIN ? (data.inventarios_por_aprovar || 0) : (data.inventarios_em_contagem || 0)); set('cnt-abt', IS_ADMIN ? (data.abates_por_aprovar || 0) : 0);
   } catch (e) { /* silencioso */ }
 }
 
@@ -1085,7 +1138,10 @@ async function renderPainel() {
     kpi(a.guias_em_transito, 'Guias em trânsito', "navigate('guias')", '') +
     kpi(a.guias_atrasadas, 'Guias atrasadas', "navigate('guias')", 'danger') +
     kpi(a.divergencias_pendentes, 'Divergências por resolver', "navigate('divergencias')", 'danger') +
-    kpi(a.artigos_abaixo_minimo, 'Artigos abaixo do mínimo', 'stockFiltroMinimo()', 'warn');
+    kpi(a.artigos_abaixo_minimo, 'Artigos abaixo do mínimo', 'stockFiltroMinimo()', 'warn') +
+    kpi(a.inventarios_em_contagem || 0, 'Inventários em contagem', "navigate('inventarios')", '') +
+    kpi(a.inventarios_por_aprovar || 0, IS_ADMIN ? 'Inventários para aprovar' : 'Inventários à espera de aprovação', "navigate('inventarios').then(()=>setInvTab(document.querySelector('#inv-tabs [data-f=submetido]')))", 'warn') +
+    kpi(a.abates_por_aprovar || 0, IS_ADMIN ? 'Abates para aprovar' : 'Abates à espera de aprovação', "navigate('abates')", 'warn');
   $('painel-pedidos').innerHTML = miniTable([
     { t: 'Nº', h: p => `<a href="#" onclick="abrirPedido('${p.id}');return false;"><strong>${esc(p.numero)}</strong></a>` },
     { t: 'Destino', v: p => armLabel(p.destino_armazem_id) },
@@ -2374,6 +2430,10 @@ async function abrirRegistoDoMovimento(m) {
       const { data, error } = await sb.from('arm_guias').select('id').eq('operacao_id', m.operacao_id).single(); if (error) throw error;
       loading(false); return abrirGuia(data.id);
     }
+    if (tipo === 'abate') {
+      const { data, error } = await sb.from('arm_abates').select('id').eq('operacao_id', m.operacao_id).single(); if (error) throw error;
+      loading(false); return abrirAbate(data.id);
+    }
     if (!OPS[tipo]) throw new Error('Tipo de registo desconhecido');
     const { data: o, error } = await sb.from('arm_operacoes').select('*, arm_movimentos(id,tipo,artigo_id,localizacao_id,armazem_id,quantidade,preco_unit_orig,custo_unit_usd,valor_usd,anula_movimento_id)').eq('id', m.operacao_id).single();
     if (error) throw error;
@@ -2392,6 +2452,502 @@ async function exportMovimentos(fmt) {
     const linhas = MOVS.map(m => [m.data, m.arm_operacoes?.numero || '', TIPO_MOV[m.tipo], M.art[m.artigo_id]?.codigo || '', M.art[m.artigo_id]?.nome || '', M.art[m.artigo_id]?.unidade || '', estNome(m.estaleiro_id), armNome(m.armazem_id), locNome(m.localizacao_id), +m.quantidade, m.valor_usd == null ? null : +m.valor_usd, m.centro_custo_id ? ccNome(m.centro_custo_id) : '', profNome(m.created_by)]);
     if (fmt === 'xlsx') await exportarExcel('Movimentos', 'Extrato de movimentos', sub, [{ nome: 'Movimentos', colunas: cols, linhas }]);
     else await pdfTabela({ titulo: 'Extrato de movimentos', subtitulo: sub, landscape: true, colunas: cols.filter((c, i) => ![5, 12].includes(i)), linhas: linhas.map(l => l.filter((c, i) => ![5, 12].includes(i))), ficheiro: 'Movimentos' });
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ============================ INVENTÁRIOS ============================ */
+const EST_INV = { em_contagem: ['Em contagem', 'b-blue'], submetido: ['Por aprovar', 'b-yellow'], aprovado: ['Aprovado', 'b-green'], cancelado: ['Cancelado', 'b-gray'] };
+let INVS = [], INV_TAB = 'em_contagem', INV = null, INV_NOVAS = 0;
+async function loadInventarios() {
+  INVS = await fetchAll('arm_inventarios', '*, arm_inventario_linhas(id,qtd_contada,qtd_sistema)', q => q.order('created_at', { ascending: false }).order('id'));
+  drawInventarios();
+}
+function setInvTab(el) { if (!el) return; INV_TAB = el.dataset.f; document.querySelectorAll('#inv-tabs .tab').forEach(t => t.classList.toggle('active', t === el)); drawInventarios(); }
+function invAmbito(i) { return i.localizacao_id ? locNome(i.localizacao_id) : 'Armazém inteiro'; }
+function drawInventarios() {
+  const q = norm($('inv-q').value).split(/\s+/).filter(Boolean);
+  const rows = INVS.filter(i => (INV_TAB === 'todos' || i.estado === INV_TAB) &&
+    (!q.length || q.every(w => norm(`${i.numero} ${armLabel(i.armazem_id)} ${invAmbito(i)} ${i.observacoes || ''}`).includes(w))));
+  renderTable('tbl-inventarios', [
+    { t: 'Nº', h: i => `<strong>${esc(i.numero)}</strong>`, s: i => i.numero, cls: 'nowrap' },
+    { t: 'Criado em', v: i => fmtD(i.created_at), s: i => i.created_at, cls: 'nowrap' },
+    { t: 'Armazém', v: i => armLabel(i.armazem_id) },
+    { t: 'Âmbito', v: i => invAmbito(i) },
+    { t: 'Contados', cls: 'num', v: i => `${i.arm_inventario_linhas.filter(l => l.qtd_contada != null).length} / ${i.arm_inventario_linhas.length}` },
+    { t: 'Com diferenças', cls: 'num hide-m', v: i => ['submetido', 'aprovado'].includes(i.estado) ? i.arm_inventario_linhas.filter(l => l.qtd_contada != null && Number(l.qtd_contada) !== Number(l.qtd_sistema)).length : '—' },
+    { t: 'Criado por', v: i => profNome(i.criado_por), cls: 'hide-m' },
+    { t: 'Estado', h: i => badge(EST_INV[i.estado][0], EST_INV[i.estado][1]), s: i => i.estado }
+  ], rows, { onRow: i => abrirInventario(i.id), empty: 'Nenhum inventário', resetShown: true });
+}
+function openNovoInventario() {
+  $('modal-gen-box').className = 'modal';
+  $('gen-title').textContent = '📋 Novo inventário';
+  $('gen-body').innerHTML = `<div id="ni-alert"></div>
+    <div class="form-group"><label>Armazém <span class="req">*</span></label><select id="ni-arm" onchange="niArmMudou()"></select></div>
+    <div class="form-group"><label>O que contar</label><select id="ni-loc"><option value="">Armazém inteiro</option></select><div class="hint">Pode fazer o inventário de um só contentor/localização.</div></div>
+    <div class="form-group"><label>Observações</label><input type="text" id="ni-obs" placeholder="Ex.: inventário de fim de ano"></div>
+    <div class="alert alert-info" style="margin:0;">A lista de contagem é preparada com todos os artigos que o sistema tem nesse armazém/localização. Durante a contagem pode acrescentar artigos que encontre e não estejam na lista.</div>`;
+  $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="ni-ok" onclick="criarInventario()">Criar e começar a contar</button>`;
+  fillArmSelect('ni-arm');
+  openModal('modal-gen');
+}
+function niArmMudou() { fillLocSelect($('ni-loc'), $('ni-arm').value, '', '<option value="">Armazém inteiro</option>'); }
+async function criarInventario() {
+  if (!$('ni-arm').value) return showAlert('ni-alert', 'Escolha o armazém.');
+  $('ni-ok').disabled = true; loading(true);
+  try {
+    const r = await rpc('arm_criar_inventario', { p: { armazem_id: $('ni-arm').value, localizacao_id: $('ni-loc').value || null, observacoes: $('ni-obs').value } });
+    closeModal('modal-gen'); toast('Inventário ' + r.numero + ' criado'); if (PAGE === 'inventarios') await loadInventarios(); atualizarContadores();
+    $('ni-ok') && ($('ni-ok').disabled = false); loading(false);
+    await abrirInventario(r.id); return;
+  } catch (e) { showAlert('ni-alert', errText(e)); }
+  $('ni-ok').disabled = false; loading(false);
+}
+async function carregarInventario(id) {
+  const { data, error } = await sb.from('arm_inventarios').select('*, arm_inventario_linhas(*)').eq('id', id).single();
+  if (error) throw error;
+  data.arm_inventario_linhas.sort((a, b) => locNome(a.localizacao_id).localeCompare(locNome(b.localizacao_id), 'pt', { numeric: true }) || artLabel(a.artigo_id).localeCompare(artLabel(b.artigo_id), 'pt', { numeric: true }));
+  return data;
+}
+function invLocs(i) { return i.localizacao_id ? [M.loc[i.localizacao_id]].filter(Boolean) : locsDoArmazem(i.armazem_id); }
+function invDif(l) { return l.qtd_contada == null || l.qtd_sistema == null ? null : Number(l.qtd_contada) - Number(l.qtd_sistema); }
+async function abrirInventario(id) {
+  loading(true);
+  try {
+    const i = await carregarInventario(id); INV = i; INV_NOVAS = 0;
+    const L = i.arm_inventario_linhas, contados = L.filter(l => l.qtd_contada != null).length;
+    const podeContar = i.estado === 'em_contagem' && CAN_OP;
+    const verSistema = IS_ADMIN && i.estado !== 'em_contagem' || ['aprovado', 'cancelado'].includes(i.estado);
+    $('modal-gen-box').className = 'modal xl';
+    $('gen-title').innerHTML = `📋 Inventário ${esc(i.numero)} ${badge(EST_INV[i.estado][0], EST_INV[i.estado][1])}`;
+    let h = `<div id="inv-alert"></div><div class="info-grid">
+      <div><div class="k">Armazém</div><div class="v"><strong>${esc(armLabel(i.armazem_id))}</strong></div></div>
+      <div><div class="k">Âmbito</div><div class="v">${esc(invAmbito(i))}</div></div>
+      <div><div class="k">Criado por</div><div class="v">${esc(profNome(i.criado_por))}<div class="muted">${fmtDT(i.created_at)}</div></div></div>
+      <div><div class="k">Contados</div><div class="v"><strong id="inv-progresso">${contados} / ${L.length}</strong></div></div>
+      ${i.submetido_em ? `<div><div class="k">Submetido por</div><div class="v">${esc(profNome(i.submetido_por))}<div class="muted">${fmtDT(i.submetido_em)}</div></div></div>` : ''}
+      ${i.estado === 'aprovado' ? `<div><div class="k">Aprovado por</div><div class="v">${esc(profNome(i.decidido_por))}<div class="muted">${fmtDT(i.decidido_em)}</div></div></div>` : ''}
+      ${i.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(i.observacoes)}</div></div>` : ''}
+    </div>`;
+    if (i.estado === 'em_contagem' && i.obs_decisao && i.decidido_por) h += `<div class="alert alert-warn"><strong>Devolvido para recontagem</strong> por ${esc(profNome(i.decidido_por))}: ${esc(i.obs_decisao)}</div>`;
+    if (i.estado === 'cancelado' && i.obs_decisao) h += `<div class="alert alert-error">Cancelado: ${esc(i.obs_decisao)}</div>`;
+    if (i.estado === 'aprovado' && i.obs_decisao) h += `<div class="alert alert-info">Nota da aprovação: ${esc(i.obs_decisao)}</div>`;
+
+    if (podeContar) {
+      h += `<div class="alert alert-info">Escreva a quantidade que <strong>encontrou</strong> de cada artigo. Se um artigo não está lá, ponha <strong>0</strong>. Pode gravar a meio e continuar mais tarde. Use <strong>Enter</strong> para passar à linha seguinte.</div>
+        <div class="lines"><div class="table-wrap"><table><thead><tr><th>Localização</th><th>Código</th><th>Artigo</th><th>Un.</th><th style="width:150px;">Contado</th><th>Observações</th><th class="c-x"></th></tr></thead><tbody id="inv-linhas">` +
+        L.map(l => `<tr data-id="${l.id}"><td>${esc(locNome(l.localizacao_id))}</td><td class="nowrap">${esc(M.art[l.artigo_id]?.codigo || '')}</td><td>${esc(M.art[l.artigo_id]?.nome || '')}${l.adicionada ? ' <span class="badge b-orange">acrescentado</span>' : ''}</td><td>${esc(M.art[l.artigo_id]?.unidade || '')}</td>
+          <td><input class="inp num inv-q" type="number" min="0" step="0.001" value="${l.qtd_contada == null ? '' : Number(l.qtd_contada)}" style="width:130px;" onkeydown="invEnter(event,this)" oninput="invProgresso()"></td>
+          <td><input class="inp inv-obs" value="${esc(l.observacoes || '')}"></td>
+          <td class="c-x">${l.adicionada ? `<button class="btn btn-ghost" title="Remover" onclick="invRemoverLinha('${l.id}')">✕</button>` : ''}</td></tr>`).join('') +
+        `</tbody></table></div></div>
+        <div class="sec-title">Artigos encontrados que não estão na lista</div>
+        ${linhasBox('inv-novas', [{ t: 'Artigo', w: '40%' }, { t: 'Localização' }, { t: 'Contado' }, { t: 'Observações' }], 'Acrescentar artigo encontrado', 'invAddNova()')}`;
+    } else {
+      const cols = [{ t: 'Localização', v: l => locNome(l.localizacao_id) }, { t: 'Artigo', h: l => esc(artLabel(l.artigo_id)) + (l.adicionada ? ' <span class="badge b-orange">acrescentado</span>' : '') + (l.observacoes ? `<div class="muted">${esc(l.observacoes)}</div>` : '') }, { t: 'Un.', v: l => M.art[l.artigo_id]?.unidade || '' }];
+      if (verSistema) cols.push({ t: 'Sistema*', cls: 'num', v: l => fmtQ(l.qtd_sistema) });
+      cols.push({ t: 'Contado', cls: 'num', h: l => `<strong>${fmtQ(l.qtd_contada)}</strong>` });
+      if (verSistema) {
+        cols.push({ t: 'Diferença', cls: 'num', h: l => { const d = invDif(l); return d == null ? '—' : d === 0 ? '<span class="muted">0</span>' : `<strong class="${d < 0 ? 'neg' : 'pos'}">${d > 0 ? '+' : ''}${fmtQ(d)}</strong>`; } });
+        cols.push({ t: 'Valor dif. (USD)', cls: 'num', h: l => { const d = invDif(l), c = M.art[l.artigo_id]?.custo_medio_usd; return !d || c == null ? '—' : `<span class="${d < 0 ? 'neg' : 'pos'}">${fmtU(d * c)}</span>`; } });
+        if (i.estado === 'submetido' && IS_ADMIN) cols.push({ t: 'Acertar', h: l => invDif(l) ? `<input type="checkbox" class="inv-apl" data-id="${l.id}" checked style="width:18px;height:18px;">` : '' });
+        if (i.estado === 'aprovado') cols.push({ t: 'Acertado', h: l => invDif(l) ? (l.aplicar ? '✔' : '<span class="muted">não</span>') : '' });
+      }
+      cols.push({ t: 'Contado por', h: l => l.contado_por ? `${esc(profNome(l.contado_por))}<div class="muted">${fmtDT(l.contado_em)}</div>` : '—' });
+      h += miniTable(cols, L, 'Sem artigos');
+      if (verSistema) {
+        const difs = L.filter(l => invDif(l)), vpos = difs.reduce((s, l) => s + Math.max(0, invDif(l) * (M.art[l.artigo_id]?.custo_medio_usd || 0)), 0), vneg = difs.reduce((s, l) => s + Math.min(0, invDif(l) * (M.art[l.artigo_id]?.custo_medio_usd || 0)), 0);
+        h += `<div class="muted" style="margin-top:8px;">* Sistema = stock que existia no momento em que cada artigo foi contado. ${difs.length} artigo(s) com diferença · sobras ${fmtUSD(vpos)} · faltas ${fmtUSD(vneg)}</div>`;
+      } else if (i.estado === 'submetido') h += `<div class="alert alert-info" style="margin-top:10px;">Contagem submetida — aguarda aprovação do administrador.</div>`;
+    }
+    $('gen-body').innerHTML = h;
+    if (podeContar) { $('inv-novas').dataset.add = ''; }
+
+    let left = '', right = '';
+    const dono = i.criado_por === ME.id;
+    if (['em_contagem', 'submetido'].includes(i.estado) && (IS_ADMIN || (CAN_OP && dono))) left += `<button class="btn btn-outline btn-sm" onclick="cancelarInventario('${i.id}')">Cancelar inventário</button>`;
+    if (IS_ADMIN && i.estado === 'submetido') left += `<button class="btn btn-outline btn-sm" onclick="devolverInventario('${i.id}')">↩ Devolver para recontagem</button>`;
+    if (IS_ADMIN) left += `<button class="btn btn-red btn-sm" onclick="apagarInventario('${i.id}')">🗑️ Apagar</button>`;
+    right += `<button class="btn btn-outline" onclick="folhaContagemPDF('${i.id}')">📄 Folha de contagem</button>`;
+    if (verSistema) right += `<button class="btn btn-outline" onclick="relatorioInventario('${i.id}','pdf')">📄 Relatório</button><button class="btn btn-outline" onclick="relatorioInventario('${i.id}','xlsx')">📊 Excel</button>`;
+    if (podeContar) right += `<button class="btn btn-outline" id="inv-guardar" onclick="guardarContagem(false)">💾 Guardar</button><button class="btn btn-primary" id="inv-submeter" onclick="guardarContagem(true)">✔ Guardar e submeter</button>`;
+    if (IS_ADMIN && i.estado === 'submetido') right += `<button class="btn btn-success" id="inv-aprovar" onclick="aprovarInventario('${i.id}')">✔ Aprovar e acertar stock</button>`;
+    $('gen-footer').innerHTML = `<div class="left">${left}</div>${right}<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
+    openModal('modal-gen');
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+function invEnter(e, inp) {
+  if (e.key !== 'Enter') return; e.preventDefault();
+  const todos = [...document.querySelectorAll('#inv-linhas .inv-q')]; const k = todos.indexOf(inp);
+  if (todos[k + 1]) { todos[k + 1].focus(); todos[k + 1].select(); }
+}
+function invProgresso() {
+  const t = [...document.querySelectorAll('#inv-linhas .inv-q')]; const c = t.filter(x => x.value !== '').length;
+  $('inv-progresso').textContent = `${c} / ${t.length}`;
+}
+function invAddNova() {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><div class="art-cell"><input class="inp art" placeholder="Escreva código, NSAP ou nome..."><button class="btn btn-outline btn-sm" type="button" onclick="artigoRapido(this.previousElementSibling)">+ Novo</button></div></td>
+    <td><select class="inp loc">${invLocs(INV).map(l => `<option value="${l.id}">${esc(l.nome)}</option>`).join('')}</select></td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
+    <td><input class="inp obs"></td>
+    <td class="c-x"><button class="btn btn-ghost" onclick="this.closest('tr').remove()">✕</button></td>`;
+  $('inv-novas').appendChild(tr);
+  attachPicker(tr.querySelector('.art'), () => itensArtigos(), it => { tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; tr.querySelector('.qtd').focus(); }, { criar: true });
+  tr.querySelector('.art').focus();
+}
+function invRecolher() {
+  const linhas = [...document.querySelectorAll('#inv-linhas tr')].map(tr => ({ linha_id: tr.dataset.id, qtd_contada: tr.querySelector('.inv-q').value === '' ? null : Number(tr.querySelector('.inv-q').value), observacoes: tr.querySelector('.inv-obs').value }));
+  const novas = []; let err = null;
+  document.querySelectorAll('#inv-novas tr').forEach((tr, k) => {
+    const a = tr.querySelector('.art').dataset.id, q = tr.querySelector('.qtd').value;
+    if (!a && q === '' && !tr.querySelector('.art').value.trim()) return;
+    if (!a) err = err || `Artigo acrescentado ${k + 1}: escolha o artigo da lista.`;
+    else if (q === '' || Number(q) < 0) err = err || `Artigo acrescentado ${k + 1}: indique a quantidade contada.`;
+    novas.push({ artigo_id: a, localizacao_id: tr.querySelector('.loc').value, qtd_contada: Number(q), observacoes: tr.querySelector('.obs').value });
+  });
+  if (linhas.some(l => l.qtd_contada != null && (isNaN(l.qtd_contada) || l.qtd_contada < 0))) err = err || 'Há quantidades inválidas.';
+  return { linhas, novas, err };
+}
+async function guardarContagem(submeter) {
+  const { linhas, novas, err } = invRecolher();
+  if (err) return showAlert('inv-alert', err);
+  const falta = linhas.filter(l => l.qtd_contada == null).length;
+  if (submeter && falta) return showAlert('inv-alert', `Ainda há ${falta} artigo(s) sem quantidade. Se um artigo não foi encontrado, ponha 0.`);
+  if (submeter && !(await confirmar('Submeter contagem', 'Depois de submeter, a contagem fica à espera de aprovação e já não pode ser alterada (a não ser que o administrador a devolva). Continuar?', false, '✔ Submeter'))) return;
+  loading(true);
+  try {
+    const r = await rpc('arm_inventario_contar', { p: { inventario_id: INV.id, linhas, novas } });
+    if (submeter) { await rpc('arm_submeter_inventario', { p_inv: INV.id }); toast('Inventário ' + r.numero + ' submetido para aprovação'); }
+    else toast('Contagem gravada' + (r.por_contar ? ` — faltam ${r.por_contar} artigo(s)` : ' — todos contados'));
+    closeModal('modal-gen'); if (PAGE === 'inventarios') await loadInventarios(); atualizarContadores();
+    loading(false); await abrirInventario(INV.id); return;
+  } catch (e) { showAlert('inv-alert', errText(e)); }
+  loading(false);
+}
+async function invRemoverLinha(linhaId) {
+  if (!(await confirmar('Remover artigo', 'Remover este artigo acrescentado da contagem?', true, 'Remover'))) return;
+  loading(true);
+  try { await rpc('arm_inventario_contar', { p: { inventario_id: INV.id, linhas: [{ linha_id: linhaId, remover: true }] } }); closeModal('modal-gen'); loading(false); await abrirInventario(INV.id); return; }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function aprovarInventario(id) {
+  const naoAplicar = [...document.querySelectorAll('.inv-apl')].filter(c => !c.checked).map(c => c.dataset.id);
+  const n = [...document.querySelectorAll('.inv-apl')].filter(c => c.checked).length;
+  const m = await pedirMotivo('Aprovar inventário ' + INV.numero, n ? `O stock vai ser acertado em <strong>${n}</strong> artigo(s) com diferença.${naoAplicar.length ? ` ${naoAplicar.length} diferença(s) desmarcada(s) não serão acertadas.` : ''}` : 'Não há diferenças a acertar: o inventário fica só registado como aprovado.', 'Nota (opcional)', false, '✔ Aprovar');
+  if (m == null) return;
+  loading(true);
+  try {
+    const r = await rpc('arm_aprovar_inventario', { p: { inventario_id: id, observacoes: m, nao_aplicar: naoAplicar } });
+    toast(`Inventário ${r.numero} aprovado` + (r.ajuste ? ` — stock acertado (${r.ajuste}, ${r.linhas_acertadas} artigo(s))` : ''));
+    closeModal('modal-gen'); if (PAGE === 'inventarios') await loadInventarios(); atualizarContadores(); await reloadArtigos();
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function devolverInventario(id) {
+  const m = await pedirMotivo('Devolver para recontagem', 'O inventário volta a "em contagem" para ser corrigido.', 'O que deve ser recontado?', true, '↩ Devolver');
+  if (m == null) return;
+  loading(true);
+  try { const r = await rpc('arm_devolver_inventario', { p_inv: id, p_motivo: m }); toast('Inventário ' + r.numero + ' devolvido'); closeModal('modal-gen'); if (PAGE === 'inventarios') await loadInventarios(); atualizarContadores(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function cancelarInventario(id) {
+  const m = await pedirMotivo('Cancelar inventário', 'O inventário fica cancelado e o stock não é alterado.', 'Motivo', false, 'Cancelar inventário');
+  if (m == null) return;
+  loading(true);
+  try { const r = await rpc('arm_cancelar_inventario', { p_inv: id, p_motivo: m }); toast('Inventário ' + r.numero + ' cancelado'); closeModal('modal-gen'); if (PAGE === 'inventarios') await loadInventarios(); atualizarContadores(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function apagarInventario(id) {
+  const i = INV;
+  if (!(await confirmar('Apagar ' + i.numero, `Apagar definitivamente o inventário <strong>${esc(i.numero)}</strong>?${i.estado === 'aprovado' ? '<br><br>Como já foi aprovado, <strong>o acerto de stock é desfeito</strong>.' : ''}<br><br>Não é possível desfazer.`, true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { const r = await rpc('arm_apagar_inventario', { p_inv: id }); toast('Inventário ' + r.numero + ' apagado'); closeModal('modal-gen'); if (PAGE === 'inventarios') await loadInventarios(); atualizarContadores(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ---------- PDF: folha de contagem (sem quantidades do sistema) ---------- */
+async function folhaContagemPDF(id) {
+  loading(true);
+  try {
+    const i = await carregarInventario(id);
+    const cc = M.est[M.arm[i.armazem_id]?.estaleiro_id]?.centro_custo_id;
+    const { doc, eip, cli } = await novoPDF(false, cc);
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+    const sub = `${i.numero} · ${armLabel(i.armazem_id)} · ${invAmbito(i)}`;
+    const cab = () => desenharCabecalho(doc, eip, cli, 'FOLHA DE CONTAGEM', sub);
+    cab();
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60);
+    doc.text('Data da contagem: ____/____/________     Contado por: __________________________________', 14, 31);
+    const porLoc = {}; i.arm_inventario_linhas.forEach(l => (porLoc[l.localizacao_id] = porLoc[l.localizacao_id] || []).push(l));
+    const body = [];
+    Object.entries(porLoc).forEach(([loc, ls]) => {
+      body.push([{ content: 'Localização: ' + pdfTxt(locNome(loc)), colSpan: 6, styles: { fillColor: [238, 240, 244], fontStyle: 'bold', textColor: [27, 42, 74] } }]);
+      ls.forEach(l => { const a = M.art[l.artigo_id] || {}; body.push([a.codigo || '', a.nsap || '', pdfTxt(a.nome || ''), a.unidade || '', '', '']); });
+    });
+    body.push([{ content: 'Artigos encontrados que não estão na lista (código ou descrição, localização, quantidade)', colSpan: 6, styles: { fillColor: [238, 240, 244], fontStyle: 'bold', textColor: [27, 42, 74] } }]);
+    for (let k = 0; k < 8; k++) body.push(['', '', '', '', '', '']);
+    doc.autoTable({ startY: 35, head: [['Código', 'NSAP', 'Artigo', 'Un.', 'Contado', 'Observações']], body, theme: 'grid',
+      margin: { top: 29, left: 14, right: 14, bottom: 15 }, styles: { fontSize: 8.5, cellPadding: 2.4, lineColor: [180, 186, 200], lineWidth: .15, textColor: [30, 40, 60], minCellHeight: 8 },
+      headStyles: { fillColor: [27, 42, 74], textColor: 255, fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 20 }, 3: { cellWidth: 12 }, 4: { cellWidth: 26 }, 5: { cellWidth: 42 } },
+      didDrawPage: d => { if (d.pageNumber > 1) cab(); } });
+    let y = doc.lastAutoTable.finalY + 10;
+    if (y > H - 40) { doc.addPage(); cab(); y = 40; }
+    const sw = (W - 28 - 8) / 2;
+    [['CONTADO POR', ''], ['VERIFICADO POR', '']].forEach(([t], k) => {
+      const x = 14 + k * (sw + 8);
+      doc.setDrawColor(27, 42, 74); doc.setLineWidth(.3); doc.rect(x, y, sw, 26);
+      doc.setFillColor(238, 240, 244); doc.rect(x, y, sw, 6, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(27, 42, 74); doc.text(t, x + sw / 2, y + 4.2, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(60);
+      doc.text('Nome:', x + 2, y + 12); doc.text('Assinatura:', x + 2, y + 21); doc.setDrawColor(150); doc.line(x + 20, y + 22, x + sw - 4, y + 22);
+    });
+    rodapes(doc, 'Inventário ' + i.numero);
+    doc.save('Folha_contagem_' + i.numero + '.pdf');
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ---------- Relatório do inventário (com diferenças) ---------- */
+async function relatorioInventario(id, fmt) {
+  loading(true);
+  try {
+    const i = await carregarInventario(id);
+    const cc = M.est[M.arm[i.armazem_id]?.estaleiro_id]?.centro_custo_id;
+    const sub = `${i.numero} · ${armLabel(i.armazem_id)} · ${invAmbito(i)} · ${EST_INV[i.estado][0]}` + (i.estado === 'aprovado' ? ` em ${fmtD(i.decidido_em)} por ${profNome(i.decidido_por)}` : '');
+    const linha = l => { const a = M.art[l.artigo_id] || {}, d = invDif(l), c = a.custo_medio_usd; return [locNome(l.localizacao_id), a.codigo || '', a.nome || '', a.unidade || '', l.qtd_sistema == null ? null : +l.qtd_sistema, l.qtd_contada == null ? null : +l.qtd_contada, d, d && c != null ? d * c : null, l.contado_por ? profNome(l.contado_por) : '']; };
+    const L = i.arm_inventario_linhas, tot = L.reduce((s, l) => s + ((invDif(l) || 0) * (M.art[l.artigo_id]?.custo_medio_usd || 0)), 0);
+    const cols = [{ h: 'Localização', w: 16 }, { h: 'Código', w: 11 }, { h: 'Artigo', w: 40 }, { h: 'Un.', w: 6 }, { h: 'Sistema', w: 11, f: 'q' }, { h: 'Contado', w: 11, f: 'q' }, { h: 'Diferença', w: 11, f: 'q' }, { h: 'Valor dif. USD', w: 14, f: 'usd' }, { h: 'Contado por', w: 20 }];
+    if (fmt === 'xlsx') await exportarExcel('Inventario_' + i.numero, 'Inventário ' + i.numero, sub, [{ nome: 'Inventário', ccId: cc, colunas: cols, linhas: L.map(linha), totais: ['TOTAL', '', '', '', '', '', '', tot, ''] }]);
+    else {
+      const porLoc = {}; L.forEach(l => (porLoc[l.localizacao_id] = porLoc[l.localizacao_id] || []).push(l));
+      await pdfTabela({ titulo: 'Relatório de inventário', subtitulo: sub, landscape: true, ccId: cc, ficheiro: 'Inventario_' + i.numero,
+        colunas: cols.filter((c, k) => k > 0), grupos: Object.entries(porLoc).map(([loc, ls]) => ({ titulo: 'Localização: ' + locNome(loc), linhas: ls.map(l => linha(l).slice(1)), subtotal: ls.reduce((s, l) => s + ((invDif(l) || 0) * (M.art[l.artigo_id]?.custo_medio_usd || 0)), 0) })),
+        totais: ['TOTAL (valor das diferenças)', '', '', '', '', '', tot, ''] });
+    }
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ============================ ABATES ============================ */
+const MOTIVO_ABATE = { quebra: 'Quebra / dano', perda: 'Perda / extravio', roubo: 'Roubo', fim_vida: 'Fim de vida útil', avaria: 'Avaria sem reparação', outro: 'Outro' };
+const EST_ABT = { pendente: ['Por aprovar', 'b-yellow'], aprovado: ['Aprovado', 'b-green'], rejeitado: ['Rejeitado', 'b-red'], cancelado: ['Cancelado', 'b-gray'] };
+let ABTS = [], ABT_TAB = 'pendente', ABT_STOCK = [];
+const SEL_ABATE = '*, arm_abate_linhas(*), arm_operacoes(arm_movimentos(artigo_id,valor_usd))';
+async function loadAbates() {
+  ABTS = await fetchAll('arm_abates', SEL_ABATE, q => q.order('created_at', { ascending: false }).order('id'));
+  drawAbates();
+}
+function setAbtTab(el) { ABT_TAB = el.dataset.f; document.querySelectorAll('#abt-tabs .tab').forEach(t => t.classList.toggle('active', t === el)); drawAbates(); }
+function abtValor(a) {
+  if (a.arm_operacoes?.arm_movimentos?.length) { const v = a.arm_operacoes.arm_movimentos.filter(m => m.valor_usd != null); return v.length ? -v.reduce((s, m) => s + Number(m.valor_usd), 0) : null; }
+  const ls = a.arm_abate_linhas.filter(l => M.art[l.artigo_id]?.custo_medio_usd != null); return ls.length ? ls.reduce((s, l) => s + l.quantidade * M.art[l.artigo_id].custo_medio_usd, 0) : null;
+}
+function drawAbates() {
+  const q = norm($('abt-q').value).split(/\s+/).filter(Boolean);
+  const f = { pendente: ['pendente'], aprovado: ['aprovado'], outros: ['rejeitado', 'cancelado'], todos: null }[ABT_TAB];
+  const rows = ABTS.filter(a => (!f || f.includes(a.estado)) && (!q.length || q.every(w => norm(`${a.numero} ${armLabel(a.armazem_id)} ${MOTIVO_ABATE[a.motivo]} ${a.descricao} ${a.arm_abate_linhas.map(l => artLabel(l.artigo_id)).join(' ')}`).includes(w))));
+  renderTable('tbl-abates', [
+    { t: 'Nº', h: a => `<strong>${esc(a.numero)}</strong>`, s: a => a.numero, cls: 'nowrap' },
+    { t: 'Data', v: a => fmtD(a.created_at), s: a => a.created_at, cls: 'nowrap' },
+    { t: 'Armazém', v: a => armLabel(a.armazem_id) },
+    { t: 'Motivo', v: a => MOTIVO_ABATE[a.motivo] },
+    { t: 'Descrição', h: a => `<span class="muted">${esc(a.descricao.length > 70 ? a.descricao.slice(0, 70) + '…' : a.descricao)}</span>`, cls: 'hide-m' },
+    { t: 'Artigos', cls: 'num', v: a => a.arm_abate_linhas.length },
+    { t: 'Valor (USD)', cls: 'num hide-m', v: a => fmtU(abtValor(a)), s: a => abtValor(a) ?? -1 },
+    { t: 'Registado por', v: a => profNome(a.solicitado_por), cls: 'hide-m' },
+    { t: 'Estado', h: a => badge(EST_ABT[a.estado][0], EST_ABT[a.estado][1]), s: a => a.estado }
+  ], rows, { onRow: a => abrirAbate(a.id), empty: 'Nenhum abate', resetShown: true });
+}
+function openNovoAbate() {
+  $('modal-gen-box').className = 'modal xl';
+  $('gen-title').textContent = '🗑️ Novo abate';
+  $('gen-body').innerHTML = `<div id="ab-alert"></div>
+    <div class="form-row-3">
+      <div class="form-group"><label>Armazém <span class="req">*</span></label><select id="ab-arm" onchange="abArmMudou()"></select></div>
+      <div class="form-group"><label>Motivo <span class="req">*</span></label><select id="ab-mot"><option value="">— escolher —</option>${Object.entries(MOTIVO_ABATE).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div class="form-group"><label>&nbsp;</label><div class="hint" style="margin-top:10px;">${IS_ADMIN ? 'Como é administrador, o abate fica aprovado logo e o stock sai de imediato.' : 'O stock só sai depois de o administrador aprovar.'}</div></div>
+    </div>
+    <div class="form-group"><label>O que aconteceu <span class="req">*</span></label><textarea id="ab-desc" rows="2" placeholder="Ex.: caiu da grua durante a descarga no apoio 145"></textarea></div>
+    ${linhasBox('ab-linhas', [{ t: 'Artigo (com stock neste armazém)', w: '42%' }, { t: 'Localização' }, { t: 'Disponível' }, { t: 'Quantidade a abater' }], 'Adicionar linha', 'abAddLinha()')}`;
+  $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-red" id="ab-ok" onclick="guardarAbate()">${IS_ADMIN ? 'Registar e aprovar abate' : 'Enviar para aprovação'}</button>`;
+  fillArmSelect('ab-arm'); $('ab-linhas').dataset.add = 'abAddLinha'; ABT_STOCK = []; abAddLinha();
+  openModal('modal-gen');
+}
+async function abArmMudou() {
+  const arm = $('ab-arm').value; $('ab-linhas').innerHTML = ''; ABT_STOCK = [];
+  if (arm) { loading(true); try { ABT_STOCK = await stockDoArmazem(arm); } catch (e) { showAlert('ab-alert', errText(e)); } loading(false); }
+  abAddLinha();
+}
+function abAddLinha() {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input class="inp art" placeholder="${$('ab-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"></td>
+    <td><select class="inp loc" onchange="conLocMudou(this)"></select></td><td class="num disp">—</td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
+    <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
+  $('ab-linhas').appendChild(tr);
+  const comStock = new Set(ABT_STOCK.map(s => s.artigo_id));
+  attachPicker(tr.querySelector('.art'), () => itensArtigos(a => comStock.has(a.id)), it => {
+    const sel = tr.querySelector('.loc');
+    sel.innerHTML = ABT_STOCK.filter(s => s.artigo_id === it.id).map(s => `<option value="${s.localizacao_id}" data-q="${s.quantidade}">${esc(locNome(s.localizacao_id))} (${fmtQ(s.quantidade)})</option>`).join('');
+    tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; conLocMudou(sel); tr.querySelector('.qtd').focus();
+  });
+}
+async function guardarAbate() {
+  const arm = $('ab-arm').value, mot = $('ab-mot').value, desc = $('ab-desc').value.trim();
+  if (!arm) return showAlert('ab-alert', 'Escolha o armazém.');
+  if (!mot) return showAlert('ab-alert', 'Escolha o motivo.');
+  if (!desc) return showAlert('ab-alert', 'Descreva o que aconteceu.');
+  const linhas = []; let err = null;
+  document.querySelectorAll('#ab-linhas tr').forEach((tr, k) => {
+    const a = tr.querySelector('.art').dataset.id, q = tr.querySelector('.qtd').value;
+    if (!a && !q) return;
+    if (!a) err = err || `Linha ${k + 1}: escolha o artigo da lista.`;
+    else if (!(Number(q) > 0)) err = err || `Linha ${k + 1}: indique a quantidade.`;
+    else { const d = Number(tr.querySelector('.loc').selectedOptions[0]?.dataset.q || 0); if (Number(q) > d) err = err || `Linha ${k + 1}: quantidade superior ao disponível (${fmtQ(d)}).`; }
+    linhas.push({ artigo_id: a, localizacao_id: tr.querySelector('.loc').value, quantidade: Number(q) });
+  });
+  if (err) return showAlert('ab-alert', err);
+  if (!linhas.length) return showAlert('ab-alert', 'Adicione pelo menos uma linha.');
+  if (IS_ADMIN && !(await confirmar('Abater material', 'O material sai do stock de imediato. Continuar?', true, 'Abater'))) return;
+  $('ab-ok').disabled = true; loading(true);
+  try {
+    const r = await rpc('arm_criar_abate', { p: { armazem_id: arm, motivo: mot, descricao: desc, linhas } });
+    closeModal('modal-gen'); toast(r.aprovado ? `Abate ${r.numero} registado e aprovado` : `Abate ${r.numero} enviado para aprovação`);
+    if (PAGE === 'abates') await loadAbates(); else refreshPage(); atualizarContadores();
+  } catch (e) { showAlert('ab-alert', errText(e)); }
+  $('ab-ok').disabled = false; loading(false);
+}
+async function abrirAbate(id) {
+  loading(true);
+  try {
+    const { data: a, error } = await sb.from('arm_abates').select(SEL_ABATE).eq('id', id).single(); if (error) throw error;
+    const k = ABTS.findIndex(x => x.id === id); if (k >= 0) ABTS[k] = a; else ABTS.push(a);
+    $('modal-gen-box').className = 'modal lg';
+    $('gen-title').innerHTML = `🗑️ Abate ${esc(a.numero)} ${badge(EST_ABT[a.estado][0], EST_ABT[a.estado][1])}`;
+    const valMov = {}; (a.arm_operacoes?.arm_movimentos || []).forEach(m => valMov[m.artigo_id] = (valMov[m.artigo_id] || 0) - Number(m.valor_usd || 0));
+    let h = `<div class="info-grid">
+      <div><div class="k">Armazém</div><div class="v"><strong>${esc(armLabel(a.armazem_id))}</strong></div></div>
+      <div><div class="k">Motivo</div><div class="v">${esc(MOTIVO_ABATE[a.motivo])}</div></div>
+      <div><div class="k">Registado por</div><div class="v">${esc(profNome(a.solicitado_por))}<div class="muted">${fmtDT(a.created_at)}</div></div></div>
+      ${a.decidido_por ? `<div><div class="k">${a.estado === 'aprovado' ? 'Aprovado' : a.estado === 'rejeitado' ? 'Rejeitado' : 'Cancelado'} por</div><div class="v">${esc(profNome(a.decidido_por))}<div class="muted">${fmtDT(a.decidido_em)}</div></div></div>` : ''}
+      <div style="grid-column:1/-1;"><div class="k">O que aconteceu</div><div class="v">${esc(a.descricao)}</div></div>
+      ${a.obs_decisao ? `<div style="grid-column:1/-1;"><div class="k">Nota da decisão</div><div class="v">${esc(a.obs_decisao)}</div></div>` : ''}
+    </div><div class="sec-title">Material</div>`;
+    h += miniTable([{ t: 'Artigo', v: l => artLabel(l.artigo_id) }, { t: 'Localização', v: l => locNome(l.localizacao_id) }, { t: 'Quantidade', cls: 'num', v: l => fmtQ(l.quantidade) + ' ' + (M.art[l.artigo_id]?.unidade || '') },
+      { t: 'Valor (USD)', cls: 'num', v: l => a.estado === 'aprovado' ? fmtU(valMov[l.artigo_id]) : (M.art[l.artigo_id]?.custo_medio_usd == null ? '—' : fmtU(l.quantidade * M.art[l.artigo_id].custo_medio_usd)) }], a.arm_abate_linhas);
+    $('gen-body').innerHTML = h;
+    let left = '', right = '';
+    if (a.estado === 'pendente' && (IS_ADMIN || (CAN_OP && a.solicitado_por === ME.id))) left += `<button class="btn btn-outline btn-sm" onclick="cancelarAbate('${a.id}')">Cancelar</button>`;
+    if (IS_ADMIN && a.estado === 'pendente') { left += `<button class="btn btn-outline btn-sm" onclick="rejeitarAbate('${a.id}')">Rejeitar</button>`; right += `<button class="btn btn-red" onclick="aprovarAbate('${a.id}')">✔ Aprovar abate</button>`; }
+    if (IS_ADMIN) left += `<button class="btn btn-red btn-sm" onclick="apagarAbate('${a.id}')">🗑️ Apagar</button>`;
+    right += `<button class="btn btn-outline" onclick="autoAbatePDF('${a.id}')">📄 Auto de abate</button>`;
+    $('gen-footer').innerHTML = `<div class="left">${left}</div>${right}<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
+    openModal('modal-gen');
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function depoisDeAbate() { if (PAGE === 'abates') await loadAbates(); else await refreshPage(); atualizarContadores(); }
+async function aprovarAbate(id) {
+  const m = await pedirMotivo('Aprovar abate', 'O material sai do stock de imediato.', 'Nota (opcional)', false, '✔ Aprovar');
+  if (m == null) return;
+  loading(true);
+  try { const r = await rpc('arm_aprovar_abate', { p_abate: id, p_obs: m || null }); toast('Abate ' + r.numero + ' aprovado'); closeModal('modal-gen'); await depoisDeAbate(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function rejeitarAbate(id) {
+  const m = await pedirMotivo('Rejeitar abate', 'O stock não é alterado.', 'Motivo da rejeição', true, 'Rejeitar');
+  if (m == null) return;
+  loading(true);
+  try { const r = await rpc('arm_rejeitar_abate', { p_abate: id, p_motivo: m }); toast('Abate ' + r.numero + ' rejeitado'); closeModal('modal-gen'); await depoisDeAbate(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function cancelarAbate(id) {
+  if (!(await confirmar('Cancelar abate', 'Cancelar este pedido de abate?', true, 'Cancelar abate'))) return;
+  loading(true);
+  try { const r = await rpc('arm_cancelar_abate', { p_abate: id }); toast('Abate ' + r.numero + ' cancelado'); closeModal('modal-gen'); await depoisDeAbate(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function apagarAbate(id) {
+  const a = ABTS.find(x => x.id === id);
+  if (!(await confirmar('Apagar ' + a.numero, `Apagar definitivamente o abate <strong>${esc(a.numero)}</strong>?${a.estado === 'aprovado' ? '<br><br>Como já foi aprovado, <strong>o material volta ao stock</strong>.' : ''}<br><br>Não é possível desfazer.`, true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { const r = await rpc('arm_apagar_abate', { p_abate: id }); toast('Abate ' + r.numero + ' apagado'); closeModal('modal-gen'); await depoisDeAbate(); }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ---------- PDF: auto de abate ---------- */
+async function autoAbatePDF(id) {
+  loading(true);
+  try {
+    const { data: a, error } = await sb.from('arm_abates').select(SEL_ABATE).eq('id', id).single(); if (error) throw error;
+    const cc = M.est[M.arm[a.armazem_id]?.estaleiro_id]?.centro_custo_id;
+    const { doc, eip, cli } = await novoPDF(false, cc);
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+    const cab = () => { const t = desenharCabecalho(doc, eip, cli, 'AUTO DE ABATE', 'Nº ' + a.numero, true); if (a.estado !== 'aprovado') { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(200, 16, 46); doc.text(EST_ABT[a.estado][0].toUpperCase(), W - 14, t - 2, { align: 'right' }); } return t; };
+    const topo = cab();
+    const valMov = {}; (a.arm_operacoes?.arm_movimentos || []).forEach(m => valMov[m.artigo_id] = (valMov[m.artigo_id] || 0) - Number(m.valor_usd || 0));
+    const pares = [['Armazém', armLabel(a.armazem_id)], ['Responsável do armazém', armResponsavel(a.armazem_id)], ['Motivo', MOTIVO_ABATE[a.motivo]], ['Registado por', `${profNome(a.solicitado_por)} em ${fmtDT(a.created_at)}`]];
+    if (a.estado === 'aprovado') pares.push(['Aprovado por', `${profNome(a.decidido_por)} em ${fmtDT(a.decidido_em)}`]);
+    let y = topo + 8;
+    pares.forEach(([k, v]) => { doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(90, 100, 120); doc.text(k, 14, y); doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 40, 60); doc.text(pdfTxt(v), 62, y); y += 5.5; });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(90, 100, 120); doc.text('O que aconteceu', 14, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 40, 60); const t = doc.splitTextToSize(pdfTxt(a.descricao), W - 76); doc.text(t, 62, y); y += t.length * 4.2 + 4;
+    const valor = l => a.estado === 'aprovado' ? valMov[l.artigo_id] : (M.art[l.artigo_id]?.custo_medio_usd == null ? null : l.quantidade * M.art[l.artigo_id].custo_medio_usd);
+    const tot = a.arm_abate_linhas.reduce((s, l) => s + (valor(l) || 0), 0);
+    doc.autoTable({ startY: y, head: [['Código', 'NSAP', 'Artigo', 'Un.', 'Localização', 'Quantidade', 'Valor USD']],
+      body: a.arm_abate_linhas.map(l => { const r = M.art[l.artigo_id] || {}; return [r.codigo || '', r.nsap || '', pdfTxt(r.nome || ''), r.unidade || '', pdfTxt(locNome(l.localizacao_id)), pdfTxt(fmtQ(l.quantidade)), valor(l) == null ? '-' : pdfTxt(fmtU(valor(l)))]; })
+        .concat([[{ content: 'TOTAL', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } }, { content: pdfTxt(fmtU(tot)), styles: { fontStyle: 'bold', halign: 'right' } }]]),
+      theme: 'grid', margin: { top: topo + 5, left: 14, right: 14, bottom: 15 }, styles: { fontSize: 8, cellPadding: 1.8, lineColor: [216, 220, 229], lineWidth: .1, textColor: [30, 40, 60] },
+      headStyles: { fillColor: [27, 42, 74], textColor: 255, fontStyle: 'bold' }, columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }, didDrawPage: d => { if (d.pageNumber > 1) cab(); } });
+    y = doc.lastAutoTable.finalY + 10;
+    if (y > H - 55) { doc.addPage(); cab(); y = topo + 8; }
+    const sw = (W - 28 - 8) / 3, sy = Math.max(y, H - 62);
+    [['RESPONSÁVEL DO ARMAZÉM', armResponsavel(a.armazem_id)], ['REGISTADO POR', profNome(a.solicitado_por)], ['APROVADO POR', a.estado === 'aprovado' ? profNome(a.decidido_por) : '']].forEach(([tt, nome], k) => {
+      const x = 14 + k * (sw + 4);
+      doc.setDrawColor(27, 42, 74); doc.setLineWidth(.3); doc.rect(x, sy, sw, 40);
+      doc.setFillColor(238, 240, 244); doc.rect(x, sy, sw, 6, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(27, 42, 74); doc.text(tt, x + sw / 2, sy + 4.2, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(60);
+      doc.text('Nome: ' + pdfTxt(nome || ''), x + 2, sy + 12); doc.text('Data: ___/___/______', x + 2, sy + 20); doc.text('Assinatura:', x + 2, sy + 27); doc.setDrawColor(150); doc.line(x + 4, sy + 36, x + sw - 4, sy + 36);
+    });
+    rodapes(doc, 'Abate ' + a.numero);
+    doc.save('Auto_abate_' + a.numero + '.pdf');
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ---------- Relatório: abates por período ---------- */
+async function repAbates(fmt) {
+  loading(true);
+  try {
+    const de = $('r7-de').value, ate = $('r7-ate').value, mot = $('r7-mot').value, est = $('r7-est').value;
+    const rows = await fetchAll('arm_abates', SEL_ABATE, q => { if (de) q = q.gte('created_at', de + 'T00:00:00+01:00'); if (ate) q = q.lte('created_at', ate + 'T23:59:59+01:00'); if (mot) q = q.eq('motivo', mot); if (est) q = q.eq('estado', est); return q.order('created_at').order('id'); });
+    const sub = `De ${fmtD(de)} a ${fmtD(ate)}` + (mot ? ' · ' + MOTIVO_ABATE[mot] : '') + (est ? ' · ' + EST_ABT[est][0] : ' · todos os estados');
+    const linhas = []; let tot = 0;
+    rows.forEach(a => {
+      const valMov = {}; (a.arm_operacoes?.arm_movimentos || []).forEach(m => valMov[m.artigo_id] = (valMov[m.artigo_id] || 0) - Number(m.valor_usd || 0));
+      a.arm_abate_linhas.forEach(l => {
+        const r = M.art[l.artigo_id] || {}, v = a.estado === 'aprovado' ? (valMov[l.artigo_id] ?? null) : (r.custo_medio_usd == null ? null : l.quantidade * r.custo_medio_usd);
+        if (a.estado === 'aprovado') tot += v || 0;
+        linhas.push([a.numero, a.created_at.slice(0, 10), armLabel(a.armazem_id), MOTIVO_ABATE[a.motivo], r.codigo || '', r.nome || '', r.unidade || '', +l.quantidade, v, EST_ABT[a.estado][0], profNome(a.solicitado_por), a.decidido_por ? profNome(a.decidido_por) : '', a.descricao]);
+      });
+    });
+    const cols = [{ h: 'Nº', w: 12 }, { h: 'Data', w: 11, f: 'd' }, { h: 'Armazém', w: 26 }, { h: 'Motivo', w: 16 }, { h: 'Código', w: 11 }, { h: 'Artigo', w: 34 }, { h: 'Un.', w: 6 }, { h: 'Qtd', w: 10, f: 'q' }, { h: 'Valor USD', w: 12, f: 'usd' }, { h: 'Estado', w: 11 }, { h: 'Registado por', w: 18 }, { h: 'Decidido por', w: 18 }, { h: 'O que aconteceu', w: 40 }];
+    const totais = cols.map((c, k) => k === 0 ? 'TOTAL APROVADO' : k === 8 ? tot : '');
+    if (fmt === 'xlsx') await exportarExcel('Abates', 'Abates de material', sub, [{ nome: 'Abates', colunas: cols, linhas, totais }]);
+    else await pdfTabela({ titulo: 'Abates de material', subtitulo: sub, landscape: true, ficheiro: 'Abates', colunas: cols.slice(0, 12), linhas: linhas.map(l => l.slice(0, 12)), totais: totais.slice(0, 12) });
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
@@ -2573,9 +3129,17 @@ async function pdfTabela({ titulo, subtitulo, landscape = false, ccId = null, co
   const base = { head, theme: 'grid', margin: { top: 29, left: 14, right: 14, bottom: 15 }, styles: { fontSize: 7.5, cellPadding: 1.6, lineColor: [216, 220, 229], lineWidth: .1, textColor: [44, 53, 71], overflow: 'linebreak' },
     headStyles: { fillColor: [27, 42, 74], textColor: 255, fontStyle: 'bold', fontSize: 7.5 }, alternateRowStyles: { fillColor: [248, 249, 251] }, columnStyles: colStyles, didDrawPage: cab };
   const corpo = ls => ls.map(l => l.map((v, i) => fmtCelPDF(v, colunas[i]?.f)));
+  // Linha de totais: vai na mesma tabela (última) para as colunas ficarem alinhadas
+  let linhaTot = null;
+  if (totais) {
+    let k = 1; while (k < totais.length - 1 && totais[k] === '') k++;
+    const est = { fontStyle: 'bold', fillColor: [238, 240, 244] };
+    linhaTot = [{ content: totais[0], colSpan: k, styles: { ...est, halign: k > 1 ? 'right' : 'left' } }]
+      .concat(totais.slice(k).map((v, j) => ({ content: v === '' ? '' : fmtCelPDF(v, colunas[k + j]?.f), styles: { ...est, halign: 'right' } })));
+  }
   let y = 29;
   if (grupos) {
-    if (!grupos.length) doc.autoTable({ ...base, startY: y, body: [[{ content: 'Sem dados', colSpan: colunas.length, styles: { halign: 'center' } }]] });
+    if (!grupos.length) { doc.autoTable({ ...base, startY: y, body: [[{ content: 'Sem dados', colSpan: colunas.length, styles: { halign: 'center' } }]] }); linhaTot = null; }
     grupos.forEach((g, gi) => {
       const body = [[{ content: g.titulo, colSpan: colunas.length, styles: { fillColor: [238, 240, 244], fontStyle: 'bold', textColor: [27, 42, 74], fontSize: 8.5 } }], ...corpo(g.linhas)];
       if (g.subtotal != null) {
@@ -2584,6 +3148,7 @@ async function pdfTabela({ titulo, subtitulo, landscape = false, ccId = null, co
         if (colunas.length - k - 1 > 0) lin.push({ content: '', colSpan: colunas.length - k - 1 });
         body.push(lin);
       }
+      if (linhaTot && gi === grupos.length - 1 && !g.assinatura) { body.push(linhaTot); linhaTot = null; }
       doc.autoTable({ ...base, startY: y, body, showHead: 'everyPage' });
       y = doc.lastAutoTable.finalY + 4;
       if (g.assinatura) {
@@ -2593,15 +3158,13 @@ async function pdfTabela({ titulo, subtitulo, landscape = false, ccId = null, co
       }
     });
   } else {
-    doc.autoTable({ ...base, startY: y, body: linhas.length ? corpo(linhas) : [[{ content: 'Sem dados', colSpan: colunas.length, styles: { halign: 'center' } }]] });
+    const body = linhas.length ? corpo(linhas) : [[{ content: 'Sem dados', colSpan: colunas.length, styles: { halign: 'center' } }]];
+    if (linhaTot && linhas.length) body.push(linhaTot);
+    linhaTot = null;
+    doc.autoTable({ ...base, startY: y, body });
     y = doc.lastAutoTable.finalY + 2;
   }
-  if (totais) {
-    let k = 1; while (k < totais.length - 1 && totais[k] === '') k++;
-    const linha = [{ content: totais[0], colSpan: k, styles: { fontStyle: 'bold', fillColor: [238, 240, 244] } }]
-      .concat(totais.slice(k).map((v, j) => ({ content: v === '' ? '' : fmtCelPDF(v, colunas[k + j]?.f), styles: { fontStyle: 'bold', fillColor: [238, 240, 244], halign: 'right' } })));
-    doc.autoTable({ ...base, head: [], startY: y, body: [linha] });
-  }
+  if (linhaTot) doc.autoTable({ ...base, head: [], startY: y, body: [linhaTot] });
   rodapes(doc);
   doc.save(nomeFicheiro(ficheiro, 'pdf'));
 }
