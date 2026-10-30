@@ -534,6 +534,13 @@
             <div class="form-group"><label>Estado</label><select class="inp" id="r7-est"><option value="aprovado">Aprovados</option><option value="pendente">Por aprovar</option><option value="">Todos</option></select></div></div>
             <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repAbates('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repAbates('xlsx')">📊 Excel</button></div>
           </div></div>
+          <div class="card rep-card"><div class="card-head"><div class="card-title">📋 Faltas e sobras de inventário</div></div><div class="card-body">
+            <p>Diferenças acertadas nos inventários aprovados: o que faltou (ou sobrou) em cada armazém, com o responsável e o valor.</p>
+            <div class="form-row"><div class="form-group"><label>De</label><input type="date" class="inp" id="r8-de"></div><div class="form-group"><label>Até</label><input type="date" class="inp" id="r8-ate"></div></div>
+            <div class="form-row"><div class="form-group"><label>Estaleiro</label><select class="inp" id="r8-est" onchange="fillArmSelect('r8-arm', this.value, true, false)"></select></div><div class="form-group"><label>Armazém</label><select class="inp" id="r8-arm"></select></div></div>
+            <div class="form-group"><label>Mostrar</label><select class="inp" id="r8-tipo"><option value="faltas">Só faltas (material que desapareceu)</option><option value="todas">Faltas e sobras</option></select></div>
+            <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repInvDif('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repInvDif('xlsx')">📊 Excel</button></div>
+          </div></div>
           <div class="card rep-card"><div class="card-head"><div class="card-title">📜 Extrato de movimentos</div></div><div class="card-body">
             <p>Todas as entradas e saídas com filtros por período, armazém e artigo.</p>
             <button class="btn btn-outline btn-sm" style="align-self:flex-start;" onclick="navigate('movimentos')">Abrir extrato →</button>
@@ -1066,11 +1073,12 @@ async function reloadFornecedores() { D.fornecedores = await fetchAll('fornecedo
 
 function refreshSelects() {
   const keep = id => $(id).value;
-  const v = { st: keep('st-est'), sa: keep('st-arm'), r1: keep('r1-est'), r1a: keep('r1-arm'), r3: keep('r3-cc'), ea: keep('ea-est'), mv: keep('mv-arm') };
+  const v = { st: keep('st-est'), sa: keep('st-arm'), r1: keep('r1-est'), r1a: keep('r1-arm'), r3: keep('r3-cc'), ea: keep('ea-est'), mv: keep('mv-arm'), r8: keep('r8-est'), r8a: keep('r8-arm') };
   fillEstSelect('st-est', true, true, v.st); fillArmSelect('st-arm', v.st, true, true, v.sa);
   fillEstSelect('r1-est', true, true, v.r1); fillArmSelect('r1-arm', v.r1, true, true, v.r1a);  fillCCSelect('r3-cc', true, v.r3);
   fillEstSelect('ea-est', true, false); $('ea-est').insertAdjacentHTML('beforeend', '<option value="__sem">Sem estaleiro</option>'); $('ea-est').value = v.ea;
   fillArmSelect('mv-arm', '', true, false, v.mv);
+  fillEstSelect('r8-est', true, false, v.r8); fillArmSelect('r8-arm', v.r8, true, false, v.r8a);
 }
 function initFiltros() {
   const h = hoje(), d30 = addDias(h, -30), d90 = addDias(h, -90);
@@ -1080,6 +1088,7 @@ function initFiltros() {
   $('r5-de').value = h.slice(0, 8) + '01'; $('r5-ate').value = h;
   $('r6-de').value = addDias(h, -365); $('r6-ate').value = h;
   $('r7-de').value = h.slice(0, 4) + '-01-01'; $('r7-ate').value = h;
+  $('r8-de').value = h.slice(0, 4) + '-01-01'; $('r8-ate').value = h;
   attachPicker($('r6-pessoa'), () => itensColabs(false), null);
   refreshSelects();
   $('mv-tipo').innerHTML = '<option value="">Todos</option>' + Object.entries(TIPO_MOV).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
@@ -2928,6 +2937,45 @@ async function autoAbatePDF(id) {
   loading(false);
 }
 
+
+/* ---------- Relatório: faltas e sobras de inventário ---------- */
+async function repInvDif(fmt) {
+  loading(true);
+  try {
+    const de = $('r8-de').value, ate = $('r8-ate').value, est = $('r8-est').value, arm = $('r8-arm').value, soFaltas = $('r8-tipo').value === 'faltas';
+    const invs = await fetchAll('arm_inventarios', '*, arm_inventario_linhas(*), arm_operacoes(arm_movimentos(artigo_id,localizacao_id,valor_usd))', q => {
+      q = q.eq('estado', 'aprovado'); if (de) q = q.gte('decidido_em', de + 'T00:00:00+01:00'); if (ate) q = q.lte('decidido_em', ate + 'T23:59:59+01:00');
+      if (arm) q = q.eq('armazem_id', arm); return q.order('decidido_em').order('id'); });
+    const porArm = {}; let faltas = 0, sobras = 0, nLin = 0;
+    invs.filter(i => !est || M.arm[i.armazem_id]?.estaleiro_id === est).forEach(i => {
+      const val = {}; (i.arm_operacoes?.arm_movimentos || []).forEach(m => { const k = m.artigo_id + '|' + m.localizacao_id; val[k] = (val[k] || 0) + Number(m.valor_usd || 0); });
+      i.arm_inventario_linhas.filter(l => l.aplicar && invDif(l)).forEach(l => {
+        const d = invDif(l); if (soFaltas && d > 0) return;
+        const a = M.art[l.artigo_id] || {}, k = l.artigo_id + '|' + l.localizacao_id;
+        const v = k in val ? val[k] : (a.custo_medio_usd == null ? null : d * a.custo_medio_usd);
+        if (v != null) { if (v < 0) faltas += v; else sobras += v; }
+        nLin++;
+        (porArm[i.armazem_id] = porArm[i.armazem_id] || []).push({ i, l, d, v, a });
+      });
+    });
+    const sub = `De ${fmtD(de)} a ${fmtD(ate)}${arm ? ' · ' + armLabel(arm) : est ? ' · ' + estNome(est) : ''} · ${soFaltas ? 'só faltas' : 'faltas e sobras'} · Faltas ${fmtU(faltas)} USD${soFaltas ? '' : ' · Sobras ' + fmtU(sobras) + ' USD'}`;
+    const linha = r => [r.i.numero, r.i.decidido_em.slice(0, 10), locNome(r.l.localizacao_id), r.a.codigo || '', r.a.nome || '', r.a.unidade || '', +r.l.qtd_sistema, +r.l.qtd_contada, r.d, r.v, profNome(r.l.contado_por), profNome(r.i.decidido_por)];
+    const cols = [{ h: 'Inventário', w: 13 }, { h: 'Aprovado em', w: 12, f: 'd' }, { h: 'Localização', w: 16 }, { h: 'Código', w: 11 }, { h: 'Artigo', w: 36 }, { h: 'Un.', w: 6 }, { h: 'Sistema', w: 10, f: 'q' }, { h: 'Contado', w: 10, f: 'q' }, { h: 'Diferença', w: 10, f: 'q' }, { h: 'Valor USD', w: 12, f: 'usd' }, { h: 'Contado por', w: 18 }, { h: 'Aprovado por', w: 18 }];
+    const ordem = Object.keys(porArm).sort((x, y) => armLabel(x).localeCompare(armLabel(y), 'pt'));
+    const total = faltas + sobras;
+    if (fmt === 'xlsx') {
+      const colsX = [{ h: 'Armazém', w: 30 }, { h: 'Responsável', w: 22 }].concat(cols);
+      const linhas = []; ordem.forEach(a => porArm[a].forEach(r => linhas.push([armLabel(a), armResponsavel(a)].concat(linha(r)))));
+      await exportarExcel('Faltas_sobras_inventario', 'Faltas e sobras de inventário', sub, [{ nome: 'Diferenças', colunas: colsX, linhas, totais: colsX.map((c, k) => k === 0 ? 'TOTAL' : k === 11 ? total : '') }]);
+    } else {
+      await pdfTabela({ titulo: 'Faltas e sobras de inventário', subtitulo: sub, landscape: true, ficheiro: 'Faltas_sobras_inventario', colunas: cols,
+        grupos: ordem.map(a => ({ titulo: `${armLabel(a)} — responsável: ${armResponsavel(a)}`, linhas: porArm[a].map(linha), subtotal: porArm[a].reduce((s, r) => s + (r.v || 0), 0) })),
+        totais: cols.map((c, k) => k === 0 ? (soFaltas ? 'TOTAL DAS FALTAS' : 'TOTAL (faltas + sobras)') : k === 9 ? total : '') });
+    }
+    if (!nLin) toast('Não há diferenças de inventário neste período');
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
 /* ---------- Relatório: abates por período ---------- */
 async function repAbates(fmt) {
   loading(true);
