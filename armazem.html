@@ -162,8 +162,10 @@
     .eime-chip:has(input:checked) { border-color: var(--navy); background: #e8ecf5; }
     .eime-sem { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; text-transform: none; letter-spacing: 0; color: var(--gray-600); margin: 0 0 0 6px; font-weight: 500; }
     .eime-sem .inp { width: 70px !important; padding: 4px 6px !important; }
-    .en-row { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; }
-    .en-row .en-num { width: 130px; } .en-row .en-serie { flex: 1; min-width: 120px; } .en-row .en-cal { width: 150px; }
+    .en-row { display: grid; grid-template-columns: 18px repeat(3, minmax(0, 1fr)); gap: 5px; align-items: center; padding-bottom: 7px; margin-bottom: 7px; border-bottom: 1px dashed var(--gray-200); }
+    .en-row > span { grid-row: span 2; align-self: center; }
+    .en-row .inp { width: 100%; min-width: 0; }
+    .en-row .en-serie { grid-column: span 2; } .en-row.sem-cal .en-serie { grid-column: span 3; }
     .inp.ro { background: var(--gray-100); }
     .lines .art-cell .inp { flex: 1; min-width: 0; }
     .lines .qtd-cell { display: flex; align-items: center; gap: 6px; }
@@ -660,10 +662,15 @@
           <div class="form-group"><label>NSAP</label><input type="text" id="a-nsap" placeholder="Opcional"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Stock mínimo (total)</label><input type="number" id="a-minimo" min="0" step="0.001" placeholder="Sem mínimo"></div>
-          <div class="form-group"><label>&nbsp;</label><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-eime" onchange="$('a-cal-fg').style.display=this.checked?'':'none'"> É um EIME (calibração periódica)</label></div>
+          <div class="form-group"><label>Marca</label><input type="text" id="a-marca" placeholder="Opcional"></div>
+          <div class="form-group"><label>Modelo</label><input type="text" id="a-modelo" placeholder="Opcional"></div>
         </div>
-        <div class="form-group" id="a-cal-fg" style="display:none;"><label>Calibrar de quantos em quantos meses</label><input type="number" id="a-cal" min="1" max="120" step="1" placeholder="Ex.: 12"><div class="hint">Periodicidade normal deste tipo de aparelho. Cada aparelho pode ter outra na sua ficha.</div><div class="alert alert-info" style="margin:8px 0 0;">O <strong>nº de EIME</strong> e o <strong>nº de série</strong> são de cada aparelho: indicam-se na linha da <strong>entrada</strong> (aparece logo por baixo do artigo) ou, para aparelhos já em stock, em <strong>EIMEs → Dar nº a aparelhos</strong>.</div></div>
+        <div class="form-row">
+          <div class="form-group"><label>Stock mínimo (total)</label><input type="number" id="a-minimo" min="0" step="0.001" placeholder="Sem mínimo"></div>
+          <div class="form-group"><label>&nbsp;</label><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-eime" onchange="$('a-cal-fg').style.display=this.checked?'':'none'"> É um EIME (aparelho seguido por nº)</label></div>
+        </div>
+        <div class="form-group" id="a-cal-fg" style="display:none;"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);margin-bottom:8px;"><input type="checkbox" id="a-precisa" checked onchange="$('a-cal-box').style.display=this.checked?'':'none'"> Precisa de calibração <span class="muted">(desmarque em berbequins, rebarbadoras, etc.)</span></label>
+          <div id="a-cal-box"><label>Calibrar de quantos em quantos meses</label><input type="number" id="a-cal" min="1" max="120" step="1" placeholder="Ex.: 12"><div class="hint">Periodicidade normal deste tipo de aparelho. Cada aparelho pode ter outra na sua ficha.</div></div><div class="alert alert-info" style="margin:8px 0 0;">O <strong>nº de EIME</strong>, o <strong>nº de série</strong> e a marca/modelo de cada aparelho (se for diferente da do artigo) são de cada aparelho: indicam-se na linha da <strong>entrada</strong> (aparece logo por baixo do artigo) ou, para aparelhos já em stock, em <strong>EIMEs → Dar nº a aparelhos</strong>.</div></div>
         <div class="form-group"><label>Observações</label><textarea id="a-obs" rows="2"></textarea></div>
         <div class="form-group only-admin"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-ativo" checked> Artigo activo</label></div>
       </div>
@@ -980,7 +987,7 @@ document.addEventListener('scroll', e => { if (PK && !(PK.dd.contains(e.target))
 function itensArtigos(filtro = null) {
   return D.artigos.filter(a => a.ativo && (!filtro || filtro(a))).map(a => ({
     id: a.id, label: `${a.codigo} · ${a.nome}`, value: `${a.codigo} · ${a.nome}`,
-    sub: `Unidade: ${a.unidade}${a.nsap ? ' · NSAP ' + a.nsap : ''}`, search: `${a.codigo} ${a.nsap || ''} ${a.nome}`
+    sub: `Unidade: ${a.unidade}${a.nsap ? ' · NSAP ' + a.nsap : ''}${a.marca || a.modelo ? ' · ' + [a.marca, a.modelo].filter(Boolean).join(' ') : ''}`, search: `${a.codigo} ${a.nsap || ''} ${a.nome} ${a.marca || ''} ${a.modelo || ''}`
   }));
 }
 function itensColabs(soAtivos = true) {
@@ -1082,7 +1089,7 @@ async function loadBase() {
     fetchAll('arm_estaleiros', '*', q => q.order('nome').order('id')),
     fetchAll('arm_armazens', '*', q => q.order('nome').order('id')),
     fetchAll('arm_localizacoes', '*', q => q.order('nome').order('id')),
-    fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,foto_path,stock_minimo,eime,calibracao_meses,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id')),
+    fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,marca,modelo,foto_path,stock_minimo,eime,precisa_calibracao,calibracao_meses,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id')),
     fetchAll('colaboradores', 'id,nome,numero_mecanografico,funcao,ativo', q => q.order('nome').order('id')),
     fetchAll('centros_custo', 'id,nome,codigo', q => q.order('nome').order('id')),
     fetchAll('viaturas', 'id,codigo,matricula,tipo,marca,modelo,motorista_id', q => q.order('codigo').order('id')),
@@ -1102,7 +1109,7 @@ async function reloadEstrutura() {
   D.estaleiros = est; D.armazens = arm; D.locs = locs; indexar(est, M.est); indexar(arm, M.arm); indexar(locs, M.loc);
 }
 async function reloadArtigos() {
-  D.artigos = await fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,foto_path,stock_minimo,eime,calibracao_meses,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id'));
+  D.artigos = await fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,marca,modelo,foto_path,stock_minimo,eime,precisa_calibracao,calibracao_meses,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id'));
   indexar(D.artigos, M.art);
 }
 async function reloadFornecedores() { D.fornecedores = await fetchAll('fornecedores', '*', q => q.order('nome').order('id')); indexar(D.fornecedores, M.forn); }
@@ -1345,16 +1352,17 @@ async function abrirArtigoDetalhe(id) {
           <div><div class="k">Código</div><div class="v">${esc(a.codigo)}</div></div>
           <div><div class="k">NSAP</div><div class="v">${esc(a.nsap || '—')}</div></div>
           <div><div class="k">Unidade</div><div class="v">${esc(a.unidade)}</div></div>
+          ${a.marca || a.modelo ? `<div><div class="k">Marca / modelo</div><div class="v">${esc([a.marca, a.modelo].filter(Boolean).join(' · '))}</div></div>` : ''}
           <div><div class="k">Stock total</div><div class="v"><strong>${fmtQ(tot)} ${esc(a.unidade)}</strong></div></div>
           <div><div class="k">Stock mínimo</div><div class="v">${a.stock_minimo == null ? '—' : fmtQ(a.stock_minimo)}</div></div>
           <div><div class="k">Custo médio</div><div class="v">${a.custo_medio_usd == null ? 'Sem valorização' : fmtUSD(a.custo_medio_usd)}</div></div>
-          ${a.eime ? `<div><div class="k">Tipo</div><div class="v"><span class="badge b-navy">EIME</span>${a.calibracao_meses ? ' calibrar a cada ' + a.calibracao_meses + ' meses' : ''}</div></div>` : ''}
+          ${a.eime ? `<div><div class="k">Tipo</div><div class="v"><span class="badge b-navy">EIME</span>${a.precisa_calibracao === false ? ' sem calibração' : a.calibracao_meses ? ' calibrar a cada ' + a.calibracao_meses + ' meses' : ''}</div></div>` : ''}
           ${a.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(a.observacoes)}</div></div>` : ''}
         </div>${foto}
       </div>
       <div class="sec-title">Onde existe</div>
       ${miniTable([{ t: 'Estaleiro', v: r => r.estaleiro_nome }, { t: 'Armazém', h: r => `${r.armazem_tipo === 'pessoa' ? '👷' : r.armazem_tipo === 'viatura' ? '🚚' : '🏭'} ${esc(r.armazem_nome)}` }, { t: 'Localização', v: r => r.localizacao_nome }, { t: 'Quantidade', cls: 'num', h: r => `<strong>${fmtQ(r.quantidade)}</strong>` }], st, 'Sem stock')}
-      ${a.eime ? '<div class="sec-title">Aparelhos (nº de EIME)</div>' + miniTable([{ t: 'Nº EIME', h: e => `<a href="#" onclick="closeModal('modal-gen');abrirEime('${e.id}');return false;"><strong>${esc(e.numero_eime)}</strong></a>` }, { t: 'Nº série', v: e => e.numero_serie || '—' }, { t: 'Onde está', v: e => eimeOnde(e) }, { t: 'Calibração', h: e => badge(eimeCal(e).t, eimeCal(e).c) }], (D.eimes || []).filter(e => e.artigo_id === id && ['ativo', 'em_transito'].includes(e.estado)), 'Nenhum aparelho com nº') : ''}
+      ${a.eime ? '<div class="sec-title">Aparelhos (nº de EIME)</div>' + miniTable([{ t: 'Nº EIME', h: e => `<a href="#" onclick="closeModal('modal-gen');abrirEime('${e.id}');return false;"><strong>${esc(e.numero_eime)}</strong></a>` }, { t: 'Marca / modelo', v: e => [e.marca, e.modelo].filter(Boolean).join(' · ') || '—' }, { t: 'Nº série', v: e => e.numero_serie || '—' }, { t: 'Onde está', v: e => eimeOnde(e) }, { t: 'Calibração', h: e => badge(eimeCal(e).t, eimeCal(e).c) }], (D.eimes || []).filter(e => e.artigo_id === id && ['ativo', 'em_transito'].includes(e.estado)), 'Nenhum aparelho com nº') : ''}
       ${tr.length ? '<div class="sec-title">Em trânsito</div>' + miniTable([{ t: 'Guia', h: r => `<a href="#" onclick="abrirGuia('${r.guia_id}');return false;">${esc(r.guia_numero)}</a>` }, { t: 'De', v: r => r.origem_armazem_nome }, { t: 'Para', v: r => r.destino_armazem_nome }, { t: 'Qtd', cls: 'num', v: r => fmtQ(r.quantidade) }], tr) : ''}
       <div class="sec-title">Últimos movimentos</div>
       ${miniTable([{ t: 'Data', v: m => fmtD(m.data) }, { t: 'Operação', v: m => m.arm_operacoes?.numero || '' }, { t: 'Tipo', v: m => TIPO_MOV[m.tipo] }, { t: 'Armazém / localização', v: m => armNome(m.armazem_id) + ' / ' + locNome(m.localizacao_id) }, { t: 'Qtd', cls: 'num', h: m => `<span class="${m.quantidade < 0 ? 'neg' : 'pos'}">${m.quantidade > 0 ? '+' : ''}${fmtQ(m.quantidade)}</span>` }], mv.data, 'Sem movimentos')}`;
@@ -1376,13 +1384,14 @@ async function renderArtigos() { await reloadArtigos(); drawArtigos(); }
 function artigosFiltrados() {
   const q = norm($('art-q').value).split(/\s+/).filter(Boolean), e = $('art-estado').value, n = $('art-nsap').value;
   return D.artigos.filter(a => (e === '' || String(+a.ativo) === e) && (!n || (n === 'sem' ? !a.nsap : !!a.nsap)) &&
-    (!q.length || q.every(w => norm(`${a.codigo} ${a.nsap || ''} ${a.nome} ${a.unidade}`).includes(w))));
+    (!q.length || q.every(w => norm(`${a.codigo} ${a.nsap || ''} ${a.nome} ${a.unidade} ${a.marca || ''} ${a.modelo || ''}`).includes(w))));
 }
 function drawArtigos() {
   renderTable('tbl-artigos', [
     { t: 'Código', v: a => a.codigo, cls: 'nowrap' },
     { t: 'NSAP', h: a => a.nsap ? esc(a.nsap) : '<span class="muted">sem NSAP</span>', s: a => a.nsap || '' },
     { t: 'Nome', h: a => `<strong>${esc(a.nome)}</strong>${a.eime ? ' <span class="badge b-navy">EIME</span>' : ''}${a.foto_path ? ' 📷' : ''}`, s: a => a.nome },
+    { t: 'Marca / modelo', v: a => [a.marca, a.modelo].filter(Boolean).join(' · ') || '—', cls: 'hide-m' },
     { t: 'Unidade', v: a => a.unidade },
     { t: 'Mínimo', cls: 'num', v: a => a.stock_minimo == null ? '—' : fmtQ(a.stock_minimo), s: a => Number(a.stock_minimo ?? -1) },
     { t: 'Custo médio (USD)', cls: 'num hide-m', v: a => fmtU(a.custo_medio_usd), s: a => Number(a.custo_medio_usd ?? -1) },
@@ -1398,6 +1407,8 @@ async function openArtigo(id = null, callback = null) {
   $('a-nome').value = a?.nome || ''; $('a-unidade').value = a?.unidade || ''; $('a-nsap').value = a?.nsap || '';
   $('a-minimo').value = a?.stock_minimo ?? ''; $('a-eime').checked = !!a?.eime; $('a-obs').value = a?.observacoes || '';
   $('a-cal').value = a?.calibracao_meses ?? ''; $('a-cal-fg').style.display = a?.eime ? '' : 'none';
+  $('a-marca').value = a?.marca || ''; $('a-modelo').value = a?.modelo || '';
+  $('a-precisa').checked = a ? a.precisa_calibracao !== false : true; $('a-cal-box').style.display = $('a-precisa').checked ? '' : 'none';
   $('a-ativo').checked = a ? !!a.ativo : true;
   $('a-apagar').style.display = IS_ADMIN && a ? '' : 'none';
   $('a-semelhantes').innerHTML = ''; showAlert('artigo-alert', '');
@@ -1436,9 +1447,10 @@ async function guardarArtigo() {
   if (!unidade) return showAlert('artigo-alert', 'Indique a unidade.');
   const minimo = numVal('a-minimo');
   if (minimo != null && (isNaN(minimo) || minimo < 0)) return showAlert('artigo-alert', 'Stock mínimo inválido.');
-  const cal = $('a-eime').checked ? numVal('a-cal') : null;
+  const precisa = !$('a-eime').checked || $('a-precisa').checked;
+  const cal = $('a-eime').checked && precisa ? numVal('a-cal') : null;
   if (cal != null && !(Number.isInteger(cal) && cal >= 1 && cal <= 120)) return showAlert('artigo-alert', 'A periodicidade de calibração tem de ser entre 1 e 120 meses.');
-  const payload = { nome, unidade, nsap: $('a-nsap').value.trim() || null, stock_minimo: minimo, eime: $('a-eime').checked, calibracao_meses: cal, observacoes: $('a-obs').value.trim() || null };
+  const payload = { nome, unidade, nsap: $('a-nsap').value.trim() || null, stock_minimo: minimo, eime: $('a-eime').checked, precisa_calibracao: precisa, calibracao_meses: cal, marca: $('a-marca').value.trim() || null, modelo: $('a-modelo').value.trim() || null, observacoes: $('a-obs').value.trim() || null };
   if (IS_ADMIN) payload.ativo = $('a-ativo').checked;
   $('a-guardar').disabled = true; loading(true);
   try {
@@ -1478,8 +1490,8 @@ async function exportArtigos() {
   loading(true);
   try {
     const rows = artigosFiltrados();
-    await exportarExcel('Artigos', 'Catálogo de artigos', rows.length + ' artigos', [{ nome: 'Artigos', colunas: [{ h: 'Código', w: 12 }, { h: 'NSAP', w: 14 }, { h: 'Nome', w: 50 }, { h: 'Unidade', w: 9 }, { h: 'Stock mínimo', w: 13, f: 'q' }, { h: 'EIME', w: 7 }, { h: 'Custo médio USD', w: 15, f: 'usd' }, { h: 'Estado', w: 10 }],
-      linhas: rows.map(a => [a.codigo, a.nsap || '', a.nome, a.unidade, a.stock_minimo == null ? null : +a.stock_minimo, a.eime ? 'Sim' : '', a.custo_medio_usd == null ? null : +a.custo_medio_usd, a.ativo ? 'Activo' : 'Inactivo']) }]);
+    await exportarExcel('Artigos', 'Catálogo de artigos', rows.length + ' artigos', [{ nome: 'Artigos', colunas: [{ h: 'Código', w: 12 }, { h: 'NSAP', w: 14 }, { h: 'Nome', w: 50 }, { h: 'Marca', w: 16 }, { h: 'Modelo', w: 16 }, { h: 'Unidade', w: 9 }, { h: 'Stock mínimo', w: 13, f: 'q' }, { h: 'EIME', w: 7 }, { h: 'Custo médio USD', w: 15, f: 'usd' }, { h: 'Estado', w: 10 }],
+      linhas: rows.map(a => [a.codigo, a.nsap || '', a.nome, a.marca || '', a.modelo || '', a.unidade, a.stock_minimo == null ? null : +a.stock_minimo, a.eime ? 'Sim' : '', a.custo_medio_usd == null ? null : +a.custo_medio_usd, a.ativo ? 'Activo' : 'Inactivo']) }]);
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
@@ -1685,9 +1697,9 @@ async function guardarEntrada() {
     else if (M.art[art]?.eime) {
       if (!Number.isInteger(Number(qtd))) err = err || `Linha ${i + 1}: um EIME só entra em unidades inteiras.`;
       [...tr.querySelectorAll('.en-row')].forEach(r => {
-        const n = r.querySelector('.en-num').value.trim(), sn = r.querySelector('.en-serie').value.trim(), dc = r.querySelector('.en-cal').value;
+        const n = r.querySelector('.en-num').value.trim(), sn = r.querySelector('.en-serie').value.trim(), dc = r.querySelector('.en-cal')?.value || '';
         if (!n) { if (sn || dc) err = err || `Linha ${i + 1}: indicou nº de série ou calibração sem o nº de EIME. Sem nº de EIME deixe a linha do aparelho vazia.`; return; }
-        novos.push({ artigo_id: art, localizacao_id: tr.querySelector('.loc').value, numero_eime: n, numero_serie: sn, ultima_calibracao: dc || null });
+        novos.push({ artigo_id: art, localizacao_id: tr.querySelector('.loc').value, numero_eime: n, numero_serie: sn, marca: r.querySelector('.en-marca').value.trim(), modelo: r.querySelector('.en-modelo').value.trim(), ultima_calibracao: dc || null });
       });
     }
     linhas.push({ artigo_id: art, localizacao_id: tr.querySelector('.loc').value, quantidade: Number(qtd), preco_unit: moeda && preco !== '' ? Number(preco) : null });
@@ -3108,7 +3120,10 @@ async function reloadEimes() {
 function addMeses(d, n) { const [y, m, dd] = d.split('-').map(Number); const x = new Date(Date.UTC(y, m - 1 + n, dd)); if (x.getUTCDate() !== dd) x.setUTCDate(0); return x.toISOString().slice(0, 10); }
 function eimesEm(artId, locId) { return D.eimes.filter(e => e.estado === 'ativo' && e.artigo_id === artId && e.localizacao_id === locId).sort((a, b) => a.numero_eime.localeCompare(b.numero_eime, 'pt', { numeric: true })); }
 function eimeMeses(e) { return e.calibracao_meses || M.art[e.artigo_id]?.calibracao_meses || null; }
+function eimePrecisa(e) { return M.art[e.artigo_id]?.precisa_calibracao !== false; }
+function eimeMM(e) { return [e.marca, e.modelo].filter(Boolean).join(' · '); }
 function eimeCal(e) {
+  if (!eimePrecisa(e)) return { t: 'Sem calibração', c: 'b-gray', o: 9 };
   if (e.em_calibracao) return { t: 'Em calibração', c: 'b-blue', o: 1 };
   if (e.ultimo_resultado === 'nao_apto') return { t: 'Não apto', c: 'b-red', o: 0 };
   if (!e.proxima_calibracao) return { t: 'Sem data', c: 'b-gray', o: 2 };
@@ -3161,11 +3176,12 @@ function entEimes(tr) {
   qi.step = '1';
   if (qi.value === '') qi.value = 1;
   const q = Math.min(100, Math.max(0, Math.floor(Number(qi.value || 0))));
-  const ant = [...box.querySelectorAll('.en-row')].map(r => [r.querySelector('.en-num').value, r.querySelector('.en-serie').value, r.querySelector('.en-cal').value]);
+  const A = M.art[art], prec = A.precisa_calibracao !== false;
+  const ant = [...box.querySelectorAll('.en-row')].map(r => [r.querySelector('.en-num').value, r.querySelector('.en-serie').value, r.querySelector('.en-cal')?.value || '', r.querySelector('.en-marca').value, r.querySelector('.en-modelo').value]);
   box.style.display = '';
   box.innerHTML = '<div class="eime-tit">🔬 EIME — nº de cada aparelho</div>' + (q ? Array.from({ length: q }, (_, i) =>
-    `<div class="en-row"><span class="muted">${i + 1}.</span><input class="inp en-num" placeholder="Nº EIME (se já tiver)" value="${esc(ant[i]?.[0] || '')}"><input class="inp en-serie" placeholder="Nº de série do fabricante" value="${esc(ant[i]?.[1] || '')}"><input type="date" class="inp en-cal" title="Data da última calibração (se já vem calibrado)" max="${hoje()}" value="${ant[i]?.[2] || ''}"></div>`).join('') +
-    '<div class="hint">Tudo opcional. Os aparelhos sem nº de EIME ficam "sem nº" e pode dar-lhes o nº mais tarde na página EIMEs. A data é a da última calibração, se o aparelho já vem calibrado com certificado.</div>' : '<span class="muted">Indique a quantidade (unidades inteiras).</span>');
+    `<div class="en-row${prec ? '' : ' sem-cal'}"><span class="muted">${i + 1}.</span><input class="inp en-num" placeholder="Nº EIME (se já tiver)" value="${esc(ant[i]?.[0] || '')}"><input class="inp en-marca" placeholder="Marca" value="${esc(ant[i] ? ant[i][3] : A.marca || '')}"><input class="inp en-modelo" placeholder="Modelo" value="${esc(ant[i] ? ant[i][4] : A.modelo || '')}"><input class="inp en-serie" placeholder="Nº de série" value="${esc(ant[i]?.[1] || '')}">${prec ? `<input type="date" class="inp en-cal" title="Data da última calibração (se já vem calibrado)" max="${hoje()}" value="${ant[i]?.[2] || ''}">` : ''}</div>`).join('') +
+    `<div class="hint">Tudo opcional. Os aparelhos sem nº de EIME ficam "sem nº" e pode dar-lhes o nº mais tarde na página EIMEs.${prec ? ' A data é a da última calibração, se o aparelho já vem calibrado com certificado.' : ''}</div>` : '<span class="muted">Indique a quantidade (unidades inteiras).</span>');
 }
 
 /* ---------- Página ---------- */
@@ -3186,7 +3202,7 @@ function eimesFiltrados() {
   return D.eimes.filter(e => {
     const st = ['ativo', 'em_transito'].includes(e.estado), c = eimeCal(e);
     const ok = EIME_TAB === 'stock' ? st : EIME_TAB === 'calibrar' ? st && !e.em_calibracao && c.o <= 2 : EIME_TAB === 'em_calibracao' ? st && e.em_calibracao : EIME_TAB === 'fora' ? !st : true;
-    return ok && (!q.length || q.every(w => norm(`${e.numero_eime} ${e.numero_serie || ''} ${artLabel(e.artigo_id)} ${eimeOnde(e)} ${armResponsavel(eimeArmazem(e))}`).includes(w)));
+    return ok && (!q.length || q.every(w => norm(`${e.numero_eime} ${e.numero_serie || ''} ${e.marca || ''} ${e.modelo || ''} ${artLabel(e.artigo_id)} ${eimeOnde(e)} ${armResponsavel(eimeArmazem(e))}`).includes(w)));
   });
 }
 function drawEimes() {
@@ -3194,11 +3210,11 @@ function drawEimes() {
   $('eime-semnum').innerHTML = tot ? `<div class="alert alert-warn" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><span>Há <strong>${tot}</strong> aparelho(s) EIME em stock <strong>sem nº</strong> registado.</span>${CAN_OP ? '<button class="btn btn-primary btn-sm" onclick="openIdentificar()">🏷️ Dar nº aos aparelhos</button>' : ''}</div>` : '';
   renderTable('tbl-eimes', [
     { t: 'Nº EIME', h: e => `<strong>${esc(e.numero_eime)}</strong>`, s: e => e.numero_eime, cls: 'nowrap' },
-    { t: 'Aparelho', v: e => artLabel(e.artigo_id) },
+    { t: 'Aparelho', h: e => esc(artLabel(e.artigo_id)) + (eimeMM(e) ? `<div class="muted">${esc(eimeMM(e))}</div>` : ''), s: e => artLabel(e.artigo_id) },
     { t: 'Nº série', v: e => e.numero_serie || '—', cls: 'hide-m' },
     { t: 'Onde está', h: e => { const a = eimeArmazem(e); return `${esc(eimeOnde(e))}${a ? `<div class="muted">${esc(M.arm[a]?.tipo === 'pessoa' ? '👷 à guarda de ' : 'resp.: ')}${esc(armResponsavel(a))}</div>` : ''}`; }, s: e => eimeOnde(e) },
-    { t: 'Última calibração', v: e => fmtD(e.ultima_calibracao), s: e => e.ultima_calibracao || '', cls: 'nowrap hide-m' },
-    { t: 'Calibração', h: e => ['ativo', 'em_transito'].includes(e.estado) ? badge(eimeCal(e).t, eimeCal(e).c) : badge(EST_EIME[e.estado][0], EST_EIME[e.estado][1]), s: e => e.proxima_calibracao || '9999' }
+    { t: 'Última calibração', v: e => eimePrecisa(e) ? fmtD(e.ultima_calibracao) : '—', s: e => e.ultima_calibracao || '', cls: 'nowrap hide-m' },
+    { t: 'Calibração', h: e => ['ativo', 'em_transito'].includes(e.estado) ? badge(eimeCal(e).t, eimeCal(e).c) : badge(EST_EIME[e.estado][0], EST_EIME[e.estado][1]), s: e => eimePrecisa(e) ? (e.proxima_calibracao || '0000') : '9999z' }
   ], eimesFiltrados(), { onRow: e => abrirEime(e.id), empty: 'Nenhum EIME', resetShown: true, sort: EIME_TAB === 'calibrar' ? 5 : null });
 }
 async function abrirEime(id) {
@@ -3211,22 +3227,22 @@ async function abrirEime(id) {
     ]);
     if (error) throw error;
     M.eime[id] = e; const k = D.eimes.findIndex(x => x.id === id); if (k >= 0) D.eimes[k] = e;
-    const a = eimeArmazem(e), c = eimeCal(e), meses = eimeMeses(e), st = ['ativo', 'em_transito'].includes(e.estado);
+    const a = eimeArmazem(e), c = eimeCal(e), meses = eimeMeses(e), st = ['ativo', 'em_transito'].includes(e.estado), prec = eimePrecisa(e);
     $('modal-gen-box').className = 'modal lg';
     $('gen-title').innerHTML = `🔬 EIME ${esc(e.numero_eime)} ${badge(EST_EIME[e.estado][0], EST_EIME[e.estado][1])}`;
     const sitio = (est, loc) => est === 'ativo' ? (M.loc[loc] ? armNome(M.loc[loc].armazem_id) + ' / ' + M.loc[loc].nome : '—') : est === 'novo' ? '(registo)' : EST_EIME[est]?.[0] || est;
     let h = `<div class="info-grid">
       <div><div class="k">Aparelho</div><div class="v"><strong>${esc(artLabel(e.artigo_id))}</strong></div></div>
+      <div><div class="k">Marca / modelo</div><div class="v">${esc(eimeMM(e) || '—')}</div></div>
       <div><div class="k">Nº de série</div><div class="v">${esc(e.numero_serie || '—')}</div></div>
       <div><div class="k">Onde está</div><div class="v">${esc(eimeOnde(e))}${a ? `<div class="muted">${M.arm[a]?.tipo === 'pessoa' ? '👷 à guarda de ' : 'responsável: '}${esc(armResponsavel(a))}</div>` : ''}</div></div>
-      <div><div class="k">Calibrar a cada</div><div class="v">${meses ? meses + ' meses' : '<span class="muted">não definido</span>'}${e.calibracao_meses ? '' : meses ? ' <span class="muted">(padrão do artigo)</span>' : ''}</div></div>
+      ${prec ? `<div><div class="k">Calibrar a cada</div><div class="v">${meses ? meses + ' meses' : '<span class="muted">não definido</span>'}${e.calibracao_meses ? '' : meses ? ' <span class="muted">(padrão do artigo)</span>' : ''}</div></div>
       <div><div class="k">Última calibração</div><div class="v">${fmtD(e.ultima_calibracao)}${e.ultimo_resultado ? ' ' + badge(RES_CAL[e.ultimo_resultado][0], RES_CAL[e.ultimo_resultado][1]) : ''}</div></div>
-      <div><div class="k">Próxima calibração</div><div class="v">${st ? badge(c.t, c.c) : fmtD(e.proxima_calibracao)}</div></div>
+      <div><div class="k">Próxima calibração</div><div class="v">${st ? badge(c.t, c.c) : fmtD(e.proxima_calibracao)}</div></div>` : `<div><div class="k">Calibração</div><div class="v"><span class="muted">Este tipo de aparelho não precisa de calibração</span></div></div>`}
       ${e.em_calibracao ? `<div style="grid-column:1/-1;"><div class="alert alert-info" style="margin:0;">🔧 Enviado para calibração em ${fmtD(e.calibracao_envio)}${e.calibracao_entidade ? ' — ' + esc(e.calibracao_entidade) : ''}. Quando voltar, registe a calibração.</div></div>` : ''}
       ${e.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(e.observacoes)}</div></div>` : ''}
-    </div>
-    <div class="sec-title">Calibrações</div>`;
-    h += miniTable([
+    </div>`;
+    if (prec || cals.length) h += '<div class="sec-title">Calibrações</div>' + miniTable([
       { t: 'Data', v: x => fmtD(x.data) }, { t: 'Entidade', v: x => x.entidade || '—' }, { t: 'Certificado', h: x => esc(x.certificado || '—') + (x.ficheiro ? ` <a href="#" onclick="abrirCertificado('${esc(x.ficheiro)}');return false;">📎 abrir</a>` : '') },
       { t: 'Resultado', h: x => badge(RES_CAL[x.resultado][0], RES_CAL[x.resultado][1]) }, { t: 'Próxima indicada', v: x => fmtD(x.validade) },
       { t: 'Registado por', h: x => `${esc(profNome(x.registado_por))}${x.observacoes ? `<div class="muted">${esc(x.observacoes)}</div>` : ''}` },
@@ -3243,9 +3259,9 @@ async function abrirEime(id) {
     if (IS_ADMIN && !['em_transito'].includes(e.estado)) left += `<button class="btn btn-red btn-sm" onclick="apagarEime('${e.id}')">🗑️ Apagar ficha</button>`;
     if (CAN_OP) {
       left += `<button class="btn btn-outline btn-sm" onclick="editarEime('${e.id}')">✏️ Editar</button>`;
-      if (st && !e.em_calibracao) left += `<button class="btn btn-outline btn-sm" onclick="enviarCalibracao('${e.id}')">🔧 Enviado para calibração</button>`;
+      if (prec && st && !e.em_calibracao) left += `<button class="btn btn-outline btn-sm" onclick="enviarCalibracao('${e.id}')">🔧 Enviado para calibração</button>`;
       if (e.em_calibracao) left += `<button class="btn btn-outline btn-sm" onclick="cancelarEnvio('${e.id}')">Cancelar envio</button>`;
-      if (st) right += `<button class="btn btn-primary" onclick="registarCalibracao('${e.id}')">✔ Registar calibração</button>`;
+      if (prec && st) right += `<button class="btn btn-primary" onclick="registarCalibracao('${e.id}')">✔ Registar calibração</button>`;
     }
     $('gen-footer').innerHTML = `<div class="left">${left}</div>${right}<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
     openModal('modal-gen');
@@ -3265,7 +3281,9 @@ function editarEime(id) {
   $('gen2-body').innerHTML = `<div id="ee-alert"></div>
     <div class="form-row"><div class="form-group"><label>Nº EIME <span class="req">*</span></label><input type="text" id="ee-num" value="${esc(e.numero_eime)}"></div>
     <div class="form-group"><label>Nº de série do fabricante</label><input type="text" id="ee-serie" value="${esc(e.numero_serie || '')}"></div></div>
-    <div class="form-group"><label>Calibrar de quantos em quantos meses</label><input type="number" id="ee-meses" min="1" max="120" step="1" value="${e.calibracao_meses || ''}" placeholder="${pad ? 'Padrão do artigo: ' + pad + ' meses' : 'Sem periodicidade'}"><div class="hint">Deixe vazio para usar a periodicidade do artigo.</div></div>
+    <div class="form-row"><div class="form-group"><label>Marca</label><input type="text" id="ee-marca" value="${esc(e.marca || '')}"></div>
+    <div class="form-group"><label>Modelo</label><input type="text" id="ee-modelo" value="${esc(e.modelo || '')}"></div></div>
+    <div class="form-group" style="${eimePrecisa(e) ? '' : 'display:none;'}"><label>Calibrar de quantos em quantos meses</label><input type="number" id="ee-meses" min="1" max="120" step="1" value="${e.calibracao_meses || ''}" placeholder="${pad ? 'Padrão do artigo: ' + pad + ' meses' : 'Sem periodicidade'}"><div class="hint">Deixe vazio para usar a periodicidade do artigo.</div></div>
     <div class="form-group"><label>Observações</label><textarea id="ee-obs" rows="2">${esc(e.observacoes || '')}</textarea></div>`;
   $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="ee-ok" onclick="guardarEime('${id}')">Guardar</button>`;
   openModal('modal-gen2');
@@ -3275,7 +3293,7 @@ async function guardarEime(id) {
   if (!$('ee-num').value.trim()) return showAlert('ee-alert', 'Indique o nº de EIME.');
   if (m && !(Number.isInteger(Number(m)) && m >= 1 && m <= 120)) return showAlert('ee-alert', 'A periodicidade tem de ser entre 1 e 120 meses.');
   $('ee-ok').disabled = true; loading(true);
-  try { await rpc('arm_eime_guardar', { p: { id, numero_eime: $('ee-num').value, numero_serie: $('ee-serie').value, calibracao_meses: m || null, observacoes: $('ee-obs').value } }); closeModal('modal-gen2'); toast('EIME guardado'); loading(false); await depoisDeEime(id); return; }
+  try { await rpc('arm_eime_guardar', { p: { id, numero_eime: $('ee-num').value, numero_serie: $('ee-serie').value, marca: $('ee-marca').value, modelo: $('ee-modelo').value, calibracao_meses: m || null, observacoes: $('ee-obs').value } }); closeModal('modal-gen2'); toast('EIME guardado'); loading(false); await depoisDeEime(id); return; }
   catch (e) { showAlert('ee-alert', errText(e)); }
   $('ee-ok').disabled = false; loading(false);
 }
@@ -3381,21 +3399,22 @@ async function openIdentificar() {
   $('gen-title').textContent = '🏷️ Dar nº de EIME a aparelhos em stock';
   $('gen-body').innerHTML = `<div id="id-alert"></div>
     <div class="form-group"><label>Aparelhos sem nº <span class="req">*</span></label><select id="id-sel" onchange="idMudou()">${EIME_SEMNUM.map((s, k) => `<option value="${k}">${esc(artLabel(s.artigo_id))} — ${esc(armNome(M.loc[s.localizacao_id]?.armazem_id))} / ${esc(locNome(s.localizacao_id))} (${s.n} sem nº)</option>`).join('')}</select></div>
-    <div class="lines"><div class="table-wrap"><table><thead><tr><th>Nº EIME *</th><th>Nº de série</th><th>Última calibração</th><th class="c-x"></th></tr></thead><tbody id="id-linhas"></tbody></table></div>
+    <div class="lines"><div class="table-wrap"><table><thead><tr><th>Nº EIME *</th><th>Marca</th><th>Modelo</th><th>Nº de série</th><th id="id-cal-th">Última calibração</th><th class="c-x"></th></tr></thead><tbody id="id-linhas"></tbody></table></div>
     <div class="add-row"><button class="btn btn-outline btn-sm" onclick="idAdd()">+ Mais um aparelho</button></div></div>`;
   $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="id-ok" onclick="guardarIdentificar()">Registar</button>`;
   idMudou(); openModal('modal-gen');
 }
-function idMudou() { $('id-linhas').innerHTML = ''; idAdd(); }
+function idMudou() { $('id-linhas').innerHTML = ''; const a = M.art[EIME_SEMNUM[$('id-sel').value].artigo_id]; $('id-cal-th').style.display = a?.precisa_calibracao === false ? 'none' : ''; idAdd(); }
 function idAdd() {
   const s = EIME_SEMNUM[$('id-sel').value]; if ($('id-linhas').children.length >= s.n) return showAlert('id-alert', `Neste sítio só há ${s.n} aparelho(s) sem nº.`, 'warn');
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input class="inp id-num" placeholder="Nº EIME"></td><td><input class="inp id-serie"></td><td><input type="date" class="inp id-cal" max="${hoje()}"></td><td class="c-x"><button class="btn btn-ghost" onclick="this.closest('tr').remove()">✕</button></td>`;
+  const A = M.art[s.artigo_id] || {};
+  tr.innerHTML = `<td><input class="inp id-num" placeholder="Nº EIME"></td><td><input class="inp id-marca" value="${esc(A.marca || '')}"></td><td><input class="inp id-modelo" value="${esc(A.modelo || '')}"></td><td><input class="inp id-serie"></td><td style="${A.precisa_calibracao === false ? 'display:none;' : ''}"><input type="date" class="inp id-cal" max="${hoje()}"></td><td class="c-x"><button class="btn btn-ghost" onclick="this.closest('tr').remove()">✕</button></td>`;
   $('id-linhas').appendChild(tr); tr.querySelector('.id-num').focus();
 }
 async function guardarIdentificar() {
   const s = EIME_SEMNUM[$('id-sel').value];
-  const eimes = [...document.querySelectorAll('#id-linhas tr')].map(tr => ({ numero_eime: tr.querySelector('.id-num').value.trim(), numero_serie: tr.querySelector('.id-serie').value, ultima_calibracao: tr.querySelector('.id-cal').value || null })).filter(x => x.numero_eime || x.numero_serie);
+  const eimes = [...document.querySelectorAll('#id-linhas tr')].map(tr => ({ numero_eime: tr.querySelector('.id-num').value.trim(), numero_serie: tr.querySelector('.id-serie').value, marca: tr.querySelector('.id-marca').value, modelo: tr.querySelector('.id-modelo').value, ultima_calibracao: tr.querySelector('.id-cal').value || null })).filter(x => x.numero_eime || x.numero_serie);
   if (!eimes.length) return showAlert('id-alert', 'Indique pelo menos um nº de EIME.');
   if (eimes.some(x => !x.numero_eime)) return showAlert('id-alert', 'Há uma linha sem nº de EIME.');
   const nums = eimes.map(x => x.numero_eime.toUpperCase()); if (new Set(nums).size !== nums.length) return showAlert('id-alert', 'Há números repetidos.');
@@ -3412,8 +3431,8 @@ async function repEimes(fmt) {
     if (!D.eimes) await reloadEimes();
     const rows = eimesFiltrados().sort((a, b) => a.numero_eime.localeCompare(b.numero_eime, 'pt', { numeric: true }));
     const tab = document.querySelector('#eime-tabs .tab.active')?.textContent || '';
-    const cols = [{ h: 'Nº EIME', w: 16 }, { h: 'Aparelho', w: 40 }, { h: 'Nº série', w: 18 }, { h: 'Onde está', w: 40 }, { h: 'Responsável', w: 24 }, { h: 'Última calibração', w: 14, f: 'd' }, { h: 'Próxima calibração', w: 14, f: 'd' }, { h: 'Situação', w: 20 }];
-    const linhas = rows.map(e => [e.numero_eime, artLabel(e.artigo_id), e.numero_serie || '', eimeOnde(e), eimeArmazem(e) ? armResponsavel(eimeArmazem(e)) : '', e.ultima_calibracao, e.proxima_calibracao, ['ativo', 'em_transito'].includes(e.estado) ? eimeCal(e).t : EST_EIME[e.estado][0]]);
+    const cols = [{ h: 'Nº EIME', w: 16 }, { h: 'Aparelho', w: 36 }, { h: 'Marca', w: 14 }, { h: 'Modelo', w: 14 }, { h: 'Nº série', w: 16 }, { h: 'Onde está', w: 36 }, { h: 'Responsável', w: 24 }, { h: 'Última calibração', w: 14, f: 'd' }, { h: 'Próxima calibração', w: 14, f: 'd' }, { h: 'Situação', w: 20 }];
+    const linhas = rows.map(e => [e.numero_eime, artLabel(e.artigo_id), e.marca || '', e.modelo || '', e.numero_serie || '', eimeOnde(e), eimeArmazem(e) ? armResponsavel(eimeArmazem(e)) : '', eimePrecisa(e) ? e.ultima_calibracao : null, eimePrecisa(e) ? e.proxima_calibracao : null, ['ativo', 'em_transito'].includes(e.estado) ? eimeCal(e).t : EST_EIME[e.estado][0]]);
     const sub = tab + ' · ' + rows.length + ' aparelho(s)';
     if (fmt === 'xlsx') await exportarExcel('EIMEs', 'EIMEs — equipamentos de medição', sub, [{ nome: 'EIMEs', colunas: cols, linhas }]);
     else await pdfTabela({ titulo: 'EIMEs — equipamentos de medição', subtitulo: sub, landscape: true, ficheiro: 'EIMEs', colunas: cols, linhas });
