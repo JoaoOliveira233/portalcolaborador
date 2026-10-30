@@ -440,7 +440,7 @@
               <div class="tab active" data-f="pendente" onclick="setDivTab(this)">Por resolver</div>
               <div class="tab" data-f="resolvida" onclick="setDivTab(this)">Resolvidas</div>
             </div>
-            <div class="fg" style="min-width:auto;margin-left:auto;"><span class="lbl">&nbsp;</span><button class="btn btn-outline btn-sm" onclick="exportDivergencias()">📊 Excel</button></div>
+            <div class="fg" style="min-width:auto;margin-left:auto;"><span class="lbl">&nbsp;</span><div style="display:flex;gap:6px;"><button class="btn btn-outline btn-sm" onclick="exportDivergencias('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="exportDivergencias('xlsx')">📊 Excel</button></div></div>
           </div>
           <div id="tbl-div"></div>
         </div>
@@ -476,6 +476,13 @@
             <p>Lista das guias emitidas num período, com o estado de cada uma.</p>
             <div class="form-row"><div class="form-group"><label>De</label><input type="date" class="inp" id="r5-de"></div><div class="form-group"><label>Até</label><input type="date" class="inp" id="r5-ate"></div></div>
             <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repGuias('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repGuias('xlsx')">📊 Excel</button></div>
+          </div></div>
+          <div class="card rep-card"><div class="card-head"><div class="card-title">⚠️ Material perdido e divergências</div></div><div class="card-body">
+            <p>Material que faltou na receção, com quem enviou, quem transportou (motorista e viatura) e quem recebeu.</p>
+            <div class="form-row"><div class="form-group"><label>De</label><input type="date" class="inp" id="r6-de"></div><div class="form-group"><label>Até</label><input type="date" class="inp" id="r6-ate"></div></div>
+            <div class="form-group"><label>Mostrar</label><select class="inp" id="r6-tipo"><option value="perda">Só material dado como perdido</option><option value="pendente">Divergências por resolver</option><option value="todas">Todas as divergências</option></select></div>
+            <div class="form-group"><label>Pessoa (opcional)</label><input type="text" class="inp" id="r6-pessoa" placeholder="Todas — ou escreva o nome"><div class="hint">Mostra só as guias em que esta pessoa enviou, transportou ou recebeu.</div></div>
+            <div style="display:flex;gap:8px;"><button class="btn btn-primary btn-sm" onclick="repPerdas('pdf')">📄 PDF</button><button class="btn btn-outline btn-sm" onclick="repPerdas('xlsx')">📊 Excel</button></div>
           </div></div>
           <div class="card rep-card"><div class="card-head"><div class="card-title">📜 Extrato de movimentos</div></div><div class="card-body">
             <p>Todas as entradas e saídas com filtros por período, armazém e artigo.</p>
@@ -1020,6 +1027,8 @@ function initFiltros() {
   $('mv-de').value = d30; $('mv-ate').value = h;
   $('r3-de').value = h.slice(0, 8) + '01'; $('r3-ate').value = h;
   $('r5-de').value = h.slice(0, 8) + '01'; $('r5-ate').value = h;
+  $('r6-de').value = addDias(h, -365); $('r6-ate').value = h;
+  attachPicker($('r6-pessoa'), () => itensColabs(false), null);
   refreshSelects();
   $('mv-tipo').innerHTML = '<option value="">Todos</option>' + Object.entries(TIPO_MOV).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   attachPicker($('mv-art'), () => itensArtigos(), null);
@@ -2260,12 +2269,66 @@ async function confirmarResolver(id) {
   } catch (e) { showAlert('res-alert', errText(e)); }
   $('res-ok').disabled = false; loading(false);
 }
-async function exportDivergencias() {
+async function exportDivergencias(fmt = 'xlsx') {
+  await repPerdas(fmt, { tipo: DIV_TAB === 'pendente' ? 'pendente' : 'resolvida', de: null, ate: null, pessoa: null });
+}
+
+/* ---------- Relatório: material perdido e divergências ---------- */
+async function repPerdas(fmt, opts = null) {
   loading(true);
   try {
-    const rows = DIVS.filter(d => d.estado === DIV_TAB);
-    await exportarExcel('Divergencias', 'Divergências — ' + (DIV_TAB === 'pendente' ? 'por resolver' : 'resolvidas'), rows.length + ' registos', [{ nome: 'Divergências', colunas: [{ h: 'Guia', w: 18 }, { h: 'Data', w: 12, f: 'd' }, { h: 'Código', w: 12 }, { h: 'Artigo', w: 40 }, { h: 'Destino', w: 30 }, { h: 'Em falta', w: 12, f: 'q' }, { h: 'Valor USD', w: 13, f: 'usd' }, { h: 'Decisão', w: 22 }, { h: 'Resolvida por', w: 22 }],
-      linhas: rows.map(d => [DIV_GUIAS[d.guia_id]?.numero || '', d.created_at.slice(0, 10), M.art[d.artigo_id]?.codigo || '', M.art[d.artigo_id]?.nome || '', armLabel(DIV_GUIAS[d.guia_id]?.destino_armazem_id), +d.quantidade, d.custo_unit_usd == null ? null : d.quantidade * d.custo_unit_usd, d.decisao ? DECISAO[d.decisao] : 'Por resolver', d.resolvida_por ? profNome(d.resolvida_por) : '']) }]);
+    const o = opts || { tipo: $('r6-tipo').value, de: $('r6-de').value, ate: $('r6-ate').value, pessoa: $('r6-pessoa').dataset.id || null };
+    if (!opts && $('r6-pessoa').value.trim() && !o.pessoa) throw new Error('Escolha a pessoa da lista (ou apague o campo).');
+    const divs = await fetchAll('arm_divergencias', '*, arm_guias(*, arm_pedidos(numero,tipo)), arm_guia_linhas(*)', q => {
+      if (o.tipo === 'perda') q = q.eq('decisao', 'perda');
+      else if (o.tipo === 'pendente') q = q.eq('estado', 'pendente');
+      else if (o.tipo === 'resolvida') q = q.eq('estado', 'resolvida');
+      if (o.de) q = q.gte('created_at', o.de + 'T00:00:00+01:00');
+      if (o.ate) q = q.lte('created_at', o.ate + 'T23:59:59+01:00');
+      return q.order('created_at').order('id');
+    });
+    const env = g => g.responsavel_envio_id;
+    let rows = divs.filter(d => d.arm_guias);
+    if (o.pessoa) rows = rows.filter(d => [env(d.arm_guias), d.arm_guias.motorista_id, d.arm_guias.recebido_por_id].includes(o.pessoa));
+    const colab = id => { const c = M.col[id]; return c ? `${c.nome} (nº ${c.numero_mecanografico})` : '—'; };
+    const motorista = g => g.motorista_id ? colab(g.motorista_id) : (g.motorista_nome ? g.motorista_nome + ' (externo)' : '—');
+    const viatura = g => g.viatura_id ? viaLabel(g.viatura_id) : (g.viatura_texto ? g.viatura_texto + ' (externa)' : '—');
+    const origem = d => d.arm_guia_linhas ? armLabel(d.arm_guia_linhas.origem_armazem_id) : '—';
+    const valor = d => d.custo_unit_usd == null ? null : Number(d.quantidade) * Number(d.custo_unit_usd);
+    const decTxt = d => d.decisao ? DECISAO[d.decisao] : 'Por resolver';
+    const titulo = { perda: 'Material perdido', pendente: 'Divergências por resolver', resolvida: 'Divergências resolvidas', todas: 'Divergências na receção de material' }[o.tipo];
+    const sub = [o.de || o.ate ? `De ${fmtD(o.de)} a ${fmtD(o.ate)}` : '', o.pessoa ? 'Pessoa: ' + colNome(o.pessoa) : '', rows.length + ' registo(s)'].filter(Boolean).join(' · ');
+    const tot = rows.reduce((s, d) => s + (valor(d) || 0), 0);
+
+    if (fmt === 'xlsx') {
+      const cols = [{ h: 'Guia', w: 17 }, { h: 'Pedido', w: 12 }, { h: 'Expedição', w: 17 }, { h: 'Receção', w: 17 }, { h: 'Origem', w: 28 }, { h: 'Destino', w: 28 }, { h: 'Local de descarga', w: 24 },
+        { h: 'Enviado por', w: 28 }, { h: 'Motorista', w: 28 }, { h: 'Viatura', w: 24 }, { h: 'Recebido por', w: 28 },
+        { h: 'Código', w: 11 }, { h: 'Artigo', w: 36 }, { h: 'Un.', w: 6 }, { h: 'Expedido', w: 11, f: 'q' }, { h: 'Recebido', w: 11, f: 'q' }, { h: 'Em falta', w: 11, f: 'q' }, { h: 'Valor USD', w: 13, f: 'usd' },
+        { h: 'Decisão', w: 20 }, { h: 'Decidido por', w: 20 }, { h: 'Data decisão', w: 12, f: 'd' }, { h: 'Observações', w: 30 }];
+      const linhas = rows.map(d => { const g = d.arm_guias, gl = d.arm_guia_linhas || {}, a = M.art[d.artigo_id] || {};
+        return [g.numero, g.arm_pedidos?.numero || '', fmtDT(g.data_expedicao), g.data_rececao ? fmtDT(g.data_rececao) : '', origem(d), armLabel(g.destino_armazem_id), g.local_descarga,
+          colab(env(g)), motorista(g), viatura(g), g.recebido_por_id ? colab(g.recebido_por_id) : '',
+          a.codigo || '', a.nome || '', a.unidade || '', gl.quantidade == null ? null : +gl.quantidade, gl.qtd_recebida == null ? null : +gl.qtd_recebida, +d.quantidade, valor(d),
+          decTxt(d), d.resolvida_por ? profNome(d.resolvida_por) : '', d.resolvida_em ? d.resolvida_em.slice(0, 10) : null, [d.observacoes, g.obs_rececao].filter(Boolean).join(' · ')]; });
+      const totais = cols.map((c, i) => i === 0 ? 'TOTAL' : i === 17 ? tot : '');
+      await exportarExcel('Material_perdido', titulo, sub, [{ nome: titulo.substring(0, 31), colunas: cols, linhas, totais }]);
+    } else {
+      const porGuia = {}; rows.forEach(d => (porGuia[d.guia_id] = porGuia[d.guia_id] || []).push(d));
+      const grupos = Object.values(porGuia).map(ds => {
+        const g = ds[0].arm_guias;
+        return {
+          titulo: `Guia ${g.numero}  ·  ${[...new Set(ds.map(origem))].join(', ')}  >  ${armLabel(g.destino_armazem_id)}\n` +
+            `Expedida ${fmtDT(g.data_expedicao)}${g.data_rececao ? '  ·  Recebida ' + fmtDT(g.data_rececao) : ''}  ·  Local de descarga: ${g.local_descarga}\n` +
+            `Enviado por: ${colab(env(g))}   |   Transportado por: ${motorista(g)} — ${viatura(g)}   |   Recebido por: ${g.recebido_por_id ? colab(g.recebido_por_id) : '—'}`,
+          linhas: ds.map(d => { const gl = d.arm_guia_linhas || {}, a = M.art[d.artigo_id] || {};
+            return [a.codigo || '', a.nome || '', a.unidade || '', gl.quantidade == null ? null : +gl.quantidade, gl.qtd_recebida == null ? null : +gl.qtd_recebida, +d.quantidade, valor(d), decTxt(d) + (d.resolvida_por ? ` (${profNome(d.resolvida_por)}, ${fmtD(d.resolvida_em)})` : ''), d.observacoes || '']; }),
+          subtotal: ds.reduce((s, d) => s + (valor(d) || 0), 0)
+        };
+      });
+      await pdfTabela({ titulo, subtitulo: sub, landscape: true, ficheiro: 'Material_perdido',
+        colunas: [{ h: 'Código' }, { h: 'Artigo' }, { h: 'Un.' }, { h: 'Expedido', f: 'q' }, { h: 'Recebido', f: 'q' }, { h: 'Em falta', f: 'q' }, { h: 'Valor USD', f: 'usd' }, { h: 'Decisão' }, { h: 'Observações' }],
+        grupos, totais: ['TOTAL', '', '', '', '', '', tot, '', ''] });
+    }
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
 }
@@ -2496,7 +2559,12 @@ async function pdfTabela({ titulo, subtitulo, landscape = false, ccId = null, co
     if (!grupos.length) doc.autoTable({ ...base, startY: y, body: [[{ content: 'Sem dados', colSpan: colunas.length, styles: { halign: 'center' } }]] });
     grupos.forEach((g, gi) => {
       const body = [[{ content: g.titulo, colSpan: colunas.length, styles: { fillColor: [238, 240, 244], fontStyle: 'bold', textColor: [27, 42, 74], fontSize: 8.5 } }], ...corpo(g.linhas)];
-      if (g.subtotal != null) body.push([{ content: 'Subtotal', colSpan: colunas.length - 1, styles: { halign: 'right', fontStyle: 'bold' } }, { content: pdfTxt(fmtU(g.subtotal)), styles: { halign: 'right', fontStyle: 'bold' } }]);
+      if (g.subtotal != null) {
+        const iv = colunas.map(c => c.f).lastIndexOf('usd'), k = iv < 0 ? colunas.length - 1 : iv;
+        const lin = [{ content: 'Subtotal', colSpan: k, styles: { halign: 'right', fontStyle: 'bold' } }, { content: pdfTxt(fmtU(g.subtotal)), styles: { halign: 'right', fontStyle: 'bold' } }];
+        if (colunas.length - k - 1 > 0) lin.push({ content: '', colSpan: colunas.length - k - 1 });
+        body.push(lin);
+      }
       doc.autoTable({ ...base, startY: y, body, showHead: 'everyPage' });
       y = doc.lastAutoTable.finalY + 4;
       if (g.assinatura) {
