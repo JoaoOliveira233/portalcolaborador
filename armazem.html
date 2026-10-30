@@ -2131,7 +2131,9 @@ async function abrirGuia(id) {
       { t: 'Artigo', v: l => artLabel(l.artigo_id) },
       { t: 'Origem', v: l => armNome(l.origem_armazem_id) + ' / ' + locNome(l.origem_localizacao_id) },
       { t: 'Expedido', cls: 'num', v: l => fmtQ(l.quantidade) + ' ' + (M.art[l.artigo_id]?.unidade || '') },
-      { t: 'Recebido', cls: 'num', h: l => l.qtd_recebida == null ? '—' : `<span class="${Number(l.qtd_recebida) < Number(l.quantidade) ? 'neg' : 'pos'}">${fmtQ(l.qtd_recebida)}</span>` },
+      { t: 'Recebido', cls: 'num', h: l => l.qtd_recebida == null ? '—' : `<span class="${Number(l.qtd_recebida) < Number(l.quantidade) ? 'neg' : 'pos'}">${fmtQ(l.qtd_recebida)}</span>` +
+          (l.excesso_origem ? `<div class="muted">+${fmtQ(l.excesso_origem)} retirado da origem</div>` : '') +
+          (l.excesso_sem_origem ? `<div style="color:var(--warning);font-size:12px;font-weight:600;">⚠ +${fmtQ(l.excesso_sem_origem)} sem stock na origem</div>` : '') },
       { t: 'Guardado em', v: l => l.destino_localizacao_id ? locNome(l.destino_localizacao_id) : '—' }
     ], g.arm_guia_linhas);
     if (divs.length) h += '<div class="sec-title">Divergências</div>' + miniTable([
@@ -2175,7 +2177,7 @@ async function abrirRececao(id) {
     $('modal-gen2-box').className = 'modal xl';
     $('gen2-title').textContent = '📦 Receção da guia ' + g.numero;
     let h = `<div id="rec-alert"></div>
-      <div class="alert alert-info">Confirme a quantidade que chegou de cada artigo. Se chegou menos, a diferença fica como <strong>divergência</strong> para o administrador resolver.</div>
+      <div class="alert alert-info">Confirme a quantidade que chegou de cada artigo. Se chegou <strong>menos</strong>, a diferença fica como divergência para o administrador resolver. Se chegou <strong>mais</strong>, o que veio a mais é retirado automaticamente do stock do armazém de origem.</div>
       <div class="form-row-3">
         <div class="form-group"><label>Recebido por <span class="req">*</span></label><input type="text" id="rec-por" class="inp" placeholder="Escreva o nome"></div>
         <div class="form-group"><label>Data e hora da receção <span class="req">*</span></label><input type="datetime-local" id="rec-data" value="${agoraInput()}"></div>
@@ -2184,7 +2186,7 @@ async function abrirRececao(id) {
       <div class="lines"><div class="table-wrap"><table><thead><tr><th>Artigo</th><th class="num">Expedido</th><th class="num" style="width:150px;">Recebido</th><th style="width:220px;">Guardar em (${esc(destA?.nome || '')})</th></tr></thead><tbody id="rec-linhas">`;
     g.arm_guia_linhas.forEach(l => {
       h += `<tr data-id="${l.id}" data-exp="${l.quantidade}"><td>${esc(artLabel(l.artigo_id))}</td><td class="num">${fmtQ(l.quantidade)} ${esc(M.art[l.artigo_id]?.unidade || '')}</td>
-        <td class="num"><input class="inp num rec-q" type="number" min="0" max="${l.quantidade}" step="0.001" value="${Number(l.quantidade)}" style="width:130px;"></td>
+        <td class="num"><input class="inp num rec-q" type="number" min="0" step="0.001" value="${Number(l.quantidade)}" style="width:130px;"></td>
         <td><select class="inp rec-loc">${locs.map(x => `<option value="${x.id}">${esc(x.nome)}</option>`).join('')}</select></td></tr>`;
     });
     h += '</tbody></table></div></div>';
@@ -2199,21 +2201,26 @@ async function abrirRececao(id) {
 async function confirmarRececao() {
   if (!$('rec-por').dataset.id) return showAlert('rec-alert', 'Escolha da lista quem recebeu o material.');
   if (!$('rec-data').value) return showAlert('rec-alert', 'Indique a data e hora da receção.');
-  const linhas = []; let err = null, div = false;
+  const linhas = []; let err = null, div = false; const mais = [];
   document.querySelectorAll('#rec-linhas tr').forEach((tr, i) => {
     const v = tr.querySelector('.rec-q').value, exp = Number(tr.dataset.exp);
     if (v === '' || Number(v) < 0) err = err || `Linha ${i + 1}: indique a quantidade recebida (0 se não chegou nada).`;
-    else if (Number(v) > exp) err = err || `Linha ${i + 1}: não pode receber mais do que foi expedido (${fmtQ(exp)}).`;
     if (Number(v) < exp) div = true;
+    if (Number(v) > exp) mais.push(`<li>${esc(tr.children[0].textContent)}: expedido ${fmtQ(exp)}, recebido ${fmtQ(v)} → <strong>+${fmtQ(Number(v) - exp)}</strong></li>`);
     linhas.push({ guia_linha_id: tr.dataset.id, localizacao_id: tr.querySelector('.rec-loc').value, quantidade_recebida: Number(v) });
   });
   if (err) return showAlert('rec-alert', err);
-  if (div && !(await confirmar('Receção com diferenças', 'Há artigos com <strong>menos quantidade</strong> do que a expedida. A diferença fica registada como divergência para o administrador resolver. Continuar?', false, 'Continuar'))) return;
+  if (div || mais.length) {
+    let t = '';
+    if (div) t += '<p>Há artigos com <strong>menos quantidade</strong> do que a expedida. A diferença fica registada como divergência para o administrador resolver.</p>';
+    if (mais.length) t += `<p style="margin-top:8px;">Há artigos com <strong>mais quantidade</strong> do que a expedida:</p><ul style="margin:6px 0 0 18px;">${mais.join('')}</ul><p style="margin-top:8px;">O que veio a mais será <strong>retirado do stock do armazém de origem</strong> (${esc(armNome(REC.arm_guia_linhas[0]?.origem_armazem_id))}).</p>`;
+    if (!(await confirmar('Receção com diferenças', t + '<p style="margin-top:8px;">Continuar?</p>', false, 'Continuar'))) return;
+  }
   $('rec-ok').disabled = true; loading(true);
   try {
     const r = await rpc('arm_receber_guia', { p: { guia_id: REC.id, recebido_por_id: $('rec-por').dataset.id, data_rececao: inputParaISO($('rec-data').value), observacoes: $('rec-obs').value, linhas } });
     closeModal('modal-gen2'); closeModal('modal-gen');
-    toast('Guia ' + r.numero + (r.com_divergencia ? ' recebida com divergência' : ' recebida')); await depoisDeGuia();
+    toast('Guia ' + r.numero + (r.com_divergencia ? ' recebida com divergência' : r.com_excesso ? ' recebida (excesso retirado da origem)' : ' recebida')); await depoisDeGuia();
   } catch (e) { showAlert('rec-alert', errText(e)); }
   $('rec-ok').disabled = false; loading(false);
 }
