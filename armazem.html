@@ -154,6 +154,17 @@
     .lines th { padding: 9px 8px; }
     .lines td { vertical-align: middle; }
     .lines .art-cell { display: flex; gap: 6px; align-items: center; }
+    .eime-box { margin-top: 8px; padding: 8px 10px; background: var(--gray-50); border: 1px dashed var(--gray-200); border-radius: 8px; }
+    .eime-tit { font-size: 11px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .eime-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .eime-chip { display: inline-flex; align-items: center; gap: 5px; border: 1.5px solid var(--gray-200); background: white; border-radius: 6px; padding: 3px 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; text-transform: none; letter-spacing: 0; color: var(--gray-800); margin: 0; }
+    .eime-chip input { width: auto; margin: 0; }
+    .eime-chip:has(input:checked) { border-color: var(--navy); background: #e8ecf5; }
+    .eime-sem { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; text-transform: none; letter-spacing: 0; color: var(--gray-600); margin: 0 0 0 6px; font-weight: 500; }
+    .eime-sem .inp { width: 70px !important; padding: 4px 6px !important; }
+    .en-row { display: flex; gap: 6px; align-items: center; margin-bottom: 5px; }
+    .en-row .en-num { width: 130px; } .en-row .en-serie { flex: 1; min-width: 120px; } .en-row .en-cal { width: 150px; }
+    .inp.ro { background: var(--gray-100); }
     .lines .art-cell .inp { flex: 1; min-width: 0; }
     .lines .qtd-cell { display: flex; align-items: center; gap: 6px; }
 
@@ -263,6 +274,7 @@
       <div class="nav-section-title">Controlo</div>
       <div class="nav-item" id="nav-inventarios" onclick="navigate('inventarios')"><span>📋</span><span>Inventários</span><span class="cnt" id="cnt-inv"></span></div>
       <div class="nav-item" id="nav-abates" onclick="navigate('abates')"><span>🗑️</span><span>Abates</span><span class="cnt" id="cnt-abt"></span></div>
+      <div class="nav-item" id="nav-eimes" onclick="navigate('eimes')"><span>🔬</span><span>EIMEs</span><span class="cnt" id="cnt-eime"></span></div>
       <div class="nav-section-title">Gestão</div>
       <div class="nav-item" id="nav-relatorios" onclick="navigate('relatorios')"><span>📑</span><span>Relatórios</span></div>
       <div class="nav-item" id="nav-estrutura" onclick="navigate('estrutura')"><span>🏭</span><span>Estaleiros e armazéns</span></div>
@@ -489,6 +501,28 @@
         </div>
       </section>
 
+      <!-- EIMES -->
+      <section class="page" id="page-eimes">
+        <div class="page-header">
+          <div><div class="page-title">EIMEs</div><div class="page-subtitle">Equipamentos de inspeção, medição e ensaio — cada aparelho pelo nº de EIME, onde está e quando calibrar</div></div>
+          <div class="page-actions"><button class="btn btn-outline only-oper" onclick="openIdentificar()">🏷️ Dar nº a aparelhos</button><button class="btn btn-outline" onclick="repEimes('pdf')">📄 PDF</button><button class="btn btn-outline" onclick="repEimes('xlsx')">📊 Excel</button></div>
+        </div>
+        <div id="eime-semnum"></div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="tabs" id="eime-tabs">
+              <div class="tab active" data-f="stock" onclick="setEimeTab(this)">Em stock</div>
+              <div class="tab" data-f="calibrar" onclick="setEimeTab(this)">A calibrar</div>
+              <div class="tab" data-f="em_calibracao" onclick="setEimeTab(this)">Em calibração</div>
+              <div class="tab" data-f="fora" onclick="setEimeTab(this)">Abatidos / perdidos</div>
+              <div class="tab" data-f="todos" onclick="setEimeTab(this)">Todos</div>
+            </div>
+            <div class="fg grow"><span class="lbl">Pesquisar</span><input class="inp" id="eime-q" placeholder="Nº EIME, nº série, aparelho, armazém, pessoa..." oninput="drawEimes()"></div>
+          </div>
+          <div id="tbl-eimes"></div>
+        </div>
+      </section>
+
       <!-- RELATORIOS -->
       <section class="page" id="page-relatorios">
         <div class="page-header">
@@ -627,8 +661,9 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label>Stock mínimo (total)</label><input type="number" id="a-minimo" min="0" step="0.001" placeholder="Sem mínimo"></div>
-          <div class="form-group"><label>&nbsp;</label><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-eime"> É um EIME (calibração periódica)</label></div>
+          <div class="form-group"><label>&nbsp;</label><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-eime" onchange="$('a-cal-fg').style.display=this.checked?'':'none'"> É um EIME (calibração periódica)</label></div>
         </div>
+        <div class="form-group" id="a-cal-fg" style="display:none;"><label>Calibrar de quantos em quantos meses</label><input type="number" id="a-cal" min="1" max="120" step="1" placeholder="Ex.: 12"><div class="hint">Periodicidade normal deste tipo de aparelho. Cada aparelho pode ter outra na sua ficha. Cada aparelho é seguido pelo seu nº de EIME.</div></div>
         <div class="form-group"><label>Observações</label><textarea id="a-obs" rows="2"></textarea></div>
         <div class="form-group only-admin"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-ativo" checked> Artigo activo</label></div>
       </div>
@@ -748,7 +783,7 @@ const UNIDADES = ['un', 'm', 'km', 'kg', 'ton', 'l', 'm²', 'm³', 'rolo', 'bobi
 
 let currentUser = null, ME = null, NIVEL = 'sem_acesso', IS_ADMIN = false, CAN_OP = false;
 const D = { estaleiros: [], armazens: [], locs: [], artigos: [], colabs: [], ccs: [], viaturas: [], fornecedores: [], profiles: [] };
-const M = { est: {}, arm: {}, loc: {}, art: {}, col: {}, cc: {}, via: {}, forn: {}, prof: {} };
+const M = { est: {}, arm: {}, loc: {}, art: {}, col: {}, cc: {}, via: {}, forn: {}, prof: {}, eime: {} };
 
 /* ============================ UTILITÁRIOS ============================ */
 const $ = id => document.getElementById(id);
@@ -1047,7 +1082,7 @@ async function loadBase() {
     fetchAll('arm_estaleiros', '*', q => q.order('nome').order('id')),
     fetchAll('arm_armazens', '*', q => q.order('nome').order('id')),
     fetchAll('arm_localizacoes', '*', q => q.order('nome').order('id')),
-    fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,foto_path,stock_minimo,eime,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id')),
+    fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,foto_path,stock_minimo,eime,calibracao_meses,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id')),
     fetchAll('colaboradores', 'id,nome,numero_mecanografico,funcao,ativo', q => q.order('nome').order('id')),
     fetchAll('centros_custo', 'id,nome,codigo', q => q.order('nome').order('id')),
     fetchAll('viaturas', 'id,codigo,matricula,tipo,marca,modelo,motorista_id', q => q.order('codigo').order('id')),
@@ -1056,6 +1091,7 @@ async function loadBase() {
   ]);
   D.estaleiros = est; D.armazens = arm; D.locs = locs; D.artigos = arts; D.colabs = cols; D.ccs = ccs; D.viaturas = vias; D.fornecedores = forns; D.profiles = profs;
   indexar(est, M.est); indexar(arm, M.arm); indexar(locs, M.loc); indexar(arts, M.art); indexar(cols, M.col); indexar(ccs, M.cc); indexar(vias, M.via); indexar(forns, M.forn); indexar(profs, M.prof);
+  try { await reloadEimes(); } catch (e) { D.eimes = []; }
 }
 async function reloadEstrutura() {
   const [est, arm, locs] = await Promise.all([
@@ -1066,7 +1102,7 @@ async function reloadEstrutura() {
   D.estaleiros = est; D.armazens = arm; D.locs = locs; indexar(est, M.est); indexar(arm, M.arm); indexar(locs, M.loc);
 }
 async function reloadArtigos() {
-  D.artigos = await fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,foto_path,stock_minimo,eime,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id'));
+  D.artigos = await fetchAll('arm_artigos', 'id,codigo,nsap,nome,unidade,foto_path,stock_minimo,eime,calibracao_meses,observacoes,ativo,custo_medio_usd,created_at', q => q.order('codigo').order('id'));
   indexar(D.artigos, M.art);
 }
 async function reloadFornecedores() { D.fornecedores = await fetchAll('fornecedores', '*', q => q.order('nome').order('id')); indexar(D.fornecedores, M.forn); }
@@ -1102,7 +1138,7 @@ const PAGES = {
   entradas: () => loadOperacoes('entrada'), consumos: () => loadOperacoes('consumo'), internos: () => loadOperacoes('interno'),
   pedidos: () => loadPedidos(), guias: () => loadGuias(), divergencias: () => loadDivergencias(), relatorios: () => {},
   estrutura: () => renderEstrutura(), fornecedores: () => drawFornecedores(),
-  inventarios: () => loadInventarios(), abates: () => loadAbates()
+  inventarios: () => loadInventarios(), abates: () => loadAbates(), eimes: () => loadEimes()
 };
 let PAGE = 'painel';
 async function navigate(p) {
@@ -1126,6 +1162,7 @@ async function atualizarContadores() {
     set('cnt-pedidos', IS_ADMIN ? data.pedidos_por_aprovar + data.pedidos_por_expedir : data.pedidos_por_expedir);
     set('cnt-guias', data.guias_em_transito); set('cnt-div', data.divergencias_pendentes); set('cnt-minimo', data.artigos_abaixo_minimo);
     set('cnt-inv', IS_ADMIN ? (data.inventarios_por_aprovar || 0) : (data.inventarios_em_contagem || 0)); set('cnt-abt', IS_ADMIN ? (data.abates_por_aprovar || 0) : 0);
+    set('cnt-eime', (data.eimes_calibracao_vencida || 0) + (data.eimes_calibracao_a_vencer || 0));
   } catch (e) { /* silencioso */ }
 }
 
@@ -1150,7 +1187,9 @@ async function renderPainel() {
     kpi(a.artigos_abaixo_minimo, 'Artigos abaixo do mínimo', 'stockFiltroMinimo()', 'warn') +
     kpi(a.inventarios_em_contagem || 0, 'Inventários em contagem', "navigate('inventarios')", '') +
     kpi(a.inventarios_por_aprovar || 0, IS_ADMIN ? 'Inventários para aprovar' : 'Inventários à espera de aprovação', "navigate('inventarios').then(()=>setInvTab(document.querySelector('#inv-tabs [data-f=submetido]')))", 'warn') +
-    kpi(a.abates_por_aprovar || 0, IS_ADMIN ? 'Abates para aprovar' : 'Abates à espera de aprovação', "navigate('abates')", 'warn');
+    kpi(a.abates_por_aprovar || 0, IS_ADMIN ? 'Abates para aprovar' : 'Abates à espera de aprovação', "navigate('abates')", 'warn') +
+    kpi(a.eimes_calibracao_vencida || 0, 'EIMEs com calibração vencida', "navigate('eimes').then(()=>setEimeTab(document.querySelector('#eime-tabs [data-f=calibrar]')))", 'danger') +
+    kpi(a.eimes_calibracao_a_vencer || 0, 'EIMEs a calibrar nos próximos 2 meses', "navigate('eimes').then(()=>setEimeTab(document.querySelector('#eime-tabs [data-f=calibrar]')))", 'warn');
   $('painel-pedidos').innerHTML = miniTable([
     { t: 'Nº', h: p => `<a href="#" onclick="abrirPedido('${p.id}');return false;"><strong>${esc(p.numero)}</strong></a>` },
     { t: 'Destino', v: p => armLabel(p.destino_armazem_id) },
@@ -1230,24 +1269,40 @@ function drawStock() {
     ], stockLinhasLocal(), { onRow: r => abrirArtigoDetalhe(r.artigo_id), empty: 'Nenhum stock com estes filtros', resetShown: true });
   }
 }
-function acertarStock(artId, locId, atual) {
+async function acertarStock(artId, locId, atual) {
   const a = M.art[artId], l = M.loc[locId];
+  if (a?.eime) { loading(true); try { await reloadEimes(); } catch (e) { } loading(false); }
   $('modal-gen2-box').className = 'modal';
   $('gen2-title').textContent = '✏️ Acertar stock';
   $('gen2-body').innerHTML = `<div id="acs-alert"></div>
     <p style="font-size:14px;margin-bottom:12px;"><strong>${esc(a.codigo)} · ${esc(a.nome)}</strong><br><span class="muted">${esc(armNome(l.armazem_id))} / ${esc(l.nome)}</span></p>
     <div class="form-row"><div class="form-group"><label>Quantidade actual</label><input type="text" value="${fmtQ(atual)} ${esc(a.unidade)}" disabled></div>
     <div class="form-group"><label>Quantidade correcta <span class="req">*</span></label><input type="number" id="acs-q" min="0" step="0.001" value="${atual}"><div class="hint">Ponha 0 para retirar todo o stock.</div></div></div>
-    <div class="form-group"><label>Motivo <span class="req">*</span></label><input type="text" id="acs-mot" placeholder="Ex.: contagem física, registo errado, dados de teste…"></div>`;
-  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="acs-ok" onclick="confirmarAcerto('${artId}','${locId}')">Guardar acerto</button>`;
+    <div class="form-group"><label>Motivo <span class="req">*</span></label><input type="text" id="acs-mot" placeholder="Ex.: contagem física, registo errado, dados de teste…"></div>
+    ${a?.eime ? `<div id="acs-eimes"><div class="eime-box"><div class="eime-tit">Se a quantidade baixa: que aparelhos faltam?</div><div class="eime-chips" id="acs-falta">${eimesEm(artId, locId).map(e => `<label class="eime-chip"><input type="checkbox" value="${e.id}"> ${esc(e.numero_eime)}</label>`).join('') || '<span class="muted">Nenhum aparelho com nº aqui.</span>'}</div></div>
+      ${D.eimes.some(e => e.artigo_id === artId && e.estado === 'desaparecido') ? `<div class="eime-box"><div class="eime-tit">Se a quantidade sobe: algum destes apareceu?</div><div class="eime-chips" id="acs-volta">${D.eimes.filter(e => e.artigo_id === artId && e.estado === 'desaparecido').map(e => `<label class="eime-chip"><input type="checkbox" value="${e.id}"> ${esc(e.numero_eime)}</label>`).join('')}</div></div>` : ''}</div>` : ''}`;
+  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="acs-ok" onclick="confirmarAcerto('${artId}','${locId}',${Number(atual)})">Guardar acerto</button>`;
   openModal('modal-gen2'); setTimeout(() => $('acs-q').select(), 50);
 }
-async function confirmarAcerto(artId, locId) {
+async function confirmarAcerto(artId, locId, atual) {
   const q = numVal('acs-q'), mot = $('acs-mot').value.trim();
   if (q == null || isNaN(q) || q < 0) return showAlert('acs-alert', 'Indique uma quantidade válida (0 ou mais).');
   if (!mot) return showAlert('acs-alert', 'Indique o motivo.');
+  const eime = !!M.art[artId]?.eime; let eimes = [];
+  if (eime) {
+    if (!Number.isInteger(q)) return showAlert('acs-alert', 'Um EIME só tem unidades inteiras.');
+    const falta = [...document.querySelectorAll('#acs-falta input:checked')].map(i => i.value), volta = [...document.querySelectorAll('#acs-volta input:checked')].map(i => i.value);
+    const comNum = eimesEm(artId, locId).length, sem = Math.max(0, Math.round(atual) - comNum);
+    if (q < atual) { if (volta.length) return showAlert('acs-alert', 'A quantidade baixa: não marque aparelhos que apareceram.'); if (falta.length > atual - q) return showAlert('acs-alert', `Marcou ${falta.length} aparelhos em falta, mas a quantidade só baixa ${atual - q}.`); if (atual - q - falta.length > sem) return showAlert('acs-alert', `Indique quais os aparelhos (nº de EIME) que faltam: só há ${sem} sem nº neste sítio.`); }
+    if (q > atual) { if (falta.length) return showAlert('acs-alert', 'A quantidade sobe: não marque aparelhos em falta.'); if (volta.length > q - atual) return showAlert('acs-alert', `Marcou ${volta.length} aparelhos que apareceram, mas a quantidade só sobe ${q - atual}.`); }
+    eimes = falta.concat(volta);
+  }
   $('acs-ok').disabled = true; loading(true);
-  try { const r = await rpc('arm_acertar_stock', { p_artigo: artId, p_localizacao: locId, p_quantidade: q, p_motivo: mot }); closeModal('modal-gen2'); toast('Stock acertado (' + r.numero + ')'); await refreshPage(); }
+  try {
+    const r = eime ? await rpc('arm_com_eimes', { p_fn: 'arm_acertar_stock', p: { artigo_id: artId, localizacao_id: locId, quantidade: q, motivo: mot, eimes } })
+                   : await rpc('arm_acertar_stock', { p_artigo: artId, p_localizacao: locId, p_quantidade: q, p_motivo: mot });
+    if (eime) await reloadEimes();
+    closeModal('modal-gen2'); toast('Stock acertado (' + r.numero + ')'); await refreshPage(); }
   catch (e) { showAlert('acs-alert', errText(e)); }
   $('acs-ok').disabled = false; loading(false);
 }
@@ -1293,12 +1348,13 @@ async function abrirArtigoDetalhe(id) {
           <div><div class="k">Stock total</div><div class="v"><strong>${fmtQ(tot)} ${esc(a.unidade)}</strong></div></div>
           <div><div class="k">Stock mínimo</div><div class="v">${a.stock_minimo == null ? '—' : fmtQ(a.stock_minimo)}</div></div>
           <div><div class="k">Custo médio</div><div class="v">${a.custo_medio_usd == null ? 'Sem valorização' : fmtUSD(a.custo_medio_usd)}</div></div>
-          ${a.eime ? '<div><div class="k">Tipo</div><div class="v"><span class="badge b-navy">EIME</span></div></div>' : ''}
+          ${a.eime ? `<div><div class="k">Tipo</div><div class="v"><span class="badge b-navy">EIME</span>${a.calibracao_meses ? ' calibrar a cada ' + a.calibracao_meses + ' meses' : ''}</div></div>` : ''}
           ${a.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(a.observacoes)}</div></div>` : ''}
         </div>${foto}
       </div>
       <div class="sec-title">Onde existe</div>
       ${miniTable([{ t: 'Estaleiro', v: r => r.estaleiro_nome }, { t: 'Armazém', h: r => `${r.armazem_tipo === 'pessoa' ? '👷' : r.armazem_tipo === 'viatura' ? '🚚' : '🏭'} ${esc(r.armazem_nome)}` }, { t: 'Localização', v: r => r.localizacao_nome }, { t: 'Quantidade', cls: 'num', h: r => `<strong>${fmtQ(r.quantidade)}</strong>` }], st, 'Sem stock')}
+      ${a.eime ? '<div class="sec-title">Aparelhos (nº de EIME)</div>' + miniTable([{ t: 'Nº EIME', h: e => `<a href="#" onclick="closeModal('modal-gen');abrirEime('${e.id}');return false;"><strong>${esc(e.numero_eime)}</strong></a>` }, { t: 'Nº série', v: e => e.numero_serie || '—' }, { t: 'Onde está', v: e => eimeOnde(e) }, { t: 'Calibração', h: e => badge(eimeCal(e).t, eimeCal(e).c) }], (D.eimes || []).filter(e => e.artigo_id === id && ['ativo', 'em_transito'].includes(e.estado)), 'Nenhum aparelho com nº') : ''}
       ${tr.length ? '<div class="sec-title">Em trânsito</div>' + miniTable([{ t: 'Guia', h: r => `<a href="#" onclick="abrirGuia('${r.guia_id}');return false;">${esc(r.guia_numero)}</a>` }, { t: 'De', v: r => r.origem_armazem_nome }, { t: 'Para', v: r => r.destino_armazem_nome }, { t: 'Qtd', cls: 'num', v: r => fmtQ(r.quantidade) }], tr) : ''}
       <div class="sec-title">Últimos movimentos</div>
       ${miniTable([{ t: 'Data', v: m => fmtD(m.data) }, { t: 'Operação', v: m => m.arm_operacoes?.numero || '' }, { t: 'Tipo', v: m => TIPO_MOV[m.tipo] }, { t: 'Armazém / localização', v: m => armNome(m.armazem_id) + ' / ' + locNome(m.localizacao_id) }, { t: 'Qtd', cls: 'num', h: m => `<span class="${m.quantidade < 0 ? 'neg' : 'pos'}">${m.quantidade > 0 ? '+' : ''}${fmtQ(m.quantidade)}</span>` }], mv.data, 'Sem movimentos')}`;
@@ -1341,6 +1397,7 @@ async function openArtigo(id = null, callback = null) {
   $('artigo-title').textContent = a ? '✏️ Editar ' + a.codigo : '🏷️ Novo artigo';
   $('a-nome').value = a?.nome || ''; $('a-unidade').value = a?.unidade || ''; $('a-nsap').value = a?.nsap || '';
   $('a-minimo').value = a?.stock_minimo ?? ''; $('a-eime').checked = !!a?.eime; $('a-obs').value = a?.observacoes || '';
+  $('a-cal').value = a?.calibracao_meses ?? ''; $('a-cal-fg').style.display = a?.eime ? '' : 'none';
   $('a-ativo').checked = a ? !!a.ativo : true;
   $('a-apagar').style.display = IS_ADMIN && a ? '' : 'none';
   $('a-semelhantes').innerHTML = ''; showAlert('artigo-alert', '');
@@ -1379,7 +1436,9 @@ async function guardarArtigo() {
   if (!unidade) return showAlert('artigo-alert', 'Indique a unidade.');
   const minimo = numVal('a-minimo');
   if (minimo != null && (isNaN(minimo) || minimo < 0)) return showAlert('artigo-alert', 'Stock mínimo inválido.');
-  const payload = { nome, unidade, nsap: $('a-nsap').value.trim() || null, stock_minimo: minimo, eime: $('a-eime').checked, observacoes: $('a-obs').value.trim() || null };
+  const cal = $('a-eime').checked ? numVal('a-cal') : null;
+  if (cal != null && !(Number.isInteger(cal) && cal >= 1 && cal <= 120)) return showAlert('artigo-alert', 'A periodicidade de calibração tem de ser entre 1 e 120 meses.');
+  const payload = { nome, unidade, nsap: $('a-nsap').value.trim() || null, stock_minimo: minimo, eime: $('a-eime').checked, calibracao_meses: cal, observacoes: $('a-obs').value.trim() || null };
   if (IS_ADMIN) payload.ativo = $('a-ativo').checked;
   $('a-guardar').disabled = true; loading(true);
   try {
@@ -1588,15 +1647,15 @@ function entMoedaMudou() {
 }
 function entAddLinha() {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><div class="art-cell"><input class="inp art" placeholder="Escreva código, NSAP ou nome..."><button class="btn btn-outline btn-sm" type="button" title="Criar artigo novo" onclick="artigoRapido(this.previousElementSibling)">+ Novo</button></div></td>
+  tr.innerHTML = `<td><div class="art-cell"><input class="inp art" placeholder="Escreva código, NSAP ou nome..."><button class="btn btn-outline btn-sm" type="button" title="Criar artigo novo" onclick="artigoRapido(this.previousElementSibling)">+ Novo</button></div><div class="eime-box" style="display:none;"></div></td>
     <td><div style="display:flex;gap:4px;"><select class="inp loc"></select>${IS_ADMIN ? `<button class="btn btn-outline btn-sm" type="button" title="Criar localização neste armazém" onclick="locRapida(this)">+</button>` : ''}</div></td>
-    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;" oninput="entRecalc()"><span class="muted un"></span></div></td>
+    <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;" oninput="entRecalc();entEimes(this.closest('tr'))"><span class="muted un"></span></div></td>
     <td class="ent-preco"><input class="inp preco num" type="number" min="0" step="0.0001" style="width:120px;" oninput="entRecalc()"></td>
     <td class="ent-preco num usd">—</td>
     <td class="c-x"><button class="btn btn-ghost" title="Remover" onclick="removerLinha(this);entRecalc()">✕</button></td>`;
   $('ent-linhas').appendChild(tr);
   fillLocSelect(tr.querySelector('.loc'), $('ent-arm').value);
-  attachPicker(tr.querySelector('.art'), () => itensArtigos(), it => { tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; tr.querySelector('.qtd').focus(); }, { criar: true });
+  attachPicker(tr.querySelector('.art'), () => itensArtigos(), it => { tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; entEimes(tr); tr.querySelector('.qtd').focus(); }, { criar: true, onClear: () => entEimes(tr) });
   document.querySelectorAll('.ent-preco').forEach(el => el.style.display = $('ent-moeda').value ? '' : 'none');
 }
 function entParaUSD(p) {
@@ -1617,21 +1676,29 @@ function entRecalc() {
 async function guardarEntrada() {
   const arm = $('ent-arm').value, moeda = $('ent-moeda').value, cambio = numVal('ent-cambio');
   if (!arm) return showAlert('ent-alert', 'Escolha o armazém onde o material é guardado.');
-  const linhas = []; let err = null;
+  const linhas = [], novos = []; let err = null;
   document.querySelectorAll('#ent-linhas tr').forEach((tr, i) => {
     const art = tr.querySelector('.art').dataset.id, qtd = tr.querySelector('.qtd').value, preco = tr.querySelector('.preco').value;
     if (!art && !qtd) return;
     if (!art) err = err || `Linha ${i + 1}: escolha o artigo da lista.`;
     else if (!(Number(qtd) > 0)) err = err || `Linha ${i + 1}: indique a quantidade.`;
+    else if (M.art[art]?.eime) {
+      if (!Number.isInteger(Number(qtd))) err = err || `Linha ${i + 1}: um EIME só entra em unidades inteiras.`;
+      const rows = [...tr.querySelectorAll('.en-row')];
+      if (rows.length !== Number(qtd)) err = err || `Linha ${i + 1}: indique o nº de EIME de cada aparelho.`;
+      rows.forEach(r => { const n = r.querySelector('.en-num').value.trim(); if (!n) err = err || `Linha ${i + 1}: falta o nº de EIME de um aparelho.`; novos.push({ artigo_id: art, numero_eime: n, numero_serie: r.querySelector('.en-serie').value, ultima_calibracao: r.querySelector('.en-cal').value || null }); });
+    }
     linhas.push({ artigo_id: art, localizacao_id: tr.querySelector('.loc').value, quantidade: Number(qtd), preco_unit: moeda && preco !== '' ? Number(preco) : null });
   });
+  const numsE = novos.map(n => n.numero_eime.toUpperCase()); if (new Set(numsE).size !== numsE.length) err = err || 'Há nºs de EIME repetidos.';
   if (err) return showAlert('ent-alert', err);
   if (!linhas.length) return showAlert('ent-alert', 'Adicione pelo menos uma linha.');
   if ((moeda === 'AOA' || moeda === 'EUR') && !(cambio > 0) && linhas.some(l => l.preco_unit != null)) return showAlert('ent-alert', 'Indique o câmbio.');
   $('ent-ok').disabled = true; loading(true);
   try {
-    const r = await rpc('arm_registar_entrada', { p: { data: $('ent-data').value, fornecedor_id: $('ent-forn').value || null, documento: $('ent-doc').value, moeda: moeda || null, cambio: cambio, observacoes: $('ent-obs').value, linhas } });
-    closeModal('modal-gen'); toast('Entrada ' + r.numero + ' registada'); await reloadArtigos();
+    const pe = { data: $('ent-data').value, fornecedor_id: $('ent-forn').value || null, documento: $('ent-doc').value, moeda: moeda || null, cambio: cambio, observacoes: $('ent-obs').value, linhas };
+    const r = novos.length ? await rpc('arm_com_eimes', { p_fn: 'arm_registar_entrada', p: { ...pe, eimes_novos: novos } }) : await rpc('arm_registar_entrada', { p: pe });
+    closeModal('modal-gen'); toast('Entrada ' + r.numero + ' registada'); await reloadArtigos(); if (novos.length) await reloadEimes();
     if (PAGE === 'entradas') await loadOperacoes('entrada'); else refreshPage();
   } catch (e) { showAlert('ent-alert', errText(e)); }
   $('ent-ok').disabled = false; loading(false);
@@ -1673,7 +1740,7 @@ function conAddLinha() {
     <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
   $('con-linhas').appendChild(tr);
   const comStock = new Set(CON_STOCK.map(s => s.artigo_id));
-  attachPicker(tr.querySelector('.art'), () => itensArtigos(a => comStock.has(a.id)), it => {
+  attachPicker(tr.querySelector('.art'), () => itensArtigos(a => comStock.has(a.id) && !a.eime), it => {
     const locs = CON_STOCK.filter(s => s.artigo_id === it.id);
     const sel = tr.querySelector('.loc');
     sel.innerHTML = locs.map(s => `<option value="${s.localizacao_id}" data-q="${s.quantidade}">${esc(locNome(s.localizacao_id))} (${fmtQ(s.quantidade)})</option>`).join('');
@@ -1724,13 +1791,13 @@ function openInterno() {
 async function intArmMudou() {
   const arm = $('int-arm').value; $('int-linhas').innerHTML = ''; INT_STOCK = [];
   showAlert('int-alert', arm && locsDoArmazem(arm).length < 2 ? `O armazém "${armNome(arm)}" só tem uma localização (${locsDoArmazem(arm)[0]?.nome || 'Geral'}), por isso não há para onde mudar. Para outro armazém, use "Transferir para outro armazém".` : '', 'warn');
-  if (arm) { loading(true); try { INT_STOCK = await stockDoArmazem(arm); } catch (er) { showAlert('int-alert', errText(er)); } loading(false); }
+  if (arm) { loading(true); try { [INT_STOCK] = await Promise.all([stockDoArmazem(arm), reloadEimes()]); } catch (er) { showAlert('int-alert', errText(er)); } loading(false); }
   intAddLinha();
 }
 function intAddLinha() {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input class="inp art" placeholder="${$('int-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"></td>
-    <td><select class="inp de"></select></td><td><select class="inp para"></select></td>
+  tr.innerHTML = `<td><input class="inp art" placeholder="${$('int-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"><div class="eime-box" style="display:none;"></div></td>
+    <td><select class="inp de" onchange="intDeMudou(this)"></select></td><td><select class="inp para"></select></td>
     <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:100px;"><span class="muted un"></span></div></td>
     <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
   $('int-linhas').appendChild(tr);
@@ -1738,17 +1805,19 @@ function intAddLinha() {
   const comStock = new Set(INT_STOCK.map(s => s.artigo_id));
   attachPicker(tr.querySelector('.art'), () => itensArtigos(a => comStock.has(a.id)), it => {
     tr.querySelector('.de').innerHTML = INT_STOCK.filter(s => s.artigo_id === it.id).map(s => `<option value="${s.localizacao_id}" data-q="${s.quantidade}">${esc(locNome(s.localizacao_id))} (${fmtQ(s.quantidade)})</option>`).join('');
-    tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; tr.querySelector('.qtd').focus();
-  });
+    tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; intDeMudou(tr.querySelector('.de')); tr.querySelector('.qtd').focus();
+  }, { onClear: () => eimeEscolha(tr, null) });
 }
+function intDeMudou(sel) { const tr = sel.closest('tr'), o = sel.selectedOptions[0]; eimeEscolha(tr, tr.querySelector('.art').dataset.id, sel.value, o?.dataset.q); }
 async function guardarInterno() {
   if (!$('int-arm').value) return showAlert('int-alert', 'Escolha o armazém.');
-  const linhas = []; let err = null;
+  const linhas = [], eimes = []; let err = null, temE = false;
   document.querySelectorAll('#int-linhas tr').forEach((tr, i) => {
     const art = tr.querySelector('.art').dataset.id, qtd = tr.querySelector('.qtd').value, de = tr.querySelector('.de').value, para = tr.querySelector('.para').value;
     if (!art && !qtd) return;
+    if (tr._eime) { temE = true; eimes.push(...eimesEscolhidos(tr)); if (!eimeSemOk(tr)) err = err || `Linha ${i + 1}: quantidade sem nº inválida.`; }
     if (!art) err = err || `Linha ${i + 1}: escolha o artigo.`;
-    else if (!(Number(qtd) > 0)) err = err || `Linha ${i + 1}: indique a quantidade.`;
+    else if (!(Number(qtd) > 0)) err = err || (tr._eime ? `Linha ${i + 1}: escolha os aparelhos (nº de EIME).` : `Linha ${i + 1}: indique a quantidade.`);
     else if (de === para) err = err || `Linha ${i + 1}: a origem e o destino são iguais.`;
     linhas.push({ artigo_id: art, de_localizacao_id: de, para_localizacao_id: para, quantidade: Number(qtd) });
   });
@@ -1756,7 +1825,9 @@ async function guardarInterno() {
   if (!linhas.length) return showAlert('int-alert', 'Adicione pelo menos uma linha.');
   $('int-ok').disabled = true; loading(true);
   try {
-    const r = await rpc('arm_movimento_interno', { p: { data: $('int-data').value, observacoes: $('int-obs').value, linhas } });
+    const pi = { data: $('int-data').value, observacoes: $('int-obs').value, linhas };
+    const r = temE ? await rpc('arm_com_eimes', { p_fn: 'arm_movimento_interno', p: { ...pi, eimes } }) : await rpc('arm_movimento_interno', { p: pi });
+    if (temE) await reloadEimes();
     closeModal('modal-gen'); toast('Movimento ' + r.numero + ' registado');
     if (PAGE === 'internos') await loadOperacoes('interno'); else refreshPage();
   } catch (e) { showAlert('int-alert', errText(e)); }
@@ -2050,7 +2121,7 @@ async function abrirExpedicao(id) {
     p.arm_pedido_linhas.forEach(l => (l.arm_pedido_origens || []).forEach(o => { const falta = Number(o.qtd_aprovada) - Number(o.qtd_expedida); if (falta > 0) origens.push({ ...o, artigo_id: l.artigo_id, falta }); }));
     if (!origens.length) throw new Error('Já não há nada por expedir neste pedido.');
     const arms = [...new Set(origens.map(o => o.origem_armazem_id))];
-    const st = await fetchAll('arm_stock', 'artigo_id,localizacao_id,quantidade', q => q.in('localizacao_id', D.locs.filter(l => arms.includes(l.armazem_id)).map(l => l.id)).in('artigo_id', [...new Set(origens.map(o => o.artigo_id))]).order('artigo_id').order('localizacao_id'));
+    const [st] = await Promise.all([fetchAll('arm_stock', 'artigo_id,localizacao_id,quantidade', q => q.in('localizacao_id', D.locs.filter(l => arms.includes(l.armazem_id)).map(l => l.id)).in('artigo_id', [...new Set(origens.map(o => o.artigo_id))]).order('artigo_id').order('localizacao_id')), reloadEimes()]);
     EXP = { p, origens };
     const destArm = M.arm[p.destino_armazem_id];
     $('modal-gen2-box').className = 'modal xl';
@@ -2076,16 +2147,17 @@ async function abrirExpedicao(id) {
       const locs = st.filter(s => s.artigo_id === o.artigo_id && M.loc[s.localizacao_id]?.armazem_id === o.origem_armazem_id && M.loc[s.localizacao_id]?.ativo);
       const un = M.art[o.artigo_id]?.unidade || '';
       if (!locs.length) { h += `<tr><td>${esc(artLabel(o.artigo_id))}</td><td>${esc(armNome(o.origem_armazem_id))}</td><td class="num">${fmtQ(o.falta)} ${esc(un)}</td><td colspan="3" class="neg">Sem stock neste armazém</td></tr>`; return; }
-      let falta = o.falta;
+      let falta = o.falta; const eime = !!M.art[o.artigo_id]?.eime;
       locs.forEach((s, si) => {
-        const v = Math.min(falta, Number(s.quantidade)); falta -= v;
+        const v = eime ? 0 : Math.min(falta, Number(s.quantidade)); falta -= v;
         h += `<tr data-oi="${oi}">${si === 0 ? `<td rowspan="${locs.length}">${esc(artLabel(o.artigo_id))}</td><td rowspan="${locs.length}">${esc(armNome(o.origem_armazem_id))}</td><td rowspan="${locs.length}" class="num">${fmtQ(o.falta)} ${esc(un)}</td>` : ''}
           <td>${esc(locNome(s.localizacao_id))}</td><td class="num">${fmtQ(s.quantidade)}</td>
-          <td class="num"><input class="inp num exp-q" type="number" min="0" step="0.001" value="${v > 0 ? v : 0}" data-origem="${o.id}" data-loc="${s.localizacao_id}" data-disp="${s.quantidade}" style="width:130px;"></td></tr>`;
+          <td class="num"><input class="inp num exp-q" type="number" min="0" step="0.001" value="${v > 0 ? v : 0}" data-origem="${o.id}" data-loc="${s.localizacao_id}" data-disp="${s.quantidade}" data-art="${o.artigo_id}" style="width:130px;">${eime ? '<div class="eime-box" style="display:none;"></div>' : ''}</td></tr>`;
       });
     });
     h += '</tbody></table></div></div>';
     $('gen2-body').innerHTML = h;
+    document.querySelectorAll('#exp-linhas .exp-q').forEach(i => { if (M.art[i.dataset.art]?.eime) eimeEscolha(i.closest('tr'), i.dataset.art, i.dataset.loc, i.dataset.disp, { qtdSel: '.exp-q', zeroVazio: true, titulo: 'Que aparelhos vão (nº de EIME)?' }); });
     attachPicker($('exp-resp'), () => itensColabs(), null);
     attachPicker($('exp-mot'), () => itensColabs(), null);
     if (meuColaborador()) setPicked($('exp-resp'), meuColaborador(), colNome(meuColaborador()));
@@ -2101,9 +2173,10 @@ function expViaMudou() {
 function expMotExt() { setPicked($('exp-mot'), null); $('exp-mot').placeholder = $('exp-mot-ext').checked ? 'Nome do motorista externo' : 'Escreva o nome'; }
 async function confirmarExpedicao() {
   const via = $('exp-via').value, motExt = $('exp-mot-ext').checked;
-  const linhas = []; let err = null;
+  const linhas = [], eimes = []; let err = null, temE = false;
   document.querySelectorAll('#exp-linhas .exp-q').forEach(i => {
-    const v = Number(i.value || 0);
+    const v = Number(i.value || 0), tr = i.closest('tr');
+    if (tr._eime) { temE = true; eimes.push(...eimesEscolhidos(tr)); if (!eimeSemOk(tr)) err = err || 'Há uma linha com quantidade sem nº inválida.'; }
     if (v < 0) err = 'Quantidades não podem ser negativas.';
     if (v > Number(i.dataset.disp)) err = err || `Há uma linha com quantidade superior ao disponível (${fmtQ(i.dataset.disp)}).`;
     if (v > 0) linhas.push({ origem_id: i.dataset.origem, localizacao_id: i.dataset.loc, quantidade: v });
@@ -2121,11 +2194,13 @@ async function confirmarExpedicao() {
   if (err) return showAlert('exp-alert', err);
   $('exp-ok').disabled = true; loading(true);
   try {
-    const r = await rpc('arm_expedir', { p: {
+    const fn = temE ? (pp => rpc('arm_com_eimes', { p_fn: 'arm_expedir', p: { ...pp, eimes } })) : (pp => rpc('arm_expedir', { p: pp }));
+    const r = await fn({
       pedido_id: EXP.p.id, data_expedicao: inputParaISO($('exp-data').value), data_prevista: $('exp-prev').value, local_descarga: $('exp-local').value.trim(),
       motorista_id: motExt ? null : $('exp-mot').dataset.id, motorista_nome: motExt ? $('exp-mot').value.trim() : null,
       viatura_id: via === '__ext' ? null : via, viatura_texto: via === '__ext' ? $('exp-via-txt').value.trim() : null,
-      responsavel_envio_id: $('exp-resp').dataset.id, observacoes: $('exp-obs').value, linhas } });
+      responsavel_envio_id: $('exp-resp').dataset.id, observacoes: $('exp-obs').value, linhas });
+    if (temE) await reloadEimes();
     closeModal('modal-gen2'); closeModal('modal-gen');
     toast('Guia ' + r.numero + ' emitida'); await depoisDePedido();
     $('exp-ok').disabled = false; loading(false);
@@ -2175,7 +2250,7 @@ async function abrirGuia(id) {
   loading(true);
   try {
     const g = await carregarGuia(id);
-    const divs = await fetchAll('arm_divergencias', '*', q => q.eq('guia_id', id).order('created_at').order('id'));
+    const [divs, gE] = await Promise.all([fetchAll('arm_divergencias', '*', q => q.eq('guia_id', id).order('created_at').order('id')), eimesDaGuia(g)]);
     $('modal-gen-box').className = 'modal lg';
     $('gen-title').innerHTML = `🚚 Guia ${esc(g.numero)} ${estadoGuiaBadge(g)}`;
     let h = `<div class="info-grid">
@@ -2193,7 +2268,7 @@ async function abrirGuia(id) {
       ${g.estado === 'cancelada' ? `<div style="grid-column:1/-1;"><div class="alert alert-error" style="margin:0;">Cancelada em ${fmtDT(g.cancelada_em)} por ${esc(profNome(g.cancelada_por))}: ${esc(g.motivo_cancelamento || '')}</div></div>` : ''}
     </div><div class="sec-title">Material</div>`;
     h += miniTable([
-      { t: 'Artigo', v: l => artLabel(l.artigo_id) },
+      { t: 'Artigo', h: l => esc(artLabel(l.artigo_id)) + (gE[l.artigo_id + '|' + l.origem_localizacao_id] ? `<div class="muted">EIME: ${esc(gE[l.artigo_id + '|' + l.origem_localizacao_id].join(', '))}</div>` : '') },
       { t: 'Origem', v: l => armNome(l.origem_armazem_id) + ' / ' + locNome(l.origem_localizacao_id) },
       { t: 'Expedido', cls: 'num', v: l => fmtQ(l.quantidade) + ' ' + (M.art[l.artigo_id]?.unidade || '') },
       { t: 'Recebido', cls: 'num', h: l => l.qtd_recebida == null ? '—' : `<span class="${Number(l.qtd_recebida) < Number(l.quantidade) ? 'neg' : 'pos'}">${fmtQ(l.qtd_recebida)}</span>` +
@@ -2239,6 +2314,14 @@ async function abrirRececao(id) {
   try {
     const g = await carregarGuia(id); REC = g;
     const destA = M.arm[g.destino_armazem_id], locs = locsDoArmazem(g.destino_armazem_id);
+    const temE = g.arm_guia_linhas.some(l => M.art[l.artigo_id]?.eime);
+    let viaj = [], deLoc = {};
+    if (temE) {
+      await reloadEimes();
+      const lg = await fetchAll('arm_eime_log', 'seq,eime_id,de_loc', q => q.eq('operacao_id', g.operacao_id).eq('para_estado', 'em_transito').order('seq'));
+      lg.forEach(x => deLoc[x.eime_id] = x.de_loc);
+      viaj = D.eimes.filter(e => e.estado === 'em_transito' && e.transito_op === g.operacao_id);
+    }
     $('modal-gen2-box').className = 'modal xl';
     $('gen2-title').textContent = '📦 Receção da guia ' + g.numero;
     let h = `<div id="rec-alert"></div>
@@ -2250,12 +2333,19 @@ async function abrirRececao(id) {
       </div>
       <div class="lines"><div class="table-wrap"><table><thead><tr><th>Artigo</th><th class="num">Expedido</th><th class="num" style="width:150px;">Recebido</th><th style="width:220px;">Guardar em (${esc(destA?.nome || '')})</th></tr></thead><tbody id="rec-linhas">`;
     g.arm_guia_linhas.forEach(l => {
-      h += `<tr data-id="${l.id}" data-exp="${l.quantidade}"><td>${esc(artLabel(l.artigo_id))}</td><td class="num">${fmtQ(l.quantidade)} ${esc(M.art[l.artigo_id]?.unidade || '')}</td>
+      h += `<tr data-id="${l.id}" data-exp="${l.quantidade}" data-art="${l.artigo_id}" data-orig="${l.origem_localizacao_id}"><td>${esc(artLabel(l.artigo_id))}${M.art[l.artigo_id]?.eime ? '<div class="eime-box" style="display:none;"></div>' : ''}</td><td class="num">${fmtQ(l.quantidade)} ${esc(M.art[l.artigo_id]?.unidade || '')}</td>
         <td class="num"><input class="inp num rec-q" type="number" min="0" step="0.001" value="${Number(l.quantidade)}" style="width:130px;"></td>
         <td><select class="inp rec-loc">${locs.map(x => `<option value="${x.id}">${esc(x.nome)}</option>`).join('')}</select></td></tr>`;
     });
     h += '</tbody></table></div></div>';
     $('gen2-body').innerHTML = h;
+    document.querySelectorAll('#rec-linhas tr').forEach(tr => {
+      const art = tr.dataset.art; if (!M.art[art]?.eime) return;
+      const mesmos = g.arm_guia_linhas.filter(x => x.artigo_id === art).length;
+      const lista = viaj.filter(e => e.artigo_id === art && (mesmos === 1 || deLoc[e.id] === tr.dataset.orig)).sort((a, b) => a.numero_eime.localeCompare(b.numero_eime, 'pt', { numeric: true }));
+      const sem = Math.max(0, Math.round(Number(tr.dataset.exp)) - lista.length);
+      eimeEscolha(tr, art, null, 0, { lista, semMax: sem, semInicial: sem, marcados: lista.map(e => e.id), qtdSel: '.rec-q', zeroVazio: true, titulo: 'Que aparelhos chegaram? (desmarque os que não vieram)' });
+    });
     attachPicker($('rec-por'), () => itensColabs(), null);
     const resp = destA?.responsavel_id || meuColaborador(); if (resp) setPicked($('rec-por'), resp, colNome(resp));
     $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Voltar</button><button class="btn btn-success" id="rec-ok" onclick="confirmarRececao()">✔ Confirmar receção</button>`;
@@ -2272,7 +2362,8 @@ async function confirmarRececao() {
     if (v === '' || Number(v) < 0) err = err || `Linha ${i + 1}: indique a quantidade recebida (0 se não chegou nada).`;
     if (Number(v) < exp) div = true;
     if (Number(v) > exp) mais.push(`<li>${esc(tr.children[0].textContent)}: expedido ${fmtQ(exp)}, recebido ${fmtQ(v)} → <strong>+${fmtQ(Number(v) - exp)}</strong></li>`);
-    linhas.push({ guia_linha_id: tr.dataset.id, localizacao_id: tr.querySelector('.rec-loc').value, quantidade_recebida: Number(v) });
+    if (tr._eime && !eimeSemOk(tr)) err = err || `Linha ${i + 1}: quantidade sem nº inválida.`;
+    linhas.push({ guia_linha_id: tr.dataset.id, localizacao_id: tr.querySelector('.rec-loc').value, quantidade_recebida: Number(v), ...(tr._eime ? { eimes: eimesEscolhidos(tr) } : {}) });
   });
   if (err) return showAlert('rec-alert', err);
   if (div || mais.length) {
@@ -2284,6 +2375,7 @@ async function confirmarRececao() {
   $('rec-ok').disabled = true; loading(true);
   try {
     const r = await rpc('arm_receber_guia', { p: { guia_id: REC.id, recebido_por_id: $('rec-por').dataset.id, data_rececao: inputParaISO($('rec-data').value), observacoes: $('rec-obs').value, linhas } });
+    if (linhas.some(l => l.eimes)) await reloadEimes();
     closeModal('modal-gen2'); closeModal('modal-gen');
     toast('Guia ' + r.numero + (r.com_divergencia ? ' recebida com divergência' : r.com_excesso ? ' recebida (excesso retirado da origem)' : ' recebida')); await depoisDeGuia();
   } catch (e) { showAlert('rec-alert', errText(e)); }
@@ -2751,6 +2843,7 @@ const EST_ABT = { pendente: ['Por aprovar', 'b-yellow'], aprovado: ['Aprovado', 
 let ABTS = [], ABT_TAB = 'pendente', ABT_STOCK = [];
 const SEL_ABATE = '*, arm_abate_linhas(*), arm_operacoes(arm_movimentos(artigo_id,valor_usd))';
 async function loadAbates() {
+  try { await reloadEimes(); } catch (e) { }
   ABTS = await fetchAll('arm_abates', SEL_ABATE, q => q.order('created_at', { ascending: false }).order('id'));
   drawAbates();
 }
@@ -2792,13 +2885,13 @@ function openNovoAbate() {
 }
 async function abArmMudou() {
   const arm = $('ab-arm').value; $('ab-linhas').innerHTML = ''; ABT_STOCK = [];
-  if (arm) { loading(true); try { ABT_STOCK = await stockDoArmazem(arm); } catch (e) { showAlert('ab-alert', errText(e)); } loading(false); }
+  if (arm) { loading(true); try { [ABT_STOCK] = await Promise.all([stockDoArmazem(arm), reloadEimes()]); } catch (e) { showAlert('ab-alert', errText(e)); } loading(false); }
   abAddLinha();
 }
 function abAddLinha() {
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input class="inp art" placeholder="${$('ab-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"></td>
-    <td><select class="inp loc" onchange="conLocMudou(this)"></select></td><td class="num disp">—</td>
+  tr.innerHTML = `<td><input class="inp art" placeholder="${$('ab-arm').value ? 'Escreva para procurar...' : 'Escolha primeiro o armazém'}"><div class="eime-box" style="display:none;"></div></td>
+    <td><select class="inp loc" onchange="conLocMudou(this);abLocMudou(this)"></select></td><td class="num disp">—</td>
     <td><div class="qtd-cell"><input class="inp qtd num" type="number" min="0" step="0.001" style="width:110px;"><span class="muted un"></span></div></td>
     <td class="c-x"><button class="btn btn-ghost" onclick="removerLinha(this)">✕</button></td>`;
   $('ab-linhas').appendChild(tr);
@@ -2806,9 +2899,10 @@ function abAddLinha() {
   attachPicker(tr.querySelector('.art'), () => itensArtigos(a => comStock.has(a.id)), it => {
     const sel = tr.querySelector('.loc');
     sel.innerHTML = ABT_STOCK.filter(s => s.artigo_id === it.id).map(s => `<option value="${s.localizacao_id}" data-q="${s.quantidade}">${esc(locNome(s.localizacao_id))} (${fmtQ(s.quantidade)})</option>`).join('');
-    tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; conLocMudou(sel); tr.querySelector('.qtd').focus();
-  });
+    tr.querySelector('.un').textContent = M.art[it.id]?.unidade || ''; conLocMudou(sel); abLocMudou(sel); tr.querySelector('.qtd').focus();
+  }, { onClear: () => eimeEscolha(tr, null) });
 }
+function abLocMudou(sel) { const tr = sel.closest('tr'), o = sel.selectedOptions[0]; eimeEscolha(tr, tr.querySelector('.art').dataset.id, sel.value, o?.dataset.q, { titulo: 'Que aparelhos são abatidos (nº de EIME)?' }); }
 async function guardarAbate() {
   const arm = $('ab-arm').value, mot = $('ab-mot').value, desc = $('ab-desc').value.trim();
   if (!arm) return showAlert('ab-alert', 'Escolha o armazém.');
@@ -2819,9 +2913,10 @@ async function guardarAbate() {
     const a = tr.querySelector('.art').dataset.id, q = tr.querySelector('.qtd').value;
     if (!a && !q) return;
     if (!a) err = err || `Linha ${k + 1}: escolha o artigo da lista.`;
-    else if (!(Number(q) > 0)) err = err || `Linha ${k + 1}: indique a quantidade.`;
+    else if (!(Number(q) > 0)) err = err || (tr._eime ? `Linha ${k + 1}: escolha os aparelhos (nº de EIME).` : `Linha ${k + 1}: indique a quantidade.`);
     else { const d = Number(tr.querySelector('.loc').selectedOptions[0]?.dataset.q || 0); if (Number(q) > d) err = err || `Linha ${k + 1}: quantidade superior ao disponível (${fmtQ(d)}).`; }
-    linhas.push({ artigo_id: a, localizacao_id: tr.querySelector('.loc').value, quantidade: Number(q) });
+    if (tr._eime && !eimeSemOk(tr)) err = err || `Linha ${k + 1}: quantidade sem nº inválida.`;
+    linhas.push({ artigo_id: a, localizacao_id: tr.querySelector('.loc').value, quantidade: Number(q), ...(tr._eime ? { eimes: eimesEscolhidos(tr) } : {}) });
   });
   if (err) return showAlert('ab-alert', err);
   if (!linhas.length) return showAlert('ab-alert', 'Adicione pelo menos uma linha.');
@@ -2850,7 +2945,7 @@ async function abrirAbate(id) {
       <div style="grid-column:1/-1;"><div class="k">O que aconteceu</div><div class="v">${esc(a.descricao)}</div></div>
       ${a.obs_decisao ? `<div style="grid-column:1/-1;"><div class="k">Nota da decisão</div><div class="v">${esc(a.obs_decisao)}</div></div>` : ''}
     </div><div class="sec-title">Material</div>`;
-    h += miniTable([{ t: 'Artigo', v: l => artLabel(l.artigo_id) }, { t: 'Localização', v: l => locNome(l.localizacao_id) }, { t: 'Quantidade', cls: 'num', v: l => fmtQ(l.quantidade) + ' ' + (M.art[l.artigo_id]?.unidade || '') },
+    h += miniTable([{ t: 'Artigo', h: l => esc(artLabel(l.artigo_id)) + (l.eimes?.length ? `<div class="muted">EIME: ${esc(eimeNums(l.eimes).join(', '))}</div>` : '') }, { t: 'Localização', v: l => locNome(l.localizacao_id) }, { t: 'Quantidade', cls: 'num', v: l => fmtQ(l.quantidade) + ' ' + (M.art[l.artigo_id]?.unidade || '') },
       { t: 'Valor (USD)', cls: 'num', v: l => a.estado === 'aprovado' ? fmtU(valMov[l.artigo_id]) : (M.art[l.artigo_id]?.custo_medio_usd == null ? '—' : fmtU(l.quantidade * M.art[l.artigo_id].custo_medio_usd)) }], a.arm_abate_linhas);
     $('gen-body').innerHTML = h;
     let left = '', right = '';
@@ -2916,7 +3011,7 @@ async function autoAbatePDF(id) {
     const valor = l => a.estado === 'aprovado' ? valMov[l.artigo_id] : (M.art[l.artigo_id]?.custo_medio_usd == null ? null : l.quantidade * M.art[l.artigo_id].custo_medio_usd);
     const tot = a.arm_abate_linhas.reduce((s, l) => s + (valor(l) || 0), 0);
     doc.autoTable({ startY: y, head: [['Código', 'NSAP', 'Artigo', 'Un.', 'Localização', 'Quantidade', 'Valor USD']],
-      body: a.arm_abate_linhas.map(l => { const r = M.art[l.artigo_id] || {}; return [r.codigo || '', r.nsap || '', pdfTxt(r.nome || ''), r.unidade || '', pdfTxt(locNome(l.localizacao_id)), pdfTxt(fmtQ(l.quantidade)), valor(l) == null ? '-' : pdfTxt(fmtU(valor(l)))]; })
+      body: a.arm_abate_linhas.map(l => { const r = M.art[l.artigo_id] || {}; return [r.codigo || '', r.nsap || '', pdfTxt(r.nome || '') + (l.eimes?.length ? '\nEIME: ' + pdfTxt(eimeNums(l.eimes).join(', ')) : ''), r.unidade || '', pdfTxt(locNome(l.localizacao_id)), pdfTxt(fmtQ(l.quantidade)), valor(l) == null ? '-' : pdfTxt(fmtU(valor(l)))]; })
         .concat([[{ content: 'TOTAL', colSpan: 6, styles: { fontStyle: 'bold', halign: 'right' } }, { content: pdfTxt(fmtU(tot)), styles: { fontStyle: 'bold', halign: 'right' } }]]),
       theme: 'grid', margin: { top: topo + 5, left: 14, right: 14, bottom: 15 }, styles: { fontSize: 8, cellPadding: 1.8, lineColor: [216, 220, 229], lineWidth: .1, textColor: [30, 40, 60] },
       headStyles: { fillColor: [27, 42, 74], textColor: 255, fontStyle: 'bold' }, columnStyles: { 5: { halign: 'right' }, 6: { halign: 'right' } }, didDrawPage: d => { if (d.pageNumber > 1) cab(); } });
@@ -2998,6 +3093,340 @@ async function repAbates(fmt) {
     else await pdfTabela({ titulo: 'Abates de material', subtitulo: sub, landscape: true, ficheiro: 'Abates', colunas: cols.slice(0, 12), linhas: linhas.map(l => l.slice(0, 12)), totais: totais.slice(0, 12) });
   } catch (e) { toast(errText(e), 'err'); }
   loading(false);
+}
+
+/* ============================ EIMEs ============================ */
+const EST_EIME = { ativo: ['Em stock', 'b-green'], em_transito: ['Em trânsito', 'b-blue'], abatido: ['Abatido', 'b-gray'], perdido: ['Perdido', 'b-red'], desaparecido: ['Desaparecido', 'b-red'], removido: ['Entrada anulada', 'b-gray'], em_movimento: ['Em movimento', 'b-blue'], novo: ['Novo', 'b-gray'] };
+const RES_CAL = { apto: ['Apto', 'b-green'], apto_restricoes: ['Apto c/ restrições', 'b-yellow'], nao_apto: ['Não apto', 'b-red'] };
+let EIME_TAB = 'stock';
+async function reloadEimes() {
+  D.eimes = await fetchAll('arm_eimes', '*', q => q.neq('estado', 'removido').order('numero_eime').order('id'));
+  indexar(D.eimes, M.eime);
+}
+function addMeses(d, n) { const [y, m, dd] = d.split('-').map(Number); const x = new Date(Date.UTC(y, m - 1 + n, dd)); if (x.getUTCDate() !== dd) x.setUTCDate(0); return x.toISOString().slice(0, 10); }
+function eimesEm(artId, locId) { return D.eimes.filter(e => e.estado === 'ativo' && e.artigo_id === artId && e.localizacao_id === locId).sort((a, b) => a.numero_eime.localeCompare(b.numero_eime, 'pt', { numeric: true })); }
+function eimeMeses(e) { return e.calibracao_meses || M.art[e.artigo_id]?.calibracao_meses || null; }
+function eimeCal(e) {
+  if (e.em_calibracao) return { t: 'Em calibração', c: 'b-blue', o: 1 };
+  if (e.ultimo_resultado === 'nao_apto') return { t: 'Não apto', c: 'b-red', o: 0 };
+  if (!e.proxima_calibracao) return { t: 'Sem data', c: 'b-gray', o: 2 };
+  const h = hoje();
+  if (e.proxima_calibracao < h) return { t: 'Vencida ' + fmtD(e.proxima_calibracao), c: 'b-red', o: 0 };
+  if (e.proxima_calibracao <= addMeses(h, 2)) return { t: 'Vence ' + fmtD(e.proxima_calibracao), c: 'b-yellow', o: 1 };
+  return { t: 'OK até ' + fmtD(e.proxima_calibracao), c: 'b-green', o: 3 };
+}
+function eimeOnde(e) {
+  if (e.estado === 'ativo') { const l = M.loc[e.localizacao_id]; return l ? `${armLabel(l.armazem_id)} / ${l.nome}` : '—'; }
+  if (e.estado === 'em_transito') return 'Em trânsito (guia)';
+  return EST_EIME[e.estado]?.[0] || e.estado;
+}
+function eimeArmazem(e) { return e.estado === 'ativo' ? M.loc[e.localizacao_id]?.armazem_id : null; }
+function eimeNums(ids) { return (ids || []).map(id => M.eime[id]?.numero_eime).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt', { numeric: true })); }
+
+/* ---------- Escolha de aparelhos nos formulários ---------- */
+function eimeEscolha(tr, artId, locId, stockQtd, opts = {}) {
+  const box = tr.querySelector('.eime-box'), qtd = tr.querySelector(opts.qtdSel || '.qtd');
+  if (!box) return;
+  if (!M.art[artId]?.eime || (!locId && !opts.lista)) {
+    box.style.display = 'none'; box.innerHTML = ''; tr._eime = false;
+    if (qtd) { qtd.readOnly = false; qtd.step = '0.001'; qtd.classList.remove('ro'); }
+    return;
+  }
+  const lista = opts.lista || eimesEm(artId, locId);
+  const semMax = opts.semMax ?? Math.max(0, Math.round(Number(stockQtd || 0)) - lista.length);
+  tr._eime = true; tr._semMax = semMax;
+  box.style.display = '';
+  box.innerHTML = `<div class="eime-tit">${opts.titulo || 'Que aparelhos (nº de EIME)?'}</div><div class="eime-chips">` +
+    (lista.length ? lista.map(e => `<label class="eime-chip"><input type="checkbox" value="${e.id}" ${opts.marcados?.includes(e.id) ? 'checked' : ''}> ${esc(e.numero_eime)}${e.em_calibracao ? ' <span title="Em calibração">🔧</span>' : ''}${eimeCal(e).c === 'b-red' ? ' <span title="Calibração vencida ou não apto">⚠️</span>' : ''}</label>`).join('') : '<span class="muted">Nenhum aparelho com nº.</span>') +
+    (semMax > 0 ? `<label class="eime-sem">+ sem nº <input type="number" class="inp eime-semq" min="0" max="${semMax}" step="1" value="${opts.semInicial ?? 0}"> <span class="muted">(há ${semMax} sem nº)</span></label>` : '') + '</div>';
+  if (qtd) { qtd.readOnly = true; qtd.step = '1'; qtd.classList.add('ro'); }
+  const upd = () => {
+    const n = box.querySelectorAll('input[type=checkbox]:checked').length;
+    const si = box.querySelector('.eime-semq'); let s = Math.floor(Number(si?.value || 0)); if (s > semMax) s = semMax; if (s < 0 || isNaN(s)) s = 0;
+    if (qtd) qtd.value = n + s ? n + s : (opts.zeroVazio ? 0 : '');
+    opts.onChange && opts.onChange();
+  };
+  box.querySelectorAll('input').forEach(i => i.addEventListener(i.type === 'checkbox' ? 'change' : 'input', upd));
+  upd();
+}
+function eimesEscolhidos(tr) { return [...tr.querySelectorAll('.eime-box input[type=checkbox]:checked')].map(i => i.value); }
+function eimeSemOk(tr) { const si = tr.querySelector('.eime-semq'); if (!si) return true; const v = Number(si.value || 0); return Number.isInteger(v) && v >= 0 && v <= (tr._semMax || 0); }
+
+/* Entrada: um nº de EIME por unidade */
+function entEimes(tr) {
+  const box = tr.querySelector('.eime-box'), art = tr.querySelector('.art').dataset.id, qi = tr.querySelector('.qtd');
+  if (!art || !M.art[art]?.eime) { box.style.display = 'none'; box.innerHTML = ''; qi.step = '0.001'; return; }
+  qi.step = '1';
+  const q = Math.min(100, Math.max(0, Math.floor(Number(qi.value || 0))));
+  const ant = [...box.querySelectorAll('.en-row')].map(r => [r.querySelector('.en-num').value, r.querySelector('.en-serie').value, r.querySelector('.en-cal').value]);
+  box.style.display = '';
+  box.innerHTML = '<div class="eime-tit">Nº de EIME de cada aparelho</div>' + (q ? Array.from({ length: q }, (_, i) =>
+    `<div class="en-row"><span class="muted">${i + 1}.</span><input class="inp en-num" placeholder="Nº EIME *" value="${esc(ant[i]?.[0] || '')}"><input class="inp en-serie" placeholder="Nº de série do fabricante" value="${esc(ant[i]?.[1] || '')}"><input type="date" class="inp en-cal" title="Data da última calibração (se já vem calibrado)" max="${hoje()}" value="${ant[i]?.[2] || ''}"></div>`).join('') +
+    '<div class="hint">A data (opcional) é a da última calibração, se o aparelho já vem calibrado com certificado.</div>' : '<span class="muted">Indique a quantidade (unidades inteiras).</span>');
+}
+
+/* ---------- Página ---------- */
+async function loadEimes() {
+  await reloadEimes();
+  const arts = D.artigos.filter(a => a.eime).map(a => a.id);
+  EIME_SEMNUM = [];
+  if (arts.length) {
+    const st = await fetchAll('arm_stock', 'artigo_id,localizacao_id,quantidade', q => q.in('artigo_id', arts).order('artigo_id').order('localizacao_id'));
+    st.forEach(s => { const n = Math.round(Number(s.quantidade)) - eimesEm(s.artigo_id, s.localizacao_id).length; if (n > 0) EIME_SEMNUM.push({ ...s, n }); });
+  }
+  drawEimes();
+}
+let EIME_SEMNUM = [];
+function setEimeTab(el) { EIME_TAB = el.dataset.f; document.querySelectorAll('#eime-tabs .tab').forEach(t => t.classList.toggle('active', t === el)); drawEimes(); }
+function eimesFiltrados() {
+  const q = norm($('eime-q').value).split(/\s+/).filter(Boolean);
+  return D.eimes.filter(e => {
+    const st = ['ativo', 'em_transito'].includes(e.estado), c = eimeCal(e);
+    const ok = EIME_TAB === 'stock' ? st : EIME_TAB === 'calibrar' ? st && !e.em_calibracao && c.o <= 2 : EIME_TAB === 'em_calibracao' ? st && e.em_calibracao : EIME_TAB === 'fora' ? !st : true;
+    return ok && (!q.length || q.every(w => norm(`${e.numero_eime} ${e.numero_serie || ''} ${artLabel(e.artigo_id)} ${eimeOnde(e)} ${armResponsavel(eimeArmazem(e))}`).includes(w)));
+  });
+}
+function drawEimes() {
+  const tot = EIME_SEMNUM.reduce((s, x) => s + x.n, 0);
+  $('eime-semnum').innerHTML = tot ? `<div class="alert alert-warn" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;"><span>Há <strong>${tot}</strong> aparelho(s) EIME em stock <strong>sem nº</strong> registado.</span>${CAN_OP ? '<button class="btn btn-primary btn-sm" onclick="openIdentificar()">🏷️ Dar nº aos aparelhos</button>' : ''}</div>` : '';
+  renderTable('tbl-eimes', [
+    { t: 'Nº EIME', h: e => `<strong>${esc(e.numero_eime)}</strong>`, s: e => e.numero_eime, cls: 'nowrap' },
+    { t: 'Aparelho', v: e => artLabel(e.artigo_id) },
+    { t: 'Nº série', v: e => e.numero_serie || '—', cls: 'hide-m' },
+    { t: 'Onde está', h: e => { const a = eimeArmazem(e); return `${esc(eimeOnde(e))}${a ? `<div class="muted">${esc(M.arm[a]?.tipo === 'pessoa' ? '👷 à guarda de ' : 'resp.: ')}${esc(armResponsavel(a))}</div>` : ''}`; }, s: e => eimeOnde(e) },
+    { t: 'Última calibração', v: e => fmtD(e.ultima_calibracao), s: e => e.ultima_calibracao || '', cls: 'nowrap hide-m' },
+    { t: 'Calibração', h: e => ['ativo', 'em_transito'].includes(e.estado) ? badge(eimeCal(e).t, eimeCal(e).c) : badge(EST_EIME[e.estado][0], EST_EIME[e.estado][1]), s: e => e.proxima_calibracao || '9999' }
+  ], eimesFiltrados(), { onRow: e => abrirEime(e.id), empty: 'Nenhum EIME', resetShown: true, sort: EIME_TAB === 'calibrar' ? 5 : null });
+}
+async function abrirEime(id) {
+  loading(true);
+  try {
+    const [{ data: e, error }, cals, log] = await Promise.all([
+      sb.from('arm_eimes').select('*').eq('id', id).single(),
+      fetchAll('arm_eime_calibracoes', '*', q => q.eq('eime_id', id).order('data', { ascending: false }).order('created_at', { ascending: false })),
+      fetchAll('arm_eime_log', '*, arm_operacoes(numero,tipo)', q => q.eq('eime_id', id).order('seq', { ascending: false }))
+    ]);
+    if (error) throw error;
+    M.eime[id] = e; const k = D.eimes.findIndex(x => x.id === id); if (k >= 0) D.eimes[k] = e;
+    const a = eimeArmazem(e), c = eimeCal(e), meses = eimeMeses(e), st = ['ativo', 'em_transito'].includes(e.estado);
+    $('modal-gen-box').className = 'modal lg';
+    $('gen-title').innerHTML = `🔬 EIME ${esc(e.numero_eime)} ${badge(EST_EIME[e.estado][0], EST_EIME[e.estado][1])}`;
+    const sitio = (est, loc) => est === 'ativo' ? (M.loc[loc] ? armNome(M.loc[loc].armazem_id) + ' / ' + M.loc[loc].nome : '—') : est === 'novo' ? '(registo)' : EST_EIME[est]?.[0] || est;
+    let h = `<div class="info-grid">
+      <div><div class="k">Aparelho</div><div class="v"><strong>${esc(artLabel(e.artigo_id))}</strong></div></div>
+      <div><div class="k">Nº de série</div><div class="v">${esc(e.numero_serie || '—')}</div></div>
+      <div><div class="k">Onde está</div><div class="v">${esc(eimeOnde(e))}${a ? `<div class="muted">${M.arm[a]?.tipo === 'pessoa' ? '👷 à guarda de ' : 'responsável: '}${esc(armResponsavel(a))}</div>` : ''}</div></div>
+      <div><div class="k">Calibrar a cada</div><div class="v">${meses ? meses + ' meses' : '<span class="muted">não definido</span>'}${e.calibracao_meses ? '' : meses ? ' <span class="muted">(padrão do artigo)</span>' : ''}</div></div>
+      <div><div class="k">Última calibração</div><div class="v">${fmtD(e.ultima_calibracao)}${e.ultimo_resultado ? ' ' + badge(RES_CAL[e.ultimo_resultado][0], RES_CAL[e.ultimo_resultado][1]) : ''}</div></div>
+      <div><div class="k">Próxima calibração</div><div class="v">${st ? badge(c.t, c.c) : fmtD(e.proxima_calibracao)}</div></div>
+      ${e.em_calibracao ? `<div style="grid-column:1/-1;"><div class="alert alert-info" style="margin:0;">🔧 Enviado para calibração em ${fmtD(e.calibracao_envio)}${e.calibracao_entidade ? ' — ' + esc(e.calibracao_entidade) : ''}. Quando voltar, registe a calibração.</div></div>` : ''}
+      ${e.observacoes ? `<div style="grid-column:1/-1;"><div class="k">Observações</div><div class="v">${esc(e.observacoes)}</div></div>` : ''}
+    </div>
+    <div class="sec-title">Calibrações</div>`;
+    h += miniTable([
+      { t: 'Data', v: x => fmtD(x.data) }, { t: 'Entidade', v: x => x.entidade || '—' }, { t: 'Certificado', h: x => esc(x.certificado || '—') + (x.ficheiro ? ` <a href="#" onclick="abrirCertificado('${esc(x.ficheiro)}');return false;">📎 abrir</a>` : '') },
+      { t: 'Resultado', h: x => badge(RES_CAL[x.resultado][0], RES_CAL[x.resultado][1]) }, { t: 'Próxima indicada', v: x => fmtD(x.validade) },
+      { t: 'Registado por', h: x => `${esc(profNome(x.registado_por))}${x.observacoes ? `<div class="muted">${esc(x.observacoes)}</div>` : ''}` },
+      ...(IS_ADMIN ? [{ t: '', h: x => `<button class="btn btn-ghost btn-sm" title="Apagar" onclick="apagarCalibracao('${x.id}','${e.id}')">🗑️</button>` }] : [])
+    ], cals, 'Nenhuma calibração registada');
+    h += '<div class="sec-title">Histórico de movimentos</div>' + miniTable([
+      { t: 'Data', v: x => fmtDT(x.created_at) },
+      { t: 'Registo', v: x => x.arm_operacoes ? `${x.arm_operacoes.numero}` : x.de_estado === 'novo' ? 'Registo do nº' : '—' },
+      { t: 'De', v: x => sitio(x.de_estado, x.de_loc) }, { t: 'Para', v: x => sitio(x.para_estado, x.para_loc) },
+      { t: 'Por', v: x => profNome(x.created_by) }
+    ], log, 'Sem movimentos');
+    $('gen-body').innerHTML = h;
+    let left = '', right = '';
+    if (IS_ADMIN && !['em_transito'].includes(e.estado)) left += `<button class="btn btn-red btn-sm" onclick="apagarEime('${e.id}')">🗑️ Apagar ficha</button>`;
+    if (CAN_OP) {
+      left += `<button class="btn btn-outline btn-sm" onclick="editarEime('${e.id}')">✏️ Editar</button>`;
+      if (st && !e.em_calibracao) left += `<button class="btn btn-outline btn-sm" onclick="enviarCalibracao('${e.id}')">🔧 Enviado para calibração</button>`;
+      if (e.em_calibracao) left += `<button class="btn btn-outline btn-sm" onclick="cancelarEnvio('${e.id}')">Cancelar envio</button>`;
+      if (st) right += `<button class="btn btn-primary" onclick="registarCalibracao('${e.id}')">✔ Registar calibração</button>`;
+    }
+    $('gen-footer').innerHTML = `<div class="left">${left}</div>${right}<button class="btn btn-outline" onclick="closeModal('modal-gen')">Fechar</button>`;
+    openModal('modal-gen');
+  } catch (er) { toast(errText(er), 'err'); }
+  loading(false);
+}
+async function abrirCertificado(path) {
+  const w = window.open('', '_blank');
+  try { const { data, error } = await sb.storage.from('armazem-certificados').createSignedUrl(path, 3600); if (error) throw error; if (w) w.location = data.signedUrl; else window.location = data.signedUrl; }
+  catch (e) { if (w) w.close(); toast(errText(e), 'err'); }
+}
+async function depoisDeEime(id) { await reloadEimes(); if (PAGE === 'eimes') await loadEimes(); atualizarContadores(); if (id && M.eime[id]) await abrirEime(id); else closeModal('modal-gen'); }
+function editarEime(id) {
+  const e = M.eime[id]; const pad = M.art[e.artigo_id]?.calibracao_meses;
+  $('modal-gen2-box').className = 'modal';
+  $('gen2-title').textContent = '✏️ Editar EIME ' + e.numero_eime;
+  $('gen2-body').innerHTML = `<div id="ee-alert"></div>
+    <div class="form-row"><div class="form-group"><label>Nº EIME <span class="req">*</span></label><input type="text" id="ee-num" value="${esc(e.numero_eime)}"></div>
+    <div class="form-group"><label>Nº de série do fabricante</label><input type="text" id="ee-serie" value="${esc(e.numero_serie || '')}"></div></div>
+    <div class="form-group"><label>Calibrar de quantos em quantos meses</label><input type="number" id="ee-meses" min="1" max="120" step="1" value="${e.calibracao_meses || ''}" placeholder="${pad ? 'Padrão do artigo: ' + pad + ' meses' : 'Sem periodicidade'}"><div class="hint">Deixe vazio para usar a periodicidade do artigo.</div></div>
+    <div class="form-group"><label>Observações</label><textarea id="ee-obs" rows="2">${esc(e.observacoes || '')}</textarea></div>`;
+  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="ee-ok" onclick="guardarEime('${id}')">Guardar</button>`;
+  openModal('modal-gen2');
+}
+async function guardarEime(id) {
+  const m = $('ee-meses').value;
+  if (!$('ee-num').value.trim()) return showAlert('ee-alert', 'Indique o nº de EIME.');
+  if (m && !(Number.isInteger(Number(m)) && m >= 1 && m <= 120)) return showAlert('ee-alert', 'A periodicidade tem de ser entre 1 e 120 meses.');
+  $('ee-ok').disabled = true; loading(true);
+  try { await rpc('arm_eime_guardar', { p: { id, numero_eime: $('ee-num').value, numero_serie: $('ee-serie').value, calibracao_meses: m || null, observacoes: $('ee-obs').value } }); closeModal('modal-gen2'); toast('EIME guardado'); loading(false); await depoisDeEime(id); return; }
+  catch (e) { showAlert('ee-alert', errText(e)); }
+  $('ee-ok').disabled = false; loading(false);
+}
+function enviarCalibracao(id) {
+  const e = M.eime[id];
+  $('modal-gen2-box').className = 'modal';
+  $('gen2-title').textContent = '🔧 ' + e.numero_eime + ' enviado para calibração';
+  $('gen2-body').innerHTML = `<div id="ec-alert"></div><p class="muted" style="margin-bottom:10px;">O aparelho continua no stock, mas fica marcado como "em calibração" até registar a calibração.</p>
+    <div class="form-row"><div class="form-group"><label>Data de envio</label><input type="date" id="ec-data" value="${hoje()}" max="${hoje()}"></div>
+    <div class="form-group"><label>Entidade / laboratório</label><input type="text" id="ec-ent"></div></div>`;
+  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="ec-ok" onclick="confirmarEnvio('${id}')">Confirmar</button>`;
+  openModal('modal-gen2');
+}
+async function confirmarEnvio(id) {
+  $('ec-ok').disabled = true; loading(true);
+  try { await rpc('arm_eime_enviar_calibracao', { p: { eime_id: id, data: $('ec-data').value, entidade: $('ec-ent').value } }); closeModal('modal-gen2'); toast('Marcado como em calibração'); loading(false); await depoisDeEime(id); return; }
+  catch (e) { showAlert('ec-alert', errText(e)); }
+  $('ec-ok').disabled = false; loading(false);
+}
+async function cancelarEnvio(id) {
+  if (!(await confirmar('Cancelar envio', 'O aparelho deixa de estar marcado como "em calibração" (sem registar calibração). Continuar?', false, 'Continuar'))) return;
+  loading(true);
+  try { await rpc('arm_eime_cancelar_envio', { p_eime: id }); toast('Envio cancelado'); loading(false); await depoisDeEime(id); return; } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+let CAL_FILE = null;
+function registarCalibracao(id) {
+  const e = M.eime[id], meses = eimeMeses(e); CAL_FILE = null;
+  $('modal-gen2-box').className = 'modal';
+  $('gen2-title').textContent = '✔ Calibração do EIME ' + e.numero_eime;
+  $('gen2-body').innerHTML = `<div id="cal-alert"></div>
+    <div class="form-row"><div class="form-group"><label>Data da calibração <span class="req">*</span></label><input type="date" id="cal-data" value="${hoje()}" max="${hoje()}" oninput="calHint()"></div>
+    <div class="form-group"><label>Resultado <span class="req">*</span></label><select id="cal-res">${Object.entries(RES_CAL).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label>Entidade / laboratório</label><input type="text" id="cal-ent" value="${esc(e.calibracao_entidade || '')}"></div>
+    <div class="form-group"><label>Nº do certificado</label><input type="text" id="cal-cert"></div></div>
+    <div class="form-group"><label>Próxima calibração</label><input type="date" id="cal-val"><div class="hint" id="cal-hint"></div></div>
+    <div class="form-group"><label>Certificado (PDF ou foto) — opcional</label><input type="file" id="cal-fich" accept="application/pdf,image/*,.heic,.heif" onchange="calFicheiro(this)"><div class="hint" id="cal-fich-info"></div></div>
+    <div class="form-group"><label>Observações</label><input type="text" id="cal-obs"></div>`;
+  $('gen2-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen2')">Cancelar</button><button class="btn btn-primary" id="cal-ok" onclick="guardarCalibracao('${id}')">Registar calibração</button>`;
+  $('cal-hint').dataset.meses = meses || '';
+  calHint(); openModal('modal-gen2');
+}
+function calHint() {
+  const m = Number($('cal-hint').dataset.meses || 0), d = $('cal-data').value;
+  $('cal-hint').textContent = m && d ? `Se deixar vazio: ${fmtD(addMeses(d, m))} (${m} meses depois). Preencha só se o certificado indicar outra data.` : 'Sem periodicidade definida: indique a data da próxima calibração (ou defina a periodicidade no artigo/ficha).';
+}
+async function calFicheiro(inp) {
+  const f = inp.files[0]; CAL_FILE = null; $('cal-fich-info').textContent = ''; if (!f) return;
+  try {
+    if (/pdf/i.test(f.type) || /\.pdf$/i.test(f.name)) {
+      if (f.size > 10 * 1024 * 1024) { inp.value = ''; return showAlert('cal-alert', 'O PDF tem mais de 10 MB.'); }
+      CAL_FILE = { blob: f, nome: f.name, tipo: 'application/pdf', ext: 'pdf' };
+    } else {
+      loading(true);
+      let blob = f;
+      if (/heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name)) { await loadScript(LIBS.heic); blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: .85 }); if (Array.isArray(blob)) blob = blob[0]; }
+      await loadScript(LIBS.imgcomp);
+      const c = await imageCompression(new File([blob], 'cert.jpg', { type: blob.type || 'image/jpeg' }), { maxSizeMB: 0.5, maxWidthOrHeight: 2000, useWebWorker: false, fileType: 'image/jpeg' });
+      CAL_FILE = { blob: c, nome: f.name.replace(/\.[^.]+$/, '') + '.jpg', tipo: 'image/jpeg', ext: 'jpg' };
+      loading(false);
+    }
+    $('cal-fich-info').textContent = '✔ ' + CAL_FILE.nome + ' (' + Math.round(CAL_FILE.blob.size / 1024) + ' KB)';
+  } catch (e) { loading(false); inp.value = ''; showAlert('cal-alert', 'Não foi possível ler o ficheiro: ' + errText(e)); }
+}
+async function guardarCalibracao(id) {
+  if (!$('cal-data').value) return showAlert('cal-alert', 'Indique a data da calibração.');
+  if (!$('cal-hint').dataset.meses && !$('cal-val').value) return showAlert('cal-alert', 'Indique a data da próxima calibração (não há periodicidade definida).');
+  if ($('cal-val').value && $('cal-val').value <= $('cal-data').value) return showAlert('cal-alert', 'A próxima calibração tem de ser depois da data da calibração.');
+  $('cal-ok').disabled = true; loading(true);
+  let path = null;
+  try {
+    if (CAL_FILE) {
+      path = `eimes/${id}/${Date.now()}.${CAL_FILE.ext}`;
+      const up = await sb.storage.from('armazem-certificados').upload(path, CAL_FILE.blob, { contentType: CAL_FILE.tipo, upsert: false });
+      if (up.error) throw up.error;
+    }
+    await rpc('arm_eime_registar_calibracao', { p: { eime_id: id, data: $('cal-data').value, resultado: $('cal-res').value, entidade: $('cal-ent').value, certificado: $('cal-cert').value, validade: $('cal-val').value || null, ficheiro: path, ficheiro_nome: CAL_FILE?.nome || null, observacoes: $('cal-obs').value } });
+    closeModal('modal-gen2'); toast('Calibração registada'); loading(false); await depoisDeEime(id); return;
+  } catch (e) { if (path) sb.storage.from('armazem-certificados').remove([path]); showAlert('cal-alert', errText(e)); }
+  $('cal-ok').disabled = false; loading(false);
+}
+async function apagarCalibracao(calId, eimeId) {
+  if (!(await confirmar('Apagar calibração', 'Apagar este registo de calibração (e o certificado anexado)?', true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { const r = await rpc('arm_eime_apagar_calibracao', { p_cal: calId }); if (r.ficheiro) sb.storage.from('armazem-certificados').remove([r.ficheiro]); toast('Calibração apagada'); loading(false); await depoisDeEime(eimeId); return; }
+  catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+async function apagarEime(id) {
+  const e = M.eime[id];
+  if (!(await confirmar('Apagar ficha do EIME ' + e.numero_eime, `Apagar a ficha, as calibrações e o histórico do EIME <strong>${esc(e.numero_eime)}</strong>?${e.estado === 'ativo' ? '<br><br>O aparelho <strong>continua no stock</strong>, mas fica "sem nº".' : ''}<br><br>Não é possível desfazer.`, true, '🗑️ Apagar'))) return;
+  loading(true);
+  try { const r = await rpc('arm_eime_apagar', { p_eime: id }); if (r.ficheiros?.length) sb.storage.from('armazem-certificados').remove(r.ficheiros); toast('Ficha ' + r.numero_eime + ' apagada'); loading(false); await depoisDeEime(null); return; }
+  catch (er) { toast(errText(er), 'err'); }
+  loading(false);
+}
+
+/* ---------- Dar nº a aparelhos que estão em stock sem nº ---------- */
+async function openIdentificar() {
+  if (PAGE !== 'eimes') await loadEimes();
+  if (!EIME_SEMNUM.length) return toast('Não há aparelhos sem nº em stock');
+  $('modal-gen-box').className = 'modal lg';
+  $('gen-title').textContent = '🏷️ Dar nº de EIME a aparelhos em stock';
+  $('gen-body').innerHTML = `<div id="id-alert"></div>
+    <div class="form-group"><label>Aparelhos sem nº <span class="req">*</span></label><select id="id-sel" onchange="idMudou()">${EIME_SEMNUM.map((s, k) => `<option value="${k}">${esc(artLabel(s.artigo_id))} — ${esc(armNome(M.loc[s.localizacao_id]?.armazem_id))} / ${esc(locNome(s.localizacao_id))} (${s.n} sem nº)</option>`).join('')}</select></div>
+    <div class="lines"><div class="table-wrap"><table><thead><tr><th>Nº EIME *</th><th>Nº de série</th><th>Última calibração</th><th class="c-x"></th></tr></thead><tbody id="id-linhas"></tbody></table></div>
+    <div class="add-row"><button class="btn btn-outline btn-sm" onclick="idAdd()">+ Mais um aparelho</button></div></div>`;
+  $('gen-footer').innerHTML = `<button class="btn btn-outline" onclick="closeModal('modal-gen')">Cancelar</button><button class="btn btn-primary" id="id-ok" onclick="guardarIdentificar()">Registar</button>`;
+  idMudou(); openModal('modal-gen');
+}
+function idMudou() { $('id-linhas').innerHTML = ''; idAdd(); }
+function idAdd() {
+  const s = EIME_SEMNUM[$('id-sel').value]; if ($('id-linhas').children.length >= s.n) return showAlert('id-alert', `Neste sítio só há ${s.n} aparelho(s) sem nº.`, 'warn');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input class="inp id-num" placeholder="Nº EIME"></td><td><input class="inp id-serie"></td><td><input type="date" class="inp id-cal" max="${hoje()}"></td><td class="c-x"><button class="btn btn-ghost" onclick="this.closest('tr').remove()">✕</button></td>`;
+  $('id-linhas').appendChild(tr); tr.querySelector('.id-num').focus();
+}
+async function guardarIdentificar() {
+  const s = EIME_SEMNUM[$('id-sel').value];
+  const eimes = [...document.querySelectorAll('#id-linhas tr')].map(tr => ({ numero_eime: tr.querySelector('.id-num').value.trim(), numero_serie: tr.querySelector('.id-serie').value, ultima_calibracao: tr.querySelector('.id-cal').value || null })).filter(x => x.numero_eime || x.numero_serie);
+  if (!eimes.length) return showAlert('id-alert', 'Indique pelo menos um nº de EIME.');
+  if (eimes.some(x => !x.numero_eime)) return showAlert('id-alert', 'Há uma linha sem nº de EIME.');
+  const nums = eimes.map(x => x.numero_eime.toUpperCase()); if (new Set(nums).size !== nums.length) return showAlert('id-alert', 'Há números repetidos.');
+  $('id-ok').disabled = true; loading(true);
+  try { const r = await rpc('arm_eime_identificar', { p: { artigo_id: s.artigo_id, localizacao_id: s.localizacao_id, eimes } }); closeModal('modal-gen'); toast(r.registados + ' EIME(s) registado(s)'); await loadEimes(); atualizarContadores(); }
+  catch (e) { showAlert('id-alert', errText(e)); }
+  $('id-ok') && ($('id-ok').disabled = false); loading(false);
+}
+
+/* ---------- Relatório de EIMEs ---------- */
+async function repEimes(fmt) {
+  loading(true);
+  try {
+    if (!D.eimes) await reloadEimes();
+    const rows = eimesFiltrados().sort((a, b) => a.numero_eime.localeCompare(b.numero_eime, 'pt', { numeric: true }));
+    const tab = document.querySelector('#eime-tabs .tab.active')?.textContent || '';
+    const cols = [{ h: 'Nº EIME', w: 16 }, { h: 'Aparelho', w: 40 }, { h: 'Nº série', w: 18 }, { h: 'Onde está', w: 40 }, { h: 'Responsável', w: 24 }, { h: 'Última calibração', w: 14, f: 'd' }, { h: 'Próxima calibração', w: 14, f: 'd' }, { h: 'Situação', w: 20 }];
+    const linhas = rows.map(e => [e.numero_eime, artLabel(e.artigo_id), e.numero_serie || '', eimeOnde(e), eimeArmazem(e) ? armResponsavel(eimeArmazem(e)) : '', e.ultima_calibracao, e.proxima_calibracao, ['ativo', 'em_transito'].includes(e.estado) ? eimeCal(e).t : EST_EIME[e.estado][0]]);
+    const sub = tab + ' · ' + rows.length + ' aparelho(s)';
+    if (fmt === 'xlsx') await exportarExcel('EIMEs', 'EIMEs — equipamentos de medição', sub, [{ nome: 'EIMEs', colunas: cols, linhas }]);
+    else await pdfTabela({ titulo: 'EIMEs — equipamentos de medição', subtitulo: sub, landscape: true, ficheiro: 'EIMEs', colunas: cols, linhas });
+  } catch (e) { toast(errText(e), 'err'); }
+  loading(false);
+}
+
+/* ---------- Nº de EIME numa guia ---------- */
+async function eimesDaGuia(g) {
+  const log = await fetchAll('arm_eime_log', 'seq,eime_id,de_loc', q => q.eq('operacao_id', g.operacao_id).eq('para_estado', 'em_transito').order('seq'));
+  const falta = [...new Set(log.map(x => x.eime_id))].filter(id => !M.eime[id]);
+  if (falta.length) { const ex = await fetchAll('arm_eimes', '*', q => q.in('id', falta).order('id')); ex.forEach(e => M.eime[e.id] = e); }
+  const map = {};
+  log.forEach(x => { const e = M.eime[x.eime_id]; if (!e) return; const k = e.artigo_id + '|' + x.de_loc; (map[k] = map[k] || new Set()).add(e.numero_eime); });
+  const out = {}; Object.entries(map).forEach(([k, s]) => out[k] = [...s].sort((a, b) => a.localeCompare(b, 'pt', { numeric: true })));
+  return out;
 }
 
 /* ============================ RELATÓRIOS ============================ */
@@ -3222,6 +3651,7 @@ async function gerarGuiaPDF(id) {
   loading(true);
   try {
     const g = await carregarGuia(id);
+    const gE = await eimesDaGuia(g);
     const destA = M.arm[g.destino_armazem_id], destE = M.est[destA?.estaleiro_id];
     const { doc, eip, cli } = await novoPDF(false, destE?.centro_custo_id);
     const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
@@ -3277,7 +3707,8 @@ async function gerarGuiaPDF(id) {
       const head = [['Nº', 'Código', 'NSAP', 'Designação do material', 'Un.', 'Quantidade', 'Origem (armazém / localização)'].concat(recebida ? ['Recebido'] : [])];
       const body = g.arm_guia_linhas.map((l, i) => {
         const a = M.art[l.artigo_id] || {};
-        return [i + 1, a.codigo || '', a.nsap || '', pdfTxt(a.nome || ''), a.unidade || '', pdfTxt(fmtQ(l.quantidade)), pdfTxt(armNome(l.origem_armazem_id) + ' / ' + locNome(l.origem_localizacao_id))].concat(recebida ? [pdfTxt(fmtQ(l.qtd_recebida))] : []);
+        const en = gE[l.artigo_id + '|' + l.origem_localizacao_id];
+        return [i + 1, a.codigo || '', a.nsap || '', pdfTxt(a.nome || '') + (en ? '\nEIME: ' + pdfTxt(en.join(', ')) : ''), a.unidade || '', pdfTxt(fmtQ(l.quantidade)), pdfTxt(armNome(l.origem_armazem_id) + ' / ' + locNome(l.origem_localizacao_id))].concat(recebida ? [pdfTxt(fmtQ(l.qtd_recebida))] : []);
       });
       doc.autoTable({ startY: y3 + 2, head, body, theme: 'grid', margin: { top: topo + 5, left: 14, right: 14, bottom: 15 },
         styles: { fontSize: 8, cellPadding: 1.8, lineColor: [216, 220, 229], lineWidth: .1, textColor: [30, 40, 60] },
