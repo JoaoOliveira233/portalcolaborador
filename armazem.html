@@ -663,7 +663,7 @@
           <div class="form-group"><label>Stock mínimo (total)</label><input type="number" id="a-minimo" min="0" step="0.001" placeholder="Sem mínimo"></div>
           <div class="form-group"><label>&nbsp;</label><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-eime" onchange="$('a-cal-fg').style.display=this.checked?'':'none'"> É um EIME (calibração periódica)</label></div>
         </div>
-        <div class="form-group" id="a-cal-fg" style="display:none;"><label>Calibrar de quantos em quantos meses</label><input type="number" id="a-cal" min="1" max="120" step="1" placeholder="Ex.: 12"><div class="hint">Periodicidade normal deste tipo de aparelho. Cada aparelho pode ter outra na sua ficha. Cada aparelho é seguido pelo seu nº de EIME.</div></div>
+        <div class="form-group" id="a-cal-fg" style="display:none;"><label>Calibrar de quantos em quantos meses</label><input type="number" id="a-cal" min="1" max="120" step="1" placeholder="Ex.: 12"><div class="hint">Periodicidade normal deste tipo de aparelho. Cada aparelho pode ter outra na sua ficha.</div><div class="alert alert-info" style="margin:8px 0 0;">O <strong>nº de EIME</strong> e o <strong>nº de série</strong> são de cada aparelho: indicam-se na linha da <strong>entrada</strong> (aparece logo por baixo do artigo) ou, para aparelhos já em stock, em <strong>EIMEs → Dar nº a aparelhos</strong>.</div></div>
         <div class="form-group"><label>Observações</label><textarea id="a-obs" rows="2"></textarea></div>
         <div class="form-group only-admin"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:14px;font-weight:500;color:var(--gray-800);"><input type="checkbox" id="a-ativo" checked> Artigo activo</label></div>
       </div>
@@ -1684,9 +1684,11 @@ async function guardarEntrada() {
     else if (!(Number(qtd) > 0)) err = err || `Linha ${i + 1}: indique a quantidade.`;
     else if (M.art[art]?.eime) {
       if (!Number.isInteger(Number(qtd))) err = err || `Linha ${i + 1}: um EIME só entra em unidades inteiras.`;
-      const rows = [...tr.querySelectorAll('.en-row')];
-      if (rows.length !== Number(qtd)) err = err || `Linha ${i + 1}: indique o nº de EIME de cada aparelho.`;
-      rows.forEach(r => { const n = r.querySelector('.en-num').value.trim(); if (!n) err = err || `Linha ${i + 1}: falta o nº de EIME de um aparelho.`; novos.push({ artigo_id: art, numero_eime: n, numero_serie: r.querySelector('.en-serie').value, ultima_calibracao: r.querySelector('.en-cal').value || null }); });
+      [...tr.querySelectorAll('.en-row')].forEach(r => {
+        const n = r.querySelector('.en-num').value.trim(), sn = r.querySelector('.en-serie').value.trim(), dc = r.querySelector('.en-cal').value;
+        if (!n) { if (sn || dc) err = err || `Linha ${i + 1}: indicou nº de série ou calibração sem o nº de EIME. Sem nº de EIME deixe a linha do aparelho vazia.`; return; }
+        novos.push({ artigo_id: art, localizacao_id: tr.querySelector('.loc').value, numero_eime: n, numero_serie: sn, ultima_calibracao: dc || null });
+      });
     }
     linhas.push({ artigo_id: art, localizacao_id: tr.querySelector('.loc').value, quantidade: Number(qtd), preco_unit: moeda && preco !== '' ? Number(preco) : null });
   });
@@ -3157,12 +3159,13 @@ function entEimes(tr) {
   const box = tr.querySelector('.eime-box'), art = tr.querySelector('.art').dataset.id, qi = tr.querySelector('.qtd');
   if (!art || !M.art[art]?.eime) { box.style.display = 'none'; box.innerHTML = ''; qi.step = '0.001'; return; }
   qi.step = '1';
+  if (qi.value === '') qi.value = 1;
   const q = Math.min(100, Math.max(0, Math.floor(Number(qi.value || 0))));
   const ant = [...box.querySelectorAll('.en-row')].map(r => [r.querySelector('.en-num').value, r.querySelector('.en-serie').value, r.querySelector('.en-cal').value]);
   box.style.display = '';
-  box.innerHTML = '<div class="eime-tit">Nº de EIME de cada aparelho</div>' + (q ? Array.from({ length: q }, (_, i) =>
-    `<div class="en-row"><span class="muted">${i + 1}.</span><input class="inp en-num" placeholder="Nº EIME *" value="${esc(ant[i]?.[0] || '')}"><input class="inp en-serie" placeholder="Nº de série do fabricante" value="${esc(ant[i]?.[1] || '')}"><input type="date" class="inp en-cal" title="Data da última calibração (se já vem calibrado)" max="${hoje()}" value="${ant[i]?.[2] || ''}"></div>`).join('') +
-    '<div class="hint">A data (opcional) é a da última calibração, se o aparelho já vem calibrado com certificado.</div>' : '<span class="muted">Indique a quantidade (unidades inteiras).</span>');
+  box.innerHTML = '<div class="eime-tit">🔬 EIME — nº de cada aparelho</div>' + (q ? Array.from({ length: q }, (_, i) =>
+    `<div class="en-row"><span class="muted">${i + 1}.</span><input class="inp en-num" placeholder="Nº EIME (se já tiver)" value="${esc(ant[i]?.[0] || '')}"><input class="inp en-serie" placeholder="Nº de série do fabricante" value="${esc(ant[i]?.[1] || '')}"><input type="date" class="inp en-cal" title="Data da última calibração (se já vem calibrado)" max="${hoje()}" value="${ant[i]?.[2] || ''}"></div>`).join('') +
+    '<div class="hint">Tudo opcional. Os aparelhos sem nº de EIME ficam "sem nº" e pode dar-lhes o nº mais tarde na página EIMEs. A data é a da última calibração, se o aparelho já vem calibrado com certificado.</div>' : '<span class="muted">Indique a quantidade (unidades inteiras).</span>');
 }
 
 /* ---------- Página ---------- */
