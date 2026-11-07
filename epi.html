@@ -2316,40 +2316,21 @@ async function saveEntrega(imprimir) {
 
   if (!linhas.length) return showAlert('entrega-alert', 'Adicione pelo menos um EPI.', 'error');
 
-  // Generate unique entrega_id and get guia number
-  const entregaId = crypto.randomUUID();
+  // entrega_id e número da guia são gerados pela base de dados
   const viaNum = imprimir ? 1 : 0;
   // Use year from delivery date for guia numbering
   const dataEntregaDate = new Date(data + 'T00:00:00');
   const anoAtual = dataEntregaDate.getFullYear();
 
-  // Get and increment guia counter for that year
-  let guiaNum = 1;
-  const { data: counterData } = await sb.from('guia_counter').select('*').eq('ano', anoAtual).single();
-  if (counterData) {
-    guiaNum = counterData.ultimo_numero + 1;
-    await sb.from('guia_counter').update({ ultimo_numero: guiaNum }).eq('ano', anoAtual);
-  } else {
-    await sb.from('guia_counter').insert({ ano: anoAtual, ultimo_numero: 1 });
-    guiaNum = 1;
-  }
-
-  // Save all saidas with same entrega_id and guia number
-  for (const linha of linhas) {
-    const { error } = await sb.from('saidas').insert({
-      epi_id: linha.epiId,
-      colaborador_id: colabId,
-      quantidade_entregue: linha.qtdEnt,
-      quantidade_devolvida: linha.qtdDev,
-      data,
-      criado_por: currentUser.id,
-      entrega_id: entregaId,
-      via_impressao: viaNum,
-      guia_numero: guiaNum,
-      guia_ano: anoAtual
-    });
-    if (error) return showAlert('entrega-alert', 'Erro: ' + error.message, 'error');
-  }
+  // Número da guia + gravação numa única operação atómica na BD (tudo ou nada)
+  const { data: rpcEnt, error: rpcEntErr } = await sb.rpc('registar_entrega_epi', {
+    p_colaborador_id: colabId,
+    p_data: data,
+    p_via: viaNum,
+    p_linhas: linhas.map(l => ({ epi_id: l.epiId, qtd_entregue: l.qtdEnt, qtd_devolvida: l.qtdDev }))
+  });
+  if (rpcEntErr) return showAlert('entrega-alert', 'Erro ao gravar a entrega (nada foi gravado): ' + rpcEntErr.message, 'error');
+  const guiaNum = rpcEnt.guia_numero;
 
   await loadAll();
   renderSaidas();
@@ -2581,51 +2562,27 @@ async function saveDevolucao(imprimir) {
   if (!colabId || !data) return showAlert('devolucao-alert', 'Selecione o colaborador e a data.', 'error');
   if (!window._devEpis?.length) return showAlert('devolucao-alert', 'Sem EPIs para devolver.', 'error');
 
-  // Get and increment dev counter for that year
-  const dataDevDate = new Date(data + 'T00:00:00');
-  const anoDevAtual = dataDevDate.getFullYear();
-  let guiaDevNum = 1;
-  const { data: devCounterData } = await sb.from('guia_counter').select('*').eq('ano', anoDevAtual).single();
-  if (devCounterData) {
-    guiaDevNum = (devCounterData.ultimo_numero_dev || 0) + 1;
-    await sb.from('guia_counter').update({ ultimo_numero_dev: guiaDevNum }).eq('ano', anoDevAtual);
-  } else {
-    await sb.from('guia_counter').insert({ ano: anoDevAtual, ultimo_numero: 0, ultimo_numero_dev: 1 });
-    guiaDevNum = 1;
-  }
-
-  const entregaDevId = crypto.randomUUID();
+  const anoDevAtual = new Date(data + 'T00:00:00').getFullYear();
   const linhasGuia = [];
-
+  const linhasRpc = [];
   for (const item of window._devEpis) {
     const qtd = parseInt(document.getElementById('dev-qtd-' + item.epiId)?.value) || 0;
     const estado = document.getElementById('dev-estado-' + item.epiId)?.value;
     if (qtd <= 0) continue;
-
-    // Register devolucao - quantidade_entregue=0, quantidade_devolvida=qtd
-    const { error } = await sb.from('saidas').insert({
-      epi_id: item.epiId,
-      colaborador_id: colabId,
-      quantidade_entregue: 0,
-      quantidade_devolvida: qtd,
-      data,
-      criado_por: currentUser.id,
-      tipo: 'devolucao',
-      entrega_id: entregaDevId,
-      via_impressao: imprimir ? 1 : 0,
-      guia_numero: guiaDevNum,
-      guia_ano: anoDevAtual
-    });
-    if (error) return showAlert('devolucao-alert', 'Erro: ' + error.message, 'error');
-
-    // If bom estado - return to stock
-    if (estado === 'bom') {
-      const epi = allEpis.find(e => e.id === item.epiId);
-      if (epi) await sb.from('epis').update({ stock_atual: epi.stock_atual + qtd }).eq('id', item.epiId);
-    }
-
+    linhasRpc.push({ epi_id: item.epiId, qtd, estado });
     linhasGuia.push({ epi: item.epi, qtd, estado });
   }
+  if (!linhasRpc.length) return showAlert('devolucao-alert', 'Indique pelo menos uma quantidade a devolver.', 'error');
+
+  // Número da guia + gravação + reposição de stock numa única operação atómica (tudo ou nada)
+  const { data: rpcDev, error: rpcDevErr } = await sb.rpc('registar_devolucao_epi', {
+    p_colaborador_id: colabId,
+    p_data: data,
+    p_via: imprimir ? 1 : 0,
+    p_linhas: linhasRpc
+  });
+  if (rpcDevErr) return showAlert('devolucao-alert', 'Erro ao gravar a devolução (nada foi gravado): ' + rpcDevErr.message, 'error');
+  const guiaDevNum = rpcDev.guia_numero;
 
   await loadAll();
   renderSaidas();
