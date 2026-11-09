@@ -476,7 +476,7 @@ async function loadAll() {
         const { data } = await sb.from('alcoolemia')
           .select('*, colaboradores(nome,numero_mecanografico), centros_custo(id,nome,codigo), profiles(nome)')
           .order('data', { ascending: false })
-          .range(from, from + 999);
+          .order('id', { ascending: true }).range(from, from + 999);
         chunk = data || [];
         all = all.concat(chunk);
         from += 1000;

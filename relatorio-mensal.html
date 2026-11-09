@@ -1955,7 +1955,7 @@ async function loadRegistos() {
   const paginate = async (table, select, order) => {
     let all = [], from = 0, chunk;
     do {
-      const { data } = await sb.from(table).select(select).order(order, { ascending: false }).range(from, from+999);
+      const { data } = await sb.from(table).select(select).order(order, { ascending: false }).order('id', { ascending: true }).range(from, from+999);
       chunk = data || []; all = all.concat(chunk); from += 1000;
     } while(chunk.length === 1000);
     return all;
